@@ -1,8 +1,18 @@
 language: python
+
 python:
   - "2.6"
   - "2.7"
+
 # command to install dependencies
-install: "pip install -r requirements.txt"
+install:
+  - pip install -r requirements.txt
+  - pip install -r test-requirements.txt
+
 # command to run tests
-script: python tests.py
+script:
+  - coverage run --include './*' --omit 'manage.py' --source '.' tests.py
+
+# command to run after tests
+after_success:
+  - coveralls
