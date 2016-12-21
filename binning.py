@@ -1,6 +1,31 @@
 
 class PhaseSpace(object):
-    """A PhaseSpace defines the possible combinations of variables that characterize an event."""
+    """A PhaseSpace defines the possible combinations of variables that characterize an event.
+
+    It can be seen as the carthesian product of those variables.
+
+        >>> ps = PhaseSpace(variables=['a', 'b', 'c'])
+        >>> print ps
+        ('a' X 'c' X 'b')
+
+    You can check whether a variable is part of a phase space:
+
+        >>> 'a' in ps
+        True
+
+    Phase spaces can be compared to one another.
+
+    Check whether two phase spaces are identical:
+
+        ('a' X 'b') == ('a' X 'b')
+        ('a' X 'b') != ('a' X 'c')
+
+    Check whether one phase space is a sub-space of the other:
+
+        ('a' X 'b' X 'c') > ('a' X 'b')
+        ('a' X 'c') < ('a' X 'b' X 'c')
+
+    """
 
     def __init__(self, variables):
         """Create a PhaseSpace object.
