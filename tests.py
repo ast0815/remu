@@ -84,6 +84,14 @@ class TestBins(unittest.TestCase):
         self.b0.fill([0.5, 0.5, 0.5])
         self.assertEqual(self.b0.value, 3.0)
 
+    def test_string_representation(self):
+        """Test whether the text parsing can reproduce the original object."""
+        self.assertEqual(self.b0.phasespace, binning.Bin.from_string(str(self.b0)).phasespace)
+        self.assertEqual(self.b0.value, binning.Bin.from_string(str(self.b0)).value)
+        self.assertEqual(self.b1.value, binning.Bin.from_string(str(self.b1)).value)
+        self.assertEqual(self.b2.value, binning.Bin.from_string(str(self.b2)).value)
+        self.assertEqual(self.bd.value, binning.Bin.from_string(str(self.bd)).value)
+
 class TestRectangularBins(unittest.TestCase):
     def setUp(self):
         self.b = binning.RectangularBin(edges={'x':(0,1), 'y':(5,float('inf'))})

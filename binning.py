@@ -138,7 +138,16 @@ class Bin(object):
         return ret
 
     def __str__(self):
-        return "Bin on phase space %s"%(self.phasespace,)
+        return "Bin on %s: %s"%(self.phasespace,repr(self.value))
+
+    @staticmethod
+    def from_string(string):
+        """Create a Bin object from it string representation."""
+        m = re.match(r"Bin on ([^:]+): (.+)$", string)
+        psstr = m.group(1)
+        ps = PhaseSpace.from_string(psstr)
+        val = eval(m.group(2))
+        return Bin(phasespace=ps, value=val)
 
 class RectangularBin(Bin):
     """A bin defined by min and max values in all variables."""
