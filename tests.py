@@ -107,15 +107,23 @@ class TestRectangularBins(unittest.TestCase):
         """Test inclusion of lower bounds."""
         self.b.include_lower=True
         self.assertTrue({'x': 0, 'y': 10} in self.b)
+        self.assertTrue({'x': 0.5, 'y': 10} in self.b)
+        self.assertFalse({'x': -0.5, 'y': 10} in self.b)
         self.b.include_lower=False
         self.assertFalse({'x': 0, 'y': 10} in self.b)
+        self.assertTrue({'x': 0.5, 'y': 10} in self.b)
+        self.assertFalse({'x': -0.5, 'y': 10} in self.b)
 
     def test_include_upper(self):
         """Test inclusion of upper bounds."""
         self.b.include_upper=True
         self.assertTrue({'x': 1, 'y': 10} in self.b)
+        self.assertTrue({'x': 0.5, 'y': 10} in self.b)
+        self.assertFalse({'x': 1.5, 'y': 10} in self.b)
         self.b.include_upper=False
         self.assertFalse({'x': 1, 'y': 10} in self.b)
+        self.assertTrue({'x': 0.5, 'y': 10} in self.b)
+        self.assertFalse({'x': 1.5, 'y': 10} in self.b)
 
     def test_bin_centers(self):
         """Test calculation of bin centers."""
