@@ -79,7 +79,7 @@ class Bin(object):
         ------
 
         phasespace : The phase space the Bin resides in.
-        value : The initilization value of the bin. Default: 0.
+        value : The initialization value of the bin. Default: 0.
         """
 
         self.phasespace = kwargs.pop('phasespace', None)
