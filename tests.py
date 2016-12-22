@@ -48,15 +48,26 @@ class TestPhasSpaces(unittest.TestCase):
 
 
 class TestBins(unittest.TestCase):
+    def setUp(self):
+        ps = binning.PhaseSpace(['x'])
+        self.b0 = binning.Bin(phasespace=ps)
+        self.b1 = binning.Bin(phasespace=ps, value=1.)
+        self.b2 = binning.Bin(phasespace=ps, value=2.)
+        self.bd = binning.Bin(phasespace=ps, value={'a': 0, 'b': 1})
+
     def test_init_values(self):
         """Test initialization values."""
-        ps = binning.PhaseSpace(['x'])
-        b = binning.Bin(phasespace=ps)
-        self.assertEqual(b.value, 0.)
-        b = binning.Bin(phasespace=ps, value=7.)
-        self.assertEqual(b.value, 7.)
-        b = binning.Bin(phasespace=ps, value={'a': 0, 'b': 1})
-        self.assertEqual(b.value, {'a': 0, 'b': 1})
+        self.assertEqual(self.b0.value, 0.)
+        self.assertEqual(self.b1.value, 1.)
+        self.assertEqual(self.b2.value, 2.)
+        self.assertEqual(self.bd.value, {'a': 0, 'b': 1})
+
+    def test_bin_arithmetic(self):
+        """Test math with bins."""
+        self.assertEqual((self.b1 + self.b2).value, 3.)
+        self.assertEqual((self.b1 - self.b2).value, -1.)
+        self.assertEqual((self.b2 * self.b2).value, 4.)
+        self.assertEqual((self.b1 / self.b2).value, 0.5)
 
 class TestRectangularBins(unittest.TestCase):
     def setUp(self):

@@ -1,3 +1,4 @@
+from copy import copy
 
 class PhaseSpace(object):
     """A PhaseSpace defines the possible combinations of variables that characterize an event.
@@ -98,6 +99,26 @@ class Bin(object):
     def __contains__(self, event):
         """Return True if the event falls within the bin."""
         return self.event_in_bin(event)
+
+    def __add__(self, other):
+        ret = copy(self)
+        ret.value = self.value + other.value
+        return ret
+
+    def __sub__(self, other):
+        ret = copy(self)
+        ret.value = self.value - other.value
+        return ret
+
+    def __mul__(self, other):
+        ret = copy(self)
+        ret.value = self.value * other.value
+        return ret
+
+    def __div__(self, other):
+        ret = copy(self)
+        ret.value = self.value / other.value
+        return ret
 
     def __str__(self):
         return "Bin on phase space %s"%(self.phasespace,)
