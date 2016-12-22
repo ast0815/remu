@@ -1,4 +1,5 @@
 from copy import copy
+import re
 
 class PhaseSpace(object):
     """A PhaseSpace defines the possible combinations of variables that characterize an event.
@@ -68,6 +69,14 @@ class PhaseSpace(object):
 
     def __str__(self):
         return "('" + "' X '".join(self.variables) + "')"
+
+    @staticmethod
+    def from_string(string):
+        """Create a PhaseSpace object from it string representation."""
+        m = re.match(r"\('(.+)'\)$", string)
+        string = m.group(1)
+        variables = re.split(r"' X '", string)
+        return PhaseSpace(variables=variables)
 
 class Bin(object):
     """A Bin is container for a value that is defined on a subset of an n-dimensional phase space."""

@@ -6,6 +6,7 @@ class TestPhasSpaces(unittest.TestCase):
         self.psX = binning.PhaseSpace(variables=['x'])
         self.psY = binning.PhaseSpace(variables=['y'])
         self.psXY = binning.PhaseSpace(variables=['x', 'y'])
+        self.psXYZ = binning.PhaseSpace(variables=['x', 'y', 'z'])
 
     def test_contains(self):
         """Test behaviour of 'in' operator."""
@@ -45,6 +46,12 @@ class TestPhasSpaces(unittest.TestCase):
         self.assertFalse(self.psX > self.psY)
         self.assertFalse(self.psX <= self.psY)
         self.assertFalse(self.psX >= self.psY)
+
+    def test_string_representation(self):
+        """Test whether the text parsing can reproduce the original object."""
+        self.assertEqual(self.psX, binning.PhaseSpace.from_string(str(self.psX)))
+        self.assertEqual(self.psXY, binning.PhaseSpace.from_string(str(self.psXY)))
+        self.assertEqual(self.psXYZ, binning.PhaseSpace.from_string(str(self.psXYZ)))
 
 class TestBins(unittest.TestCase):
     def setUp(self):
