@@ -96,6 +96,14 @@ class Bin(object):
 
         raise NotImplementedError("This method must be defined in an inheriting class.")
 
+    def fill(self, weight=1.):
+        """Add the weight(s) to the bin."""
+
+        try:
+            self.value += sum(weight)
+        except TypeError:
+            self.value += weight
+
     def __contains__(self, event):
         """Return True if the event falls within the bin."""
         return self.event_in_bin(event)

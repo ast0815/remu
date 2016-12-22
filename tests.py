@@ -46,7 +46,6 @@ class TestPhasSpaces(unittest.TestCase):
         self.assertFalse(self.psX <= self.psY)
         self.assertFalse(self.psX >= self.psY)
 
-
 class TestBins(unittest.TestCase):
     def setUp(self):
         ps = binning.PhaseSpace(['x'])
@@ -68,6 +67,15 @@ class TestBins(unittest.TestCase):
         self.assertEqual((self.b1 - self.b2).value, -1.)
         self.assertEqual((self.b2 * self.b2).value, 4.)
         self.assertEqual((self.b1 / self.b2).value, 0.5)
+
+    def test_bin_filling(self):
+        """Test filling of single and multiple weights"""
+        self.b0.fill()
+        self.assertEqual(self.b0.value, 1.0)
+        self.b0.fill(0.5)
+        self.assertEqual(self.b0.value, 1.5)
+        self.b0.fill([0.5, 0.5, 0.5])
+        self.assertEqual(self.b0.value, 3.0)
 
 class TestRectangularBins(unittest.TestCase):
     def setUp(self):
