@@ -132,6 +132,16 @@ class TestRectangularBins(unittest.TestCase):
         self.assertEqual(c['x'], 0.5)
         self.assertEqual(c['y'], float('inf'))
 
+    def test_yaml_representation(self):
+        """Test whether the yaml parsing can reproduce the original object."""
+        orig = self.b
+        reco = yaml.load(yaml.dump(orig))
+        self.assertEqual(orig.phasespace, reco.phasespace)
+        self.assertEqual(orig.value, reco.value)
+        self.assertEqual(orig.edges, reco.edges)
+        self.assertEqual(orig.include_lower, reco.include_lower)
+        self.assertEqual(orig.include_upper, reco.include_upper)
+
 class TestBinnings(unittest.TestCase):
     def setUp(self):
         self.b0 = binning.RectangularBin(edges={'x':(0,1), 'y':(5,float('inf'))})

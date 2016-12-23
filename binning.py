@@ -213,7 +213,7 @@ class RectangularBin(Bin):
         # Handle default bin initialization
         Bin.__init__(self, **kwargs)
 
-        # Check that all edges are valid
+        # Check that all edges are valid tuples
         for var in self.edges:
             if var not in self.phasespace:
                 raise ValueError("Variable not part of PhaseSpace: %s"%(var,))
@@ -221,6 +221,8 @@ class RectangularBin(Bin):
 
             if ma < mi:
                 raise ValueError("Upper edge is smaller than lower edge for variable %s."%(var,))
+
+            self.edges[var] = (mi, ma)
 
     def event_in_bin(self, event):
         """Check whether an event is within all bin edges."""
@@ -255,6 +257,35 @@ class RectangularBin(Bin):
         for key, (mi, ma) in self.edges.items():
             center[key] = (float(mi) + float(ma)) / 2.
         return center
+
+    def __str__(self):
+        edgerep = repr(self.edges)
+        return "RectBin %s; inclow=%s; incup=%s: %s"%(edgerep, repr(self.include_lower), repr(self.include_upper), repr(self.value))
+
+    @staticmethod
+    def _yaml_representer(dumper, obj):
+        """Represent RectangularBin in a YAML file."""
+        dic = copy(obj.__dict__)
+        edges = copy(dic['edges'])
+        for var in edges:
+            # Convert bin edges to lists for prettier YAML
+            edges[var] = list(edges[var])
+        dic['edges'] = edges
+        return dumper.represent_mapping('!RecBin', dic)
+
+    @staticmethod
+    def _yaml_constructor(loader, node):
+        """Reconstruct RectangularBin from YAML files."""
+        dic = loader.construct_mapping(node, deep=True)
+        edges = dic['edges']
+        for var in edges:
+            # Convert lists back to tuples
+            edges[var] = tuple(edges[var])
+        dic['edges'] = edges
+        return RectangularBin(**dic)
+
+yaml.add_representer(RectangularBin, RectangularBin._yaml_representer)
+yaml.add_constructor(u'!RecBin', RectangularBin._yaml_constructor)
 
 class Binning(object):
     """A Binning is a set of Bins.
