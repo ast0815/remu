@@ -44,22 +44,40 @@ class PhaseSpace(object):
         return var in self.variables
 
     def __eq__(self, phasespace):
-        return self.variables == phasespace.variables
+        try:
+            return self.variables == phasespace.variables
+        except AttributeError:
+            return False
 
     def __ne__(self, phasespace):
-        return not self.variables == phasespace.variables
+        try:
+            return not self.variables == phasespace.variables
+        except AttributeError:
+            return False
 
     def __le__(self, phasespace):
-        return self.variables <= phasespace.variables
+        try:
+            return self.variables <= phasespace.variables
+        except AttributeError:
+            return False
 
     def __ge__(self, phasespace):
-        return self.variables >= phasespace.variables
+        try:
+            return self.variables >= phasespace.variables
+        except AttributeError:
+            return False
 
     def __lt__(self, phasespace):
-        return (self.variables <= phasespace.variables) and not (self.variables == phasespace.variables)
+        try:
+            return (self.variables <= phasespace.variables) and not (self.variables == phasespace.variables)
+        except AttributeError:
+            return False
 
     def __gt__(self, phasespace):
-        return (self.variables >= phasespace.variables) and not (self.variables == phasespace.variables)
+        try:
+            return (self.variables >= phasespace.variables) and not (self.variables == phasespace.variables)
+        except AttributeError:
+            return False
 
     def __mul__(self, phasespace):
         return PhaseSpace(variables = (self.variables | phasespace.variables))
