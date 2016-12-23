@@ -1,4 +1,5 @@
 import unittest
+import ruamel.yaml as yaml
 import binning
 
 class TestPhasSpaces(unittest.TestCase):
@@ -47,11 +48,11 @@ class TestPhasSpaces(unittest.TestCase):
         self.assertFalse(self.psX <= self.psY)
         self.assertFalse(self.psX >= self.psY)
 
-    def test_string_representation(self):
+    def test_yaml_representation(self):
         """Test whether the text parsing can reproduce the original object."""
-        self.assertEqual(self.psX, binning.PhaseSpace.from_string(str(self.psX)))
-        self.assertEqual(self.psXY, binning.PhaseSpace.from_string(str(self.psXY)))
-        self.assertEqual(self.psXYZ, binning.PhaseSpace.from_string(str(self.psXYZ)))
+        self.assertEqual(self.psX, yaml.load(yaml.dump(self.psX)))
+        self.assertEqual(self.psXY, yaml.load(yaml.dump(self.psXY)))
+        self.assertEqual(self.psXYZ, yaml.load(yaml.dump(self.psXYZ)))
 
 class TestBins(unittest.TestCase):
     def setUp(self):
@@ -84,13 +85,13 @@ class TestBins(unittest.TestCase):
         self.b0.fill([0.5, 0.5, 0.5])
         self.assertEqual(self.b0.value, 3.0)
 
-    def test_string_representation(self):
-        """Test whether the text parsing can reproduce the original object."""
-        self.assertEqual(self.b0.phasespace, binning.Bin.from_string(str(self.b0)).phasespace)
-        self.assertEqual(self.b0.value, binning.Bin.from_string(str(self.b0)).value)
-        self.assertEqual(self.b1.value, binning.Bin.from_string(str(self.b1)).value)
-        self.assertEqual(self.b2.value, binning.Bin.from_string(str(self.b2)).value)
-        self.assertEqual(self.bd.value, binning.Bin.from_string(str(self.bd)).value)
+    def test_yaml_representation(self):
+        """Test whether the yaml parsing can reproduce the original object."""
+        self.assertEqual(self.b0.phasespace, yaml.load(yaml.dump(self.b0)).phasespace)
+        self.assertEqual(self.b0.value, yaml.load(yaml.dump(self.b0)).value)
+        self.assertEqual(self.b1.value, yaml.load(yaml.dump(self.b1)).value)
+        self.assertEqual(self.b2.value, yaml.load(yaml.dump(self.b2)).value)
+        self.assertEqual(self.bd.value, yaml.load(yaml.dump(self.bd)).value)
 
 class TestRectangularBins(unittest.TestCase):
     def setUp(self):

@@ -1,4 +1,5 @@
 from copy import copy
+import ruamel.yaml as yaml
 import re
 
 class PhaseSpace(object):
@@ -88,13 +89,22 @@ class PhaseSpace(object):
     def __str__(self):
         return "('" + "' X '".join(self.variables) + "')"
 
+    def __repr__(self):
+        return '%s(variables=%s)'%(self.__class__.__name__, self.variables)
+
     @staticmethod
-    def from_string(string):
-        """Create a PhaseSpace object from it string representation."""
-        m = re.match(r"\('(.+)'\)$", string)
-        string = m.group(1)
-        variables = re.split(r"' X '", string)
-        return PhaseSpace(variables=variables)
+    def _yaml_representer(dumper, obj):
+        """Represent PhaseSpaces in a YAML file."""
+        return dumper.represent_sequence('!PhaseSpace', list(obj.variables))
+
+    @staticmethod
+    def _yaml_constructor(loader, node):
+        """Reconstruct PhaseSpaces from YAML files."""
+        seq = loader.construct_sequence(node)
+        return PhaseSpace(variables=seq)
+
+yaml.add_representer(PhaseSpace, PhaseSpace._yaml_representer)
+yaml.add_constructor(u'!PhaseSpace', PhaseSpace._yaml_constructor)
 
 class Bin(object):
     """A Bin is container for a value that is defined on a subset of an n-dimensional phase space."""
@@ -156,16 +166,24 @@ class Bin(object):
         return ret
 
     def __str__(self):
-        return "Bin on %s: %s"%(self.phasespace,repr(self.value))
+        return "Bin on %s: %s"%(self.phasespace, self.value)
+
+    def __repr__(self):
+        return '%s(phasespace=%s, value=%s)'%(self.__class__.__name__, self.phasespace, self,value)
 
     @staticmethod
-    def from_string(string):
-        """Create a Bin object from it string representation."""
-        m = re.match(r"Bin on ([^:]+): (.+)$", string)
-        psstr = m.group(1)
-        ps = PhaseSpace.from_string(psstr)
-        val = eval(m.group(2))
-        return Bin(phasespace=ps, value=val)
+    def _yaml_representer(dumper, obj):
+        """Represent Bin in a YAML file."""
+        return dumper.represent_mapping('!Bin', obj.__dict__)
+
+    @staticmethod
+    def _yaml_constructor(loader, node):
+        """Reconstruct Bin from YAML files."""
+        dic = loader.construct_mapping(node)
+        return Bin(**dic)
+
+yaml.add_representer(Bin, Bin._yaml_representer)
+yaml.add_constructor(u'!Bin', Bin._yaml_constructor)
 
 class RectangularBin(Bin):
     """A bin defined by min and max values in all variables."""
