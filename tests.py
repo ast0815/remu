@@ -1,13 +1,13 @@
 import unittest
 import ruamel.yaml as yaml
-import binning
+from binning import *
 
 class TestPhasSpaces(unittest.TestCase):
     def setUp(self):
-        self.psX = binning.PhaseSpace(variables=['x'])
-        self.psY = binning.PhaseSpace(variables=['y'])
-        self.psXY = binning.PhaseSpace(variables=['x', 'y'])
-        self.psXYZ = binning.PhaseSpace(variables=['x', 'y', 'z'])
+        self.psX = PhaseSpace(variables=['x'])
+        self.psY = PhaseSpace(variables=['y'])
+        self.psXY = PhaseSpace(variables=['x', 'y'])
+        self.psXYZ = PhaseSpace(variables=['x', 'y', 'z'])
 
     def test_contains(self):
         """Test behaviour of 'in' operator."""
@@ -29,7 +29,7 @@ class TestPhasSpaces(unittest.TestCase):
 
     def test_equality(self):
         """Test the equlaity of phase spaces."""
-        ps = binning.PhaseSpace(variables=['x'])
+        ps = PhaseSpace(variables=['x'])
         self.assertTrue(self.psX == ps)
         self.assertTrue(self.psY != ps)
         self.assertFalse(self.psX != ps)
@@ -48,6 +48,12 @@ class TestPhasSpaces(unittest.TestCase):
         self.assertFalse(self.psX <= self.psY)
         self.assertFalse(self.psX >= self.psY)
 
+    def test_repr(self):
+        """Test whether the repr reproduces same object."""
+        self.assertEqual(self.psX, eval(repr(self.psX)))
+        self.assertEqual(self.psXY, eval(repr(self.psXY)))
+        self.assertEqual(self.psXYZ, eval(repr(self.psXYZ)))
+
     def test_yaml_representation(self):
         """Test whether the text parsing can reproduce the original object."""
         self.assertEqual(self.psX, yaml.load(yaml.dump(self.psX)))
@@ -56,11 +62,11 @@ class TestPhasSpaces(unittest.TestCase):
 
 class TestBins(unittest.TestCase):
     def setUp(self):
-        ps = binning.PhaseSpace(['x'])
-        self.b0 = binning.Bin(phasespace=ps)
-        self.b1 = binning.Bin(phasespace=ps, value=1.)
-        self.b2 = binning.Bin(phasespace=ps, value=2.)
-        self.bd = binning.Bin(phasespace=ps, value={'a': 0, 'b': 1})
+        ps = PhaseSpace(['x'])
+        self.b0 = Bin(phasespace=ps)
+        self.b1 = Bin(phasespace=ps, value=1.)
+        self.b2 = Bin(phasespace=ps, value=2.)
+        self.bd = Bin(phasespace=ps, value={'a': 0, 'b': 1})
 
     def test_init_values(self):
         """Test initialization values."""
@@ -85,6 +91,14 @@ class TestBins(unittest.TestCase):
         self.b0.fill([0.5, 0.5, 0.5])
         self.assertEqual(self.b0.value, 3.0)
 
+    def test_repr(self):
+        """Test whether the repr reproduces same object."""
+        self.assertEqual(self.b0.phasespace, eval(repr(self.b0)).phasespace)
+        self.assertEqual(self.b0.value, eval(repr(self.b0)).value)
+        self.assertEqual(self.b1.value, eval(repr(self.b1)).value)
+        self.assertEqual(self.b2.value, eval(repr(self.b2)).value)
+        self.assertEqual(self.bd.value, eval(repr(self.bd)).value)
+
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         self.assertEqual(self.b0.phasespace, yaml.load(yaml.dump(self.b0)).phasespace)
@@ -95,7 +109,7 @@ class TestBins(unittest.TestCase):
 
 class TestRectangularBins(unittest.TestCase):
     def setUp(self):
-        self.b = binning.RectangularBin(edges={'x':(0,1), 'y':(5,float('inf'))})
+        self.b = RectangularBin(edges={'x':(0,1), 'y':(5,float('inf'))})
 
     def test_inclusion(self):
         """Test basic inclusion."""
@@ -144,9 +158,9 @@ class TestRectangularBins(unittest.TestCase):
 
 class TestBinnings(unittest.TestCase):
     def setUp(self):
-        self.b0 = binning.RectangularBin(edges={'x':(0,1), 'y':(5,float('inf'))})
-        self.b1 = binning.RectangularBin(edges={'x':(1,2), 'y':(5,float('inf'))})
-        self.binning = binning.Binning(phasespace=self.b0.phasespace, bins=[self.b0 ,self.b1])
+        self.b0 = RectangularBin(edges={'x':(0,1), 'y':(5,float('inf'))})
+        self.b1 = RectangularBin(edges={'x':(1,2), 'y':(5,float('inf'))})
+        self.binning = Binning(phasespace=self.b0.phasespace, bins=[self.b0 ,self.b1])
 
     def test_get_bin_numbers(self):
         """Test the translation of events to bin numbers."""

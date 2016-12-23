@@ -90,7 +90,7 @@ class PhaseSpace(object):
         return "('" + "' X '".join(self.variables) + "')"
 
     def __repr__(self):
-        return '%s(variables=%s)'%(self.__class__.__name__, self.variables)
+        return '%s(variables=%s)'%(self.__class__.__name__, repr(self.variables))
 
     @staticmethod
     def _yaml_representer(dumper, obj):
@@ -169,7 +169,7 @@ class Bin(object):
         return "Bin on %s: %s"%(self.phasespace, self.value)
 
     def __repr__(self):
-        return '%s(phasespace=%s, value=%s)'%(self.__class__.__name__, self.phasespace, self,value)
+        return '%s(phasespace=%s, value=%s)'%(self.__class__.__name__, repr(self.phasespace), repr(self.value))
 
     @staticmethod
     def _yaml_representer(dumper, obj):
