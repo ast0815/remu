@@ -378,3 +378,17 @@ class Binning(object):
 
     def __ne__(self, other):
         return not self == other
+
+    @staticmethod
+    def _yaml_representer(dumper, obj):
+        """Represent Binning in a YAML file."""
+        return dumper.represent_sequence('!Binning', obj.bins)
+
+    @staticmethod
+    def _yaml_constructor(loader, node):
+        """Reconstruct Binning from YAML files."""
+        bins = loader.construct_sequence(node)
+        return Binning(bins=bins, phasespace=bins[0].phasespace)
+
+yaml.add_representer(Binning, Binning._yaml_representer)
+yaml.add_constructor(u'!Binning', Binning._yaml_constructor)

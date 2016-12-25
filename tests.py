@@ -200,5 +200,11 @@ class TestBinnings(unittest.TestCase):
         self.assertTrue(self.binning != self.binning0)
         self.assertFalse(self.binning == self.binning0)
 
+    def test_yaml_representation(self):
+        """Test whether the yaml parsing can reproduce the original object."""
+        orig = self.binning
+        reco = yaml.load(yaml.dump(orig))
+        self.assertEqual(orig, reco)
+
 if __name__ == '__main__':
     unittest.main()
