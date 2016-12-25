@@ -145,6 +145,16 @@ class Bin(object):
         """Return True if the event falls within the bin."""
         return self.event_in_bin(event)
 
+    def __eq__(self, other):
+        """Bins are equal if they are defined on the same phase space."""
+        try:
+            return self.phasespace == other.phasespace
+        except AttributeError:
+            return False
+
+    def __ne__(self, other):
+        return not self == other
+
     def __add__(self, other):
         ret = copy(self)
         ret.value = self.value + other.value
@@ -258,6 +268,19 @@ class RectangularBin(Bin):
             center[key] = (float(mi) + float(ma)) / 2.
         return center
 
+    def __eq__(self, other):
+        """RectangularBins are equal if they have the same edges."""
+        try:
+            return (Bin.__eq__(self, other)
+                and self.edges == other.edges
+                and self.include_lower == other.include_lower
+                and self.include_upper == other.include_upper)
+        except AttributeError:
+            return False
+
+    def __ne__(self, other):
+        return not self == other
+
     def __str__(self):
         edgerep = repr(self.edges)
         return "RectBin %s; inclow=%s; incup=%s: %s"%(edgerep, repr(self.include_lower), repr(self.include_upper), repr(self.value))
@@ -345,3 +368,13 @@ class Binning(object):
             return self.bins[nr]
         else:
             return None
+
+    def __eq__(self, other):
+        """Binnings are equal if all bins and the phase space are equal."""
+        try:
+            return self.bins == other.bins and self.phasespace == self.phasespace
+        except AttributeError:
+            return False
+
+    def __ne__(self, other):
+        return not self == other

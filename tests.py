@@ -91,6 +91,16 @@ class TestBins(unittest.TestCase):
         self.b0.fill([0.5, 0.5, 0.5])
         self.assertEqual(self.b0.value, 3.0)
 
+    def test_equality(self):
+        """Test equality comparisons between bins."""
+        self.assertTrue(self.b0 == self.b0)
+        self.assertFalse(self.b0 != self.b0)
+        self.assertTrue(self.b0 == self.b1)
+        self.assertFalse(self.b0 != self.b1)
+        self.b1.phasespace *= PhaseSpace(['abc'])
+        self.assertFalse(self.b0 == self.b1)
+        self.assertTrue(self.b0 != self.b1)
+
     def test_repr(self):
         """Test whether the repr reproduces same object."""
         self.assertEqual(self.b0.phasespace, eval(repr(self.b0)).phasespace)
@@ -110,6 +120,7 @@ class TestBins(unittest.TestCase):
 class TestRectangularBins(unittest.TestCase):
     def setUp(self):
         self.b = RectangularBin(edges={'x':(0,1), 'y':(5,float('inf'))})
+        self.c = RectangularBin(edges={'x':(1,2), 'y':(5,float('inf'))})
 
     def test_inclusion(self):
         """Test basic inclusion."""
@@ -146,6 +157,13 @@ class TestRectangularBins(unittest.TestCase):
         self.assertEqual(c['x'], 0.5)
         self.assertEqual(c['y'], float('inf'))
 
+    def test_equality(self):
+        """Test equality comparisons between bins."""
+        self.assertTrue(self.b == self.b)
+        self.assertFalse(self.b != self.b)
+        self.assertTrue(self.b != self.c)
+        self.assertFalse(self.b == self.c)
+
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b
@@ -161,6 +179,7 @@ class TestBinnings(unittest.TestCase):
         self.b0 = RectangularBin(edges={'x':(0,1), 'y':(5,float('inf'))})
         self.b1 = RectangularBin(edges={'x':(1,2), 'y':(5,float('inf'))})
         self.binning = Binning(phasespace=self.b0.phasespace, bins=[self.b0 ,self.b1])
+        self.binning0 = Binning(phasespace=self.b0.phasespace, bins=[self.b0])
 
     def test_get_bin_numbers(self):
         """Test the translation of events to bin numbers."""
@@ -173,6 +192,13 @@ class TestBinnings(unittest.TestCase):
         self.assertTrue(self.binning.get_event_bin({'x': 0, 'y': 10}) is self.b0)
         self.assertTrue(self.binning.get_event_bin({'x': 1, 'y': 10}) is self.b1)
         self.assertTrue(self.binning.get_event_bin({'x': 2, 'y': 10}) is None)
+
+    def test_equality(self):
+        """Test equality comparisons."""
+        self.assertTrue(self.binning == self.binning)
+        self.assertFalse(self.binning != self.binning)
+        self.assertTrue(self.binning != self.binning0)
+        self.assertFalse(self.binning == self.binning0)
 
 if __name__ == '__main__':
     unittest.main()
