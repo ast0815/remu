@@ -207,6 +207,12 @@ class TestBinnings(unittest.TestCase):
         self.binning.fill([{'x': 0.5, 'y': 10}, {'x': 1.5, 'y': 10}], [1, 2])
         self.assertEqual(self.b0.value, 6)
         self.assertEqual(self.b1.value, 4)
+        self.binning.fill([{'x': -0.5, 'y': 10}, {'x': 1.5, 'y': 10}], [1, 2])
+        self.assertEqual(self.b0.value, 6)
+        self.assertEqual(self.b1.value, 6)
+        self.assertRaises(ValueError, lambda: self.binning.fill({'x': -0.5, 'y': 10}, raise_error=True))
+        self.assertEqual(self.b0.value, 6)
+        self.assertEqual(self.b1.value, 6)
 
     def test_inclusion(self):
         """Test checking whether an event is binned."""

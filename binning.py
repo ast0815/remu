@@ -369,7 +369,7 @@ class Binning(object):
         else:
             return None
 
-    def fill(self, event, weight=1):
+    def fill(self, event, weight=1, raise_error=False):
         """Fill the events into their respective bins.
 
         Arguments
@@ -380,6 +380,10 @@ class Binning(object):
         weight: The weight of the event(s).
                 Can be either a scalar which is then used for all events
                 or an iterable of weights for the single events.
+                Default: 1
+        raise_error: Raise a ValueError if an event is not in the binning.
+                     Otherwise ignore the event.
+                     Default: False
         """
 
         try:
@@ -389,6 +393,9 @@ class Binning(object):
             # We probably only have a single event
             ibins = [self.get_event_bin_number(event)]
 
+        if raise_error and None in ibins:
+            raise ValueError("Event not part of binning!")
+
         # Compare len of weight list and event list
         try:
             if len(ibins) != len(weight):
@@ -397,7 +404,8 @@ class Binning(object):
             weight = [weight] * len(ibins)
 
         for i, w in zip(ibins, weight):
-            self.bins[i].fill(w)
+            if i is not None:
+                self.bins[i].fill(w)
 
     def event_in_binning(self, event):
         """Check whether an event fits into any of the bins."""
