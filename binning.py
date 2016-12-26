@@ -333,6 +333,9 @@ class Binning(object):
         self.bins = kwargs.pop('bins', None)
         if self.bins is None:
             raise ValueError("Undefined bins!")
+        else:
+            # Make sure the bins are saved in a list
+            self.bins = list(self.bins)
 
         # Check that all bins are defined on the given phase space
         for b in self.bins:
