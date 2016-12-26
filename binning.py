@@ -399,6 +399,16 @@ class Binning(object):
         for i, w in zip(ibins, weight):
             self.bins[i].fill(w)
 
+    def event_in_binning(self, event):
+        """Check whether an event fits into any of the bins."""
+        for b in self.bins:
+            if event in b:
+                return True
+        return False
+
+    def __contains__(self, event):
+        return self.event_in_binning(event)
+
     def __eq__(self, other):
         """Binnings are equal if all bins and the phase space are equal."""
         try:

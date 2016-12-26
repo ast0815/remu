@@ -208,6 +208,12 @@ class TestBinnings(unittest.TestCase):
         self.assertEqual(self.b0.value, 6)
         self.assertEqual(self.b1.value, 4)
 
+    def test_inclusion(self):
+        """Test checking whether an event is binned."""
+        self.assertTrue({'x': 0.5, 'y': 10} in self.binning)
+        self.assertTrue({'x': 1.5, 'y': 10} in self.binning)
+        self.assertFalse({'x': 2.5, 'y': 10} in self.binning)
+
     def test_equality(self):
         """Test equality comparisons."""
         self.assertTrue(self.binning == self.binning)
