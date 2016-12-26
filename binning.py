@@ -369,6 +369,36 @@ class Binning(object):
         else:
             return None
 
+    def fill(self, event, weight=1):
+        """Fill the events into their respective bins.
+
+        Arguments
+        ---------
+
+        event: The event(s) to be filled into the binning.
+               Can be either a single event or an iterable of multiple events.
+        weight: The weight of the event(s).
+                Can be either a scalar which is then used for all events
+                or an iterable of weights for the single events.
+        """
+
+        try:
+            # Try to get bin numbers from list of events
+            ibins = map(self.get_event_bin_number, event)
+        except TypeError:
+            # We probably only have a single event
+            ibins = [self.get_event_bin_number(event)]
+
+        # Compare len of weight list and event list
+        try:
+            if len(ibins) != len(weight):
+                raise ValueError("Different length of event and weight lists!")
+        except TypeError:
+            weight = [weight] * len(ibins)
+
+        for i, w in zip(ibins, weight):
+            self.bins[i].fill(w)
+
     def __eq__(self, other):
         """Binnings are equal if all bins and the phase space are equal."""
         try:
