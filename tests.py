@@ -233,5 +233,50 @@ class TestBinnings(unittest.TestCase):
         reco = yaml.load(yaml.dump(orig))
         self.assertEqual(orig, reco)
 
+class TestRectangularBinnings(unittest.TestCase):
+    def setUp(self):
+        self.bl = RectangularBinning(binedges={'x': [0,1,2], 'y': (-10,0,10,20,float('inf'))}, variables=['x', 'y'])
+        self.bl0 = RectangularBinning(binedges={'x': [0,1], 'y': (-10,0,10,20,float('inf'))}, variables=['x', 'y'])
+        self.bu = RectangularBinning(binedges={'x': [0,1,2], 'y': (-10,0,10,20,float('inf'))}, variables=['x', 'y'], include_upper=True)
+
+    def test_tuples(self):
+        """Test the translation of tuples to bin numbers and back."""
+        self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(None)), None)
+        self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(-1)), None)
+        self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(0)), 0)
+        self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(5)), 5)
+        self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(7)), 7)
+        self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(8)), None)
+        self.assertEqual(self.bl.get_bin_number_tuple(self.bl.get_tuple_bin_number((1,3))), (1,3))
+        self.assertEqual(self.bl.get_event_bin_number({'x': 0, 'y': -10}), 0)
+        self.assertEqual(self.bl.get_event_bin_number({'x': -1, 'y': -10}), None)
+        self.assertEqual(self.bu.get_event_bin_number({'x': 2, 'y': 30}), 7)
+
+    def test_inclusion(self):
+        """Test checking whether an event is binned."""
+        self.assertTrue({'x': 0.5, 'y': 10} in self.bl)
+        self.assertTrue({'x': 1.5, 'y': 10} in self.bl)
+        self.assertFalse({'x': 2.5, 'y': 10} in self.bl)
+        self.assertTrue({'x': 0, 'y': 10} in self.bl)
+        self.assertFalse({'x': 2, 'y': 10} in self.bl)
+        self.assertFalse({'x': 0, 'y': 10} in self.bu)
+        self.assertTrue({'x': 2, 'y': 10} in self.bu)
+
+    def test_equality(self):
+        """Test equality comparisons."""
+        self.assertTrue(self.bl == self.bl)
+        self.assertFalse(self.bl != self.bl)
+        self.assertTrue(self.bl != self.bl0)
+        self.assertFalse(self.bl == self.bl0)
+        self.assertTrue(self.bl != self.bu)
+        self.assertFalse(self.bl == self.bu)
+
+    def test_yaml_representation(self):
+        """Test whether the yaml parsing can reproduce the original object."""
+        orig = self.bl
+        print yaml.dump(orig)
+        reco = yaml.load(yaml.dump(orig))
+        self.assertEqual(orig, reco)
+
 if __name__ == '__main__':
     unittest.main()

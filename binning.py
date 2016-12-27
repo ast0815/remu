@@ -1,6 +1,7 @@
 from copy import copy
 import ruamel.yaml as yaml
 import re
+import numpy as np
 
 class PhaseSpace(object):
     """A PhaseSpace defines the possible combinations of variables that characterize an event.
@@ -443,3 +444,127 @@ class Binning(object):
 
 yaml.add_representer(Binning, Binning._yaml_representer)
 yaml.add_constructor(u'!Binning', Binning._yaml_constructor)
+
+class RectangularBinning(Binning):
+    """Binning made exclusively out of RectangularBins"""
+
+    def __init__(self, **kwargs):
+        """Initialize RectangularBinning.
+
+        kwargs
+        ------
+        binedges: Dictionary of bin edges for rectangular binning.
+        include_upper: Make bins include upper edges instead of lower edges.
+                       Default: False
+        variables: List that determines the order of the variables.
+                   Will be generated from binedges if not given.
+        """
+
+        self._binedges = kwargs.pop('binedges', None)
+        if self._binedges is None:
+            raise ValueError("Undefined bin edges!")
+
+        self.variables = kwargs.pop('variables', None)
+        if self.variables is None:
+            self.variables = self._binedges.keys()
+        self.variables = tuple(self.variables)
+        self._nbins = tuple(len(self._binedges[v])-1 for v in self.variables)
+        self._stepsize = [1]
+        for n in self._nbins: # _stepsize is 1 longer than variables and _nbins!
+            self._stepsize.append(self._stepsize[-1] * n)
+        self._stepsize = tuple(self._stepsize)
+        self._totbins = self._stepsize[-1]
+        self._edges = tuple(self._binedges[v] for v in self.variables)
+
+        self._include_upper = kwargs.pop('include_upper', False)
+
+        phasespace = kwargs.get('phasespace', None)
+        if phasespace is None:
+            # Create phasespace from binedges
+            phasespace = PhaseSpace(self.variables)
+            kwargs['phasespace'] = phasespace
+
+        bins = kwargs.pop('bins', None)
+        if bins is not None:
+            raise ValueError("Cannot define bins of RectangularBinning! Define binedges instead.")
+        else:
+            # Create bins from bin edges
+            bins = []
+            for i in range(self._totbins):
+                tup = self.get_bin_number_tuple(i)
+                edges = dict( (v, (e[j], e[j+1])) for v,e,j in zip(self.variables, self._edges, tup) )
+                bins.append(RectangularBin(edges=edges, include_lower=not self._include_upper, include_upper=self._include_upper, phasespace=phasespace))
+        kwargs['bins'] = bins
+
+        Binning.__init__(self, **kwargs) 
+
+    def get_tuple_bin_number(self, i_var):
+        """Translate a tuple of variable bin numbers to the linear bin number of the event.
+
+        Turns this:
+
+            (i_x, i_y, i_z)
+
+        into this:
+
+            i_bin
+
+        The order of the indices in the tuple must conform to the order of `self.variables`.
+        Each step in `i_x` increases `i_bin` by one.
+        Each step in `i_y` increases `i_bin` by the number of x bins.
+        Each step in `i_z` increases `i_bin` by the number of x bins times the number of y bins.
+        Etc.
+        """
+
+        if None in i_var:
+            return None
+
+        i_bin = 0
+        for i,s in zip(i_var, self._stepsize[:-1]):
+            i_bin += s*i
+
+        return i_bin
+
+    def get_bin_number_tuple(self, i_bin):
+        """Translate the linear bin number of the event to a tuple of single variable bin numbers.
+
+        Turns this:
+
+            i_bin
+
+        into this:
+
+            (i_x, i_y, i_z)
+
+        The order of the indices in the tuple conforms to the order of `self.variables`.
+        Each step in `i_x` increases `i_bin` by one.
+        Each step in `i_y` increases `i_bin` by the number of x bins.
+        Each step in `i_z` increases `i_bin` by the number of x bins times the number of y bins.
+        Etc.
+        """
+
+        if i_bin is None or i_bin < 0 or i_bin >= self._totbins:
+            return tuple([None]*len(self.variables))
+
+        i_var = tuple((i_bin // s) % t for s,t in zip(self._stepsize[:-1], self._stepsize[1:]))
+        return i_var
+
+    def get_event_tuple(self, event):
+        """Get the variable index tuple for a given event."""
+
+        i_var = []
+        for var in self.variables:
+            edges = self._binedges[var]
+            i = np.digitize(event[var], edges, right=self._include_upper)
+            if i > 0 and i < len(edges):
+                i_var.append(i-1)
+            else:
+                i_var.append(None)
+
+        return i_var
+
+    def get_event_bin_number(self, event):
+        """Get the bin number for a given event."""
+
+        tup = self.get_event_tuple(event)
+        return self.get_tuple_bin_number(tup)
