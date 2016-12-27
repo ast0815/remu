@@ -248,7 +248,9 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(7)), 7)
         self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(8)), None)
         self.assertEqual(self.bl.get_bin_number_tuple(self.bl.get_tuple_bin_number((1,3))), (1,3))
+        self.assertEqual(self.bl.get_tuple_bin_number((1,2)), 5)
         self.assertEqual(self.bl.get_event_bin_number({'x': 0, 'y': -10}), 0)
+        self.assertEqual(self.bl.get_event_bin_number({'x': 1, 'y': -10}), 1)
         self.assertEqual(self.bl.get_event_bin_number({'x': -1, 'y': -10}), None)
         self.assertEqual(self.bu.get_event_bin_number({'x': 2, 'y': 30}), 7)
 
