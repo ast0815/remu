@@ -214,6 +214,15 @@ class TestBinnings(unittest.TestCase):
         self.assertEqual(self.b0.value, 6)
         self.assertEqual(self.b1.value, 6)
 
+    def test_fill_from_csv(self):
+        """Test filling the Binning from a csv file."""
+        self.binning.fill_from_csv_file('testdata/csv-test.csv')
+        self.assertEqual(self.b0.value, 2)
+        self.assertEqual(self.b1.value, 1)
+        self.binning.fill_from_csv_file('testdata/weighted-csv-test.csv', weightfield='w')
+        self.assertEqual(self.b0.value, 8)
+        self.assertEqual(self.b1.value, 2)
+
     def test_inclusion(self):
         """Test checking whether an event is binned."""
         self.assertTrue({'x': 0.5, 'y': 10} in self.binning)

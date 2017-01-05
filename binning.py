@@ -2,6 +2,7 @@ from copy import copy
 import ruamel.yaml as yaml
 import re
 import numpy as np
+import csv
 
 class PhaseSpace(object):
     """A PhaseSpace defines the possible combinations of variables that characterize an event.
@@ -410,6 +411,44 @@ class Binning(object):
         for i, w in zip(ibins, weight):
             if i is not None:
                 self.bins[i].fill(w)
+
+    def fill_from_csv_file(self, filename, weightfield=None, **kwargs):
+        """Fill the binning with events from a CSV file.
+
+        The file must be formated like this:
+
+            first_varname,second_varname,...
+            <first_value>,<second_value>,...
+            <first_value>,<second_value>,...
+            <first_value>,<second_value>,...
+            ...
+
+        For example:
+
+            x,y,z
+            1.0,2.1,3.2
+            4.1,2.0,2.9
+            3,2,1
+
+        All values are interpreted as floats.
+
+        If `weightfield` is given, that field will be used as weigts for the event.
+
+        Other keyword arguments are passed on to the Binning's `fill` method
+        """
+
+        with open(filename, 'r') as f:
+            dr = csv.DictReader(f, delimiter=',', strict=True)
+            for event in dr:
+                for k in event:
+                    # Parse the fields as floats
+                    event[k] = float(event[k])
+
+                if weightfield is None:
+                    self.fill(event, **kwargs)
+                else:
+                    weight = event.pop(weightfield)
+                    self.fill(event, weight=weight, **kwargs)
 
     def event_in_binning(self, event):
         """Check whether an event fits into any of the bins."""
