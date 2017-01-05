@@ -463,6 +463,7 @@ class RectangularBinning(Binning):
         self._binedges = kwargs.pop('binedges', None)
         if self._binedges is None:
             raise ValueError("Undefined bin edges!")
+        self._binedges = dict((k, tuple(v)) for k, v in self._binedges.items())
 
         self.variables = kwargs.pop('variables', None)
         if self.variables is None:
@@ -568,3 +569,41 @@ class RectangularBinning(Binning):
 
         tup = self.get_event_tuple(event)
         return self.get_tuple_bin_number(tup)
+
+    def __eq__(self, other):
+        """Rectangular binnings are equal they are equal Binnings and the variables and edges match."""
+        try:
+            return ( Binning.__eq__(self, other)
+                    and self.variables == other.variables
+                    and self._binedges == other._binedges
+                    and self._edges == other._edges
+                    and self._nbins == other._nbins
+                    and self._stepsize == other._stepsize
+                    and self._totbins == other._totbins
+                   )
+
+        except AttributeError:
+            return False
+
+    @staticmethod
+    def _yaml_representer(dumper, obj):
+        """Represent RectangularBinning in a YAML file."""
+        dic = {}
+        dic['include_upper'] = obj._include_upper
+        dic['binedges'] = [ [var, list(edg)] for var, edg in zip(obj.variables, obj._edges) ]
+        dic['phasespace'] = obj.phasespace
+        return dumper.represent_mapping('!RecBinning', dic)
+
+    @staticmethod
+    def _yaml_constructor(loader, node):
+        """Reconstruct RectangularBinning from YAML files."""
+        dic = loader.construct_mapping(node, deep=True)
+        binedges = dict(dic['binedges'])
+        variables = [varedg[0] for varedg in dic['binedges']]
+        return RectangularBinning(phasespace=dic['phasespace'],
+                                  variables=variables,
+                                  binedges=binedges,
+                                  include_upper=dic['include_upper'])
+
+yaml.add_representer(RectangularBinning, RectangularBinning._yaml_representer)
+yaml.add_constructor(u'!RecBinning', RectangularBinning._yaml_constructor)

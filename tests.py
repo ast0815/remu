@@ -276,7 +276,6 @@ class TestRectangularBinnings(unittest.TestCase):
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.bl
-        print yaml.dump(orig)
         reco = yaml.load(yaml.dump(orig))
         self.assertEqual(orig, reco)
 
