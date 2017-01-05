@@ -452,10 +452,12 @@ class Binning(object):
 
     def event_in_binning(self, event):
         """Check whether an event fits into any of the bins."""
-        for b in self.bins:
-            if event in b:
-                return True
-        return False
+
+        i = self.get_event_bin_number(event)
+        if i is None:
+            return False
+        else:
+            return True
 
     def __contains__(self, event):
         return self.event_in_binning(event)
