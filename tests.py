@@ -263,6 +263,16 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertEqual(self.bl.get_event_bin_number({'x': -1, 'y': -10}), None)
         self.assertEqual(self.bu.get_event_bin_number({'x': 2, 'y': 30}), 7)
 
+    def test_fill(self):
+        """Test bin filling"""
+        self.bl.fill({'x': 0.5, 'y': -10}, 1)
+        self.bl.fill({'x': 1.5, 'y': -10}, 2)
+        self.assertEqual(self.bl.bins[0].value, 1)
+        self.assertEqual(self.bl.bins[1].value, 2)
+        self.bl.fill([{'x': 0.5, 'y': -10}, {'x': 1.5, 'y': -10}], [1, 2])
+        self.assertEqual(self.bl.bins[0].value, 2)
+        self.assertEqual(self.bl.bins[1].value, 4)
+
     def test_inclusion(self):
         """Test checking whether an event is binned."""
         self.assertTrue({'x': 0.5, 'y': 10} in self.bl)
