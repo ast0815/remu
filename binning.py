@@ -424,7 +424,7 @@ class Binning(object):
     def __eq__(self, other):
         """Binnings are equal if all bins and the phase space are equal."""
         try:
-            return self.bins == other.bins and self.phasespace == self.phasespace
+            return self.bins == other.bins and self.phasespace == other.phasespace
         except AttributeError:
             return False
 
