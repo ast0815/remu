@@ -585,6 +585,9 @@ class RectangularBinning(Binning):
         except AttributeError:
             return False
 
+    def __ne__(self, other):
+        return not self == other
+
     @staticmethod
     def _yaml_representer(dumper, obj):
         """Represent RectangularBinning in a YAML file."""
