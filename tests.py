@@ -236,6 +236,28 @@ class TestBinnings(unittest.TestCase):
         self.assertEqual(self.b0.value, 10)
         self.assertEqual(self.b1.value, 3)
 
+    def test_ndarray(self):
+        """Test conversion from and to ndarrays."""
+        self.b1.value = 1
+        arr = self.binning.get_values_as_ndarray()
+        self.assertEqual(arr.shape, (2,))
+        self.assertEqual(arr[0], 0)
+        self.assertEqual(arr[1], 1)
+        arr[0] = 5
+        arr[1] = 10
+        self.binning.set_values_from_ndarray(arr)
+        self.assertEqual(self.b0.value, 5)
+        self.assertEqual(self.b1.value, 10)
+        arr = self.binning.get_values_as_ndarray((1,2))
+        self.assertEqual(arr.shape, (1,2))
+        self.assertEqual(arr[0,0], 5)
+        self.assertEqual(arr[0,1], 10)
+        arr[0,0] = 50
+        arr[0,1] = 100
+        self.binning.set_values_from_ndarray(arr)
+        self.assertEqual(self.b0.value, 50)
+        self.assertEqual(self.b1.value, 100)
+
     def test_inclusion(self):
         """Test checking whether an event is binned."""
         self.assertTrue({'x': 0.5, 'y': 10} in self.binning)

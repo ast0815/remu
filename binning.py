@@ -455,6 +455,37 @@ class Binning(object):
         for b in self.bins:
             b.value=value
 
+    def get_values_as_ndarray(self, shape=None):
+        """Return the bin values as nd array.
+
+        Arguments
+        ---------
+
+        shape: Shape of the resulting array.
+               Default: len(bins)
+        """
+
+        l = len(self.bins)
+
+        if shape is None:
+            shape = l
+
+        arr = np.ndarray(shape=l)
+
+        for i in range(l):
+            arr[i] = self.bins[i].value
+
+        arr.shape = shape
+
+        return arr
+
+    def set_values_from_ndarray(self, arr):
+        """Set the bin values to the values of the ndarray."""
+
+        l = len(self.bins)
+        for i in range(l):
+            self.bins[i].value = arr.flat[i]
+
     def event_in_binning(self, event):
         """Check whether an event fits into any of the bins."""
 
