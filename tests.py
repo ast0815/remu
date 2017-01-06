@@ -217,6 +217,12 @@ class TestBinnings(unittest.TestCase):
         self.assertEqual(self.b0.value, 7)
         self.assertEqual(self.b1.value, 6)
         self.assertRaises(KeyError, lambda: self.binning.fill({'x': 0.5}))
+        self.binning.reset()
+        self.assertEqual(self.b0.value, 0)
+        self.assertEqual(self.b1.value, 0)
+        self.binning.reset(123)
+        self.assertEqual(self.b0.value, 123)
+        self.assertEqual(self.b1.value, 123)
 
     def test_fill_from_csv(self):
         """Test filling the Binning from a csv file."""

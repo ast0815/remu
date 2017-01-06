@@ -450,6 +450,11 @@ class Binning(object):
                     weight = event.pop(weightfield)
                     self.fill(event, weight=weight, **kwargs)
 
+    def reset(self, value=0.):
+        """Reset all bin values."""
+        for b in self.bins:
+            b.value=value
+
     def event_in_binning(self, event):
         """Check whether an event fits into any of the bins."""
 
