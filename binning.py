@@ -588,7 +588,7 @@ class RectangularBinning(Binning):
         if i_bin is None or i_bin < 0 or i_bin >= self._totbins:
             return tuple([None]*len(self.variables))
 
-        i_var = tuple((i_bin // s) % t for s,t in zip(self._stepsize[:-1], self._stepsize[1:]))
+        i_var = tuple((i_bin % t) // s for s,t in zip(self._stepsize[:-1], self._stepsize[1:]))
         return i_var
 
     def get_event_tuple(self, event):

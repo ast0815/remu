@@ -254,6 +254,7 @@ class TestRectangularBinnings(unittest.TestCase):
         self.bl = RectangularBinning(binedges={'x': [0,1,2], 'y': (-10,0,10,20,float('inf'))}, variables=['x', 'y'])
         self.bl0 = RectangularBinning(binedges={'x': [0,1], 'y': (-10,0,10,20,float('inf'))}, variables=['x', 'y'])
         self.bu = RectangularBinning(binedges={'x': [0,1,2], 'y': (-10,0,10,20,float('inf'))}, variables=['x', 'y'], include_upper=True)
+        self.bxyz = RectangularBinning(binedges={'x': [0,1,2], 'y': (-10,0,10,20,float('inf')), 'z': (0,1,2)}, variables=['x', 'y', 'z'])
 
     def test_tuples(self):
         """Test the translation of tuples to bin numbers and back."""
@@ -264,6 +265,7 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(7)), 7)
         self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(8)), None)
         self.assertEqual(self.bl.get_bin_number_tuple(self.bl.get_tuple_bin_number((1,3))), (1,3))
+        self.assertEqual(self.bxyz.get_bin_number_tuple(self.bl.get_tuple_bin_number((1,3,0))), (1,3,0))
         self.assertEqual(self.bl.get_tuple_bin_number((1,2)), 5)
         self.assertEqual(self.bl.get_event_bin_number({'x': 0, 'y': -10}), 0)
         self.assertEqual(self.bl.get_event_bin_number({'x': 1, 'y': -10}), 1)
