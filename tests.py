@@ -1,6 +1,7 @@
 import unittest
 import ruamel.yaml as yaml
 from binning import *
+from migration import *
 
 class TestPhasSpaces(unittest.TestCase):
     def setUp(self):
@@ -345,6 +346,51 @@ class TestRectangularBinnings(unittest.TestCase):
         orig = self.bl
         reco = yaml.load(yaml.dump(orig))
         self.assertEqual(orig, reco)
+
+class TestResponseMatrices(unittest.TestCase):
+    def setUp(self):
+        with open('testdata/test-truth-binning.yml', 'r') as f:
+            self.tb = yaml.load(f)
+        with open('testdata/test-reco-binning.yml', 'r') as f:
+            self.rb = yaml.load(f)
+        self.rm = ResponseMatrix(self.rb, self.tb)
+
+    def test_fill(self):
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        reco = self.rm._reco_binning.get_values_as_ndarray((2,2))
+        self.assertEqual(reco[0,0], 3)
+        self.assertEqual(reco[1,0], 1)
+        self.assertEqual(reco[0,1], 2)
+        self.assertEqual(reco[1,1], 2)
+        truth = self.rm._truth_binning.get_values_as_ndarray((2,2))
+        self.assertEqual(truth[0,0], 2)
+        self.assertEqual(truth[1,0], 2)
+        self.assertEqual(truth[0,1], 4)
+        self.assertEqual(truth[1,1], 2)
+        resp = self.rm._response_binning.get_values_as_ndarray((2,2,2,2))
+        self.assertEqual(resp[0,0,0,0], 2)
+        self.assertEqual(resp[0,1,0,0], 0)
+        self.assertEqual(resp[1,0,0,0], 0)
+        self.assertEqual(resp[1,1,0,0], 0)
+        self.assertEqual(resp[0,0,0,1], 1)
+        self.assertEqual(resp[0,1,0,1], 1)
+        self.assertEqual(resp[1,0,0,1], 0)
+        self.assertEqual(resp[1,1,0,1], 0)
+        self.assertEqual(resp[0,0,1,0], 0)
+        self.assertEqual(resp[0,1,1,0], 0)
+        self.assertEqual(resp[1,0,1,0], 1)
+        self.assertEqual(resp[1,1,1,0], 1)
+        self.assertEqual(resp[0,0,1,1], 0)
+        self.assertEqual(resp[0,1,1,1], 1)
+        self.assertEqual(resp[1,0,1,1], 0)
+        self.assertEqual(resp[1,1,1,1], 1)
+        self.rm.reset()
+        reco = self.rm._reco_binning.get_values_as_ndarray((2,2))
+        self.assertEqual(reco[0,0], 0)
+        truth = self.rm._truth_binning.get_values_as_ndarray((2,2))
+        self.assertEqual(truth[0,0], 0)
+        resp = self.rm._response_binning.get_values_as_ndarray((2,2,2,2))
+        self.assertEqual(resp[0,0,0,0], 0)
 
 if __name__ == '__main__':
     unittest.main()

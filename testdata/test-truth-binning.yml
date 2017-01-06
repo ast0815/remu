@@ -1,0 +1,8 @@
+!RecBinning
+binedges:
+- - x_truth
+  - [0, 1, 2]
+- - y_truth
+  - [0, 1, 2]
+include_upper: false
+phasespace: !PhaseSpace [x_truth, y_truth]
