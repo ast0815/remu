@@ -470,7 +470,7 @@ class Binning(object):
         if shape is None:
             shape = l
 
-        arr = np.ndarray(shape=l)
+        arr = np.ndarray(shape=l, order='C') # Row-major 'C-style' array. Last variable indices vary the fastest.
 
         for i in range(l):
             arr[i] = self.bins[i].value
@@ -548,10 +548,21 @@ class RectangularBinning(Binning):
         self.variables = tuple(self.variables)
         self._nbins = tuple(len(self._binedges[v])-1 for v in self.variables)
         self._stepsize = [1]
-        for n in self._nbins: # _stepsize is 1 longer than variables and _nbins!
-            self._stepsize.append(self._stepsize[-1] * n)
+        # Calculate the step size (or stride) for each variable index.
+        # We use a row-major ordering (C-style).
+        # The index of the later variables varies faster than the ones before:
+        #
+        #   (0,0) <-> 0
+        #   (0,1) <-> 1
+        #   (0,2) <-> 2
+        #   (1,0) <-> 3
+        #   ...
+        #
+        # _stepsize is 1 longer than variables and _nbins!
+        for n in reversed(self._nbins):
+            self._stepsize.insert(0, self._stepsize[0] * n)
         self._stepsize = tuple(self._stepsize)
-        self._totbins = self._stepsize[-1]
+        self._totbins = self._stepsize[0]
         self._edges = tuple(self._binedges[v] for v in self.variables)
 
         self._include_upper = kwargs.pop('include_upper', False)
@@ -588,17 +599,14 @@ class RectangularBinning(Binning):
             i_bin
 
         The order of the indices in the tuple must conform to the order of `self.variables`.
-        Each step in `i_x` increases `i_bin` by one.
-        Each step in `i_y` increases `i_bin` by the number of x bins.
-        Each step in `i_z` increases `i_bin` by the number of x bins times the number of y bins.
-        Etc.
+        The the bins are ordered row-major (C-style).
         """
 
         if None in i_var:
             return None
 
         i_bin = 0
-        for i,s in zip(i_var, self._stepsize[:-1]):
+        for i,s in zip(i_var, self._stepsize[1:]):
             i_bin += s*i
 
         return i_bin
@@ -615,16 +623,13 @@ class RectangularBinning(Binning):
             (i_x, i_y, i_z)
 
         The order of the indices in the tuple conforms to the order of `self.variables`.
-        Each step in `i_x` increases `i_bin` by one.
-        Each step in `i_y` increases `i_bin` by the number of x bins.
-        Each step in `i_z` increases `i_bin` by the number of x bins times the number of y bins.
-        Etc.
+        The bins are ordered row-major (C-style).
         """
 
         if i_bin is None or i_bin < 0 or i_bin >= self._totbins:
             return tuple([None]*len(self.variables))
 
-        i_var = tuple((i_bin % t) // s for s,t in zip(self._stepsize[:-1], self._stepsize[1:]))
+        i_var = tuple((i_bin % t) // s for t,s in zip(self._stepsize[:-1], self._stepsize[1:]))
         return i_var
 
     def get_event_tuple(self, event):
