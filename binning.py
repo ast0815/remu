@@ -612,7 +612,7 @@ class RectangularBinning(Binning):
         return self.get_tuple_bin_number(tup)
 
     def __eq__(self, other):
-        """Rectangular binnings are equal they are equal Binnings and the variables and edges match."""
+        """Rectangular binnings are equal if they are equal Binnings and the variables and edges match."""
         try:
             return ( Binning.__eq__(self, other)
                     and self.variables == other.variables
