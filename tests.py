@@ -305,6 +305,12 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertTrue(self.bl != self.bu)
         self.assertFalse(self.bl == self.bu)
 
+    def test_cartesian_product(self):
+        """Test combining disjunct binnings."""
+        bz = RectangularBinning(binedges={'z': [0,1,2]}, variables=['z'])
+        bt = self.bl.cartesian_product(bz)
+        self.assertEqual(bt, self.bxyz)
+
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.bl

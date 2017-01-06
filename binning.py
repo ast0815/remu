@@ -611,6 +611,29 @@ class RectangularBinning(Binning):
         tup = self.get_event_tuple(event)
         return self.get_tuple_bin_number(tup)
 
+    def cartesian_product(self, other):
+        """Create the Cartesian product of two rectangular binnings.
+
+        The two binnings must not share any variables.
+        The two binnings must have the same value of `include_upper`.
+        The resulting binning is in the the variables of both binnings with the respective edges.
+        """
+
+        if self._include_upper != other._include_upper:
+            raise ValueError("Both RectangularBinnings must have the same `include_upper`.")
+
+        SA = set(self.variables)
+        SB = set(other.variables)
+        if len(SA & SB) > 0:
+            raise ValueError("Both RectangularBinnings must not share any variables.")
+
+        phasespace = self.phasespace * other.phasespace
+        variables = list(self.variables) + list(other.variables)
+        binedges = self._binedges.copy()
+        binedges.update(other._binedges)
+
+        return RectangularBinning(phasespace=phasespace, variables=variables, binedges=binedges)
+
     def __eq__(self, other):
         """Rectangular binnings are equal if they are equal Binnings and the variables and edges match."""
         try:
