@@ -357,17 +357,17 @@ class TestResponseMatrices(unittest.TestCase):
 
     def test_fill(self):
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        reco = self.rm._reco_binning.get_values_as_ndarray((2,2))
+        reco = self.rm.get_reco_values_as_ndarray((2,2))
         self.assertEqual(reco[0,0], 3)
         self.assertEqual(reco[1,0], 1)
         self.assertEqual(reco[0,1], 2)
         self.assertEqual(reco[1,1], 2)
-        truth = self.rm._truth_binning.get_values_as_ndarray((2,2))
+        truth = self.rm.get_truth_values_as_ndarray((2,2))
         self.assertEqual(truth[0,0], 2)
         self.assertEqual(truth[1,0], 2)
         self.assertEqual(truth[0,1], 4)
         self.assertEqual(truth[1,1], 2)
-        resp = self.rm._response_binning.get_values_as_ndarray((2,2,2,2))
+        resp = self.rm.get_response_values_as_ndarray((2,2,2,2))
         self.assertEqual(resp[0,0,0,0], 2)
         self.assertEqual(resp[0,1,0,0], 0)
         self.assertEqual(resp[1,0,0,0], 0)
@@ -385,12 +385,20 @@ class TestResponseMatrices(unittest.TestCase):
         self.assertEqual(resp[1,0,1,1], 0)
         self.assertEqual(resp[1,1,1,1], 1)
         self.rm.reset()
-        reco = self.rm._reco_binning.get_values_as_ndarray((2,2))
+        reco = self.rm.get_reco_values_as_ndarray((2,2))
         self.assertEqual(reco[0,0], 0)
-        truth = self.rm._truth_binning.get_values_as_ndarray((2,2))
+        truth = self.rm.get_truth_values_as_ndarray((2,2))
         self.assertEqual(truth[0,0], 0)
-        resp = self.rm._response_binning.get_values_as_ndarray((2,2,2,2))
+        resp = self.rm.get_response_values_as_ndarray((2,2,2,2))
         self.assertEqual(resp[0,0,0,0], 0)
+
+    def test_matrix_consistency(self):
+        """Test that matrix and truth vector reproduce the reco vector."""
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        reco = self.rm.get_reco_values_as_ndarray()
+        truth = self.rm.get_truth_values_as_ndarray()
+        resp = self.rm.get_response_matrix_as_ndarray()
+        self.assertTrue(np.all(reco == resp.dot(truth)))
 
 if __name__ == '__main__':
     unittest.main()
