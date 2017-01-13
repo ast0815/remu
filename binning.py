@@ -118,7 +118,8 @@ class Bin(object):
         ------
 
         phasespace : The phase space the Bin resides in.
-        value : The initialization value of the bin. Default: 0.
+        value : The initialization value of the bin. Default: 0.0
+        entries : The initialization value of the number of entries. Default: 0
         """
 
         self.phasespace = kwargs.pop('phasespace', None)
@@ -126,6 +127,7 @@ class Bin(object):
             raise ValueError("Undefined phase space!")
 
         self.value = kwargs.pop('value', 0.)
+        self.entries = kwargs.pop('entries', 0)
 
         if len(kwargs) > 0:
             raise ValueError("Unknown kwargs: %s"%(kwargs,))
@@ -140,8 +142,10 @@ class Bin(object):
 
         try:
             self.value += sum(weight)
+            self.entries += len(weight)
         except TypeError:
             self.value += weight
+            self.entries += 1
 
     def __contains__(self, event):
         """Return True if the event falls within the bin."""
@@ -450,10 +454,11 @@ class Binning(object):
                     weight = event.pop(weightfield)
                     self.fill(event, weight=weight, **kwargs)
 
-    def reset(self, value=0.):
+    def reset(self, value=0., entries=0):
         """Reset all bin values."""
         for b in self.bins:
             b.value=value
+            b.entries=entries
 
     def get_values_as_ndarray(self, shape=None):
         """Return the bin values as nd array.
@@ -479,12 +484,43 @@ class Binning(object):
 
         return arr
 
+    def get_entries_as_ndarray(self, shape=None):
+        """Return the number of bin entries as nd array.
+
+        Arguments
+        ---------
+
+        shape: Shape of the resulting array.
+               Default: len(bins)
+        """
+
+        l = len(self.bins)
+
+        if shape is None:
+            shape = l
+
+        arr = np.ndarray(shape=l, order='C') # Row-major 'C-style' array. Last variable indices vary the fastest.
+
+        for i in range(l):
+            arr[i] = self.bins[i].entries
+
+        arr.shape = shape
+
+        return arr
+
     def set_values_from_ndarray(self, arr):
         """Set the bin values to the values of the ndarray."""
 
         l = len(self.bins)
         for i in range(l):
             self.bins[i].value = arr.flat[i]
+
+    def set_entries_from_ndarray(self, arr):
+        """Set the number of bin entries to the values of the ndarray."""
+
+        l = len(self.bins)
+        for i in range(l):
+            self.bins[i].entries = arr.flat[i]
 
     def event_in_binning(self, event):
         """Check whether an event fits into any of the bins."""
