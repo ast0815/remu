@@ -748,7 +748,7 @@ class RectangularBinning(Binning):
         binedges = self._binedges.copy()
         binedges.update(other._binedges)
 
-        return RectangularBinning(phasespace=phasespace, variables=variables, binedges=binedges)
+        return RectangularBinning(phasespace=phasespace, variables=variables, binedges=binedges, include_upper=self._include_upper)
 
     def __eq__(self, other):
         """Rectangular binnings are equal if they are equal Binnings and the variables and edges match."""
