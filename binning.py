@@ -132,14 +132,11 @@ class Bin(object):
 
         self._value_array = kwargs.pop('value_array', None)
         if self._value_array is None:
-            self._value_array = np.array([0.])
+            self._value_array = np.array([kwargs.pop('value', 0.)])
 
         self._entries_array = kwargs.pop('entries_array', None)
         if self._entries_array is None:
-            self._entries_array = np.array([0])
-
-        self.value = kwargs.pop('value', 0.)
-        self.entries = kwargs.pop('entries', 0)
+            self._entries_array = np.array([kwargs.pop('entries', 0)])
 
         if len(kwargs) > 0:
             raise ValueError("Unknown kwargs: %s"%(kwargs,))
@@ -378,14 +375,6 @@ class Binning(object):
         self.bins = kwargs.pop('bins', None)
         if self.bins is None:
             raise ValueError("Undefined bins!")
-        else:
-            # Make sure the bins are saved in a list
-            self.bins = list(self.bins)
-
-        # Check that all bins are defined on the given phase space
-        for b in self.bins:
-            if b.phasespace != self.phasespace:
-                raise ValueError("Phase space of bin does not match phase space of binning!")
 
         if len(kwargs) > 0:
             raise ValueError("Unknown kwargs: %s"%(kwargs,))
@@ -597,6 +586,35 @@ class Binning(object):
 yaml.add_representer(Binning, Binning._yaml_representer)
 yaml.add_constructor(u'!Binning', Binning._yaml_constructor)
 
+class _RecBinProxy(object):
+    """Indexable class that returns bins as proxy for numpy arrays."""
+
+    def __init__(self, binning):
+        """Initialise the proxy and create the numpy arrays."""
+
+        self.binning = binning
+        self._value_array = np.zeros(binning._totbins, dtype=float)
+        self._entries_array = np.zeros(binning._totbins, dtype=int)
+
+    def __getitem__(self, index):
+        """Dynamically build a RectangularBin when requested."""
+        val_slice = self._value_array.reshape(-1, order='C')[index:index+1]
+        ent_slice = self._entries_array.reshape(-1, order='C')[index:index+1]
+        tup = self.binning.get_bin_number_tuple(index)
+        edges = dict( (v, (e[j], e[j+1])) for v,e,j in zip(self.binning.variables, self.binning._edges, tup) )
+        rbin = RectangularBin(edges=edges, include_lower=not self.binning._include_upper, include_upper=self.binning._include_upper, phasespace=self.binning.phasespace, value_array=val_slice, entries_array=ent_slice)
+        return rbin
+
+    def __len__(self):
+        return self.binning._totbins
+
+    def __iter__(self):
+        for i in range(len(self)):
+            yield self[i]
+
+    def __eq__(self, other):
+        return self.binning == other.binning
+
 class RectangularBinning(Binning):
     """Binning made exclusively out of RectangularBins"""
 
@@ -652,15 +670,11 @@ class RectangularBinning(Binning):
         if bins is not None:
             raise ValueError("Cannot define bins of RectangularBinning! Define binedges instead.")
         else:
-            # Create bins from bin edges
-            bins = []
-            for i in range(self._totbins):
-                tup = self.get_bin_number_tuple(i)
-                edges = dict( (v, (e[j], e[j+1])) for v,e,j in zip(self.variables, self._edges, tup) )
-                bins.append(RectangularBin(edges=edges, include_lower=not self._include_upper, include_upper=self._include_upper, phasespace=phasespace))
+            # Create bin proxy
+            bins = _RecBinProxy(self)
         kwargs['bins'] = bins
 
-        Binning.__init__(self, **kwargs) 
+        Binning.__init__(self, **kwargs)
 
     def get_tuple_bin_number(self, i_var):
         """Translate a tuple of variable bin numbers to the linear bin number of the event.
@@ -751,15 +765,15 @@ class RectangularBinning(Binning):
         return RectangularBinning(phasespace=phasespace, variables=variables, binedges=binedges, include_upper=self._include_upper)
 
     def __eq__(self, other):
-        """Rectangular binnings are equal if they are equal Binnings and the variables and edges match."""
+        """Rectangular binnings are equal if the variables and edges match."""
         try:
-            return ( Binning.__eq__(self, other)
-                    and self.variables == other.variables
+            return (self.variables == other.variables
                     and self._binedges == other._binedges
                     and self._edges == other._edges
                     and self._nbins == other._nbins
                     and self._stepsize == other._stepsize
                     and self._totbins == other._totbins
+                    and self._include_upper == other._include_upper
                    )
 
         except AttributeError:
