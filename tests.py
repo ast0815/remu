@@ -464,6 +464,8 @@ class TestResponseMatrices(unittest.TestCase):
         self.assertEqual(resp[0,1,1,1], 1)
         self.assertEqual(resp[1,0,1,1], 0)
         self.assertEqual(resp[1,1,1,1], 1)
+        resp = self.rm.get_response_matrix_as_ndarray(16)
+        self.assertEqual(resp.shape, (16,))
         self.rm.reset()
         reco = self.rm.get_reco_values_as_ndarray((2,2))
         self.assertEqual(reco[0,0], 0)

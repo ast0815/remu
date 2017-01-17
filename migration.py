@@ -55,23 +55,26 @@ class ResponseMatrix(object):
     def get_response_entries_as_ndarray(self, shape=None):
         return self._response_binning.get_entries_as_ndarray(shape)
 
-    def get_response_matrix_as_ndarray(self):
+    def get_response_matrix_as_ndarray(self, shape=None):
         """Return the ResponseMatrix as a ndarray.
 
-        It will be of the shape `(N_reco, N_truth)`.
+        If no shape is specified, it will be set to `(N_reco, N_truth)`.
         The expected response of a truth vector can then be calculated like this:
 
             v_reco = response_matrix.dot(v_truth)
 
         """
 
-        shape = (len(self._reco_binning.bins), len(self._truth_binning.bins))
+        original_shape = (len(self._reco_binning.bins), len(self._truth_binning.bins))
 
         # Get the bin response entries
-        M = self._response_binning.get_values_as_ndarray(shape)
+        M = self._response_binning.get_values_as_ndarray(original_shape)
 
         # Normalize to number of simulated events
         N_t = self._truth_binning.get_values_as_ndarray()
         M /= N_t
+
+        if shape is not None:
+            M = M.reshape(shape, order='C')
 
         return M
