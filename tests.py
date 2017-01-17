@@ -67,14 +67,12 @@ class TestBins(unittest.TestCase):
         self.b0 = Bin(phasespace=ps)
         self.b1 = Bin(phasespace=ps, value=1.)
         self.b2 = Bin(phasespace=ps, value=2.)
-        self.bd = Bin(phasespace=ps, value={'a': 0, 'b': 1})
 
     def test_init_values(self):
         """Test initialization values."""
         self.assertEqual(self.b0.value, 0.)
         self.assertEqual(self.b1.value, 1.)
         self.assertEqual(self.b2.value, 2.)
-        self.assertEqual(self.bd.value, {'a': 0, 'b': 1})
 
     def test_bin_arithmetic(self):
         """Test math with bins."""
@@ -111,7 +109,6 @@ class TestBins(unittest.TestCase):
         self.assertEqual(self.b0.value, eval(repr(self.b0)).value)
         self.assertEqual(self.b1.value, eval(repr(self.b1)).value)
         self.assertEqual(self.b2.value, eval(repr(self.b2)).value)
-        self.assertEqual(self.bd.value, eval(repr(self.bd)).value)
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
@@ -119,7 +116,6 @@ class TestBins(unittest.TestCase):
         self.assertEqual(self.b0.value, yaml.load(yaml.dump(self.b0)).value)
         self.assertEqual(self.b1.value, yaml.load(yaml.dump(self.b1)).value)
         self.assertEqual(self.b2.value, yaml.load(yaml.dump(self.b2)).value)
-        self.assertEqual(self.bd.value, yaml.load(yaml.dump(self.bd)).value)
 
 class TestRectangularBins(unittest.TestCase):
     def setUp(self):

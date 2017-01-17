@@ -1,4 +1,4 @@
-from copy import copy
+from copy import copy, deepcopy
 import ruamel.yaml as yaml
 import re
 import numpy as np
@@ -120,17 +120,45 @@ class Bin(object):
         phasespace : The phase space the Bin resides in.
         value : The initialization value of the bin. Default: 0.0
         entries : The initialization value of the number of entries. Default: 0
+        value_array : A slice of a numpy array, where the value of the bin will be stored.
+                      Default: None
+        entries_array : A slice of a numpy array, where the number entries will be stored.
+                        Default: None
         """
 
         self.phasespace = kwargs.pop('phasespace', None)
         if self.phasespace is None:
             raise ValueError("Undefined phase space!")
 
+        self._value_array = kwargs.pop('value_array', None)
+        if self._value_array is None:
+            self._value_array = np.array([0.])
+
+        self._entries_array = kwargs.pop('entries_array', None)
+        if self._entries_array is None:
+            self._entries_array = np.array([0])
+
         self.value = kwargs.pop('value', 0.)
         self.entries = kwargs.pop('entries', 0)
 
         if len(kwargs) > 0:
             raise ValueError("Unknown kwargs: %s"%(kwargs,))
+
+    @property
+    def value(self):
+        return self._value_array[0]
+
+    @value.setter
+    def value(self, v):
+        self._value_array[0] = v
+
+    @property
+    def entries(self):
+        return self._entries_array[0]
+
+    @entries.setter
+    def entries(self, v):
+        self._entries_array[0] = v
 
     def event_in_bin(self, event):
         """Return True if the variable combination falls within the bin."""
@@ -162,22 +190,22 @@ class Bin(object):
         return not self == other
 
     def __add__(self, other):
-        ret = copy(self)
+        ret = deepcopy(self)
         ret.value = self.value + other.value
         return ret
 
     def __sub__(self, other):
-        ret = copy(self)
+        ret = deepcopy(self)
         ret.value = self.value - other.value
         return ret
 
     def __mul__(self, other):
-        ret = copy(self)
+        ret = deepcopy(self)
         ret.value = self.value * other.value
         return ret
 
     def __div__(self, other):
-        ret = copy(self)
+        ret = deepcopy(self)
         ret.value = self.value / other.value
         return ret
 
@@ -190,7 +218,12 @@ class Bin(object):
     @staticmethod
     def _yaml_representer(dumper, obj):
         """Represent Bin in a YAML file."""
-        return dumper.represent_mapping('!Bin', obj.__dict__)
+        dic = {
+                'phasespace': obj.phasespace,
+                'value': float(obj.value),
+                'entries': int(obj.entries),
+              }
+        return dumper.represent_mapping('!Bin', dic)
 
     @staticmethod
     def _yaml_constructor(loader, node):
@@ -294,8 +327,14 @@ class RectangularBin(Bin):
     @staticmethod
     def _yaml_representer(dumper, obj):
         """Represent RectangularBin in a YAML file."""
-        dic = copy(obj.__dict__)
-        edges = copy(dic['edges'])
+        dic = {
+                'phasespace': obj.phasespace,
+                'value': float(obj.value),
+                'entries': int(obj.entries),
+                'include_upper': obj.include_upper,
+                'include_lower': obj.include_lower,
+              }
+        edges = copy(obj.edges)
         for var in edges:
             # Convert bin edges to lists for prettier YAML
             edges[var] = list(edges[var])
