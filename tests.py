@@ -349,6 +349,26 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertEqual(self.bl.bins[1].entries, 2)
         self.assertRaises(KeyError, lambda: self.bl.fill({'x': 0.5}))
 
+    def test_ndarray(self):
+        """Test ndarray representations."""
+        self.bl.bins[5].fill([0.5, 0.5])
+        arr = self.bl.get_values_as_ndarray()
+        self.assertEqual(arr.shape, (8,))
+        self.assertEqual(arr[0], 0)
+        self.assertEqual(arr[5], 1)
+        arr = self.bl.get_entries_as_ndarray()
+        self.assertEqual(arr.shape, (8,))
+        self.assertEqual(arr[0], 0)
+        self.assertEqual(arr[5], 2)
+        arr = self.bl.get_values_as_ndarray((2,4))
+        self.assertEqual(arr.shape, (2,4))
+        self.assertEqual(arr[0,0], 0)
+        self.assertEqual(arr[1,1], 1)
+        arr = self.bl.get_entries_as_ndarray((2,4))
+        self.assertEqual(arr.shape, (2,4))
+        self.assertEqual(arr[0,0], 0)
+        self.assertEqual(arr[1,1], 2)
+
     def test_inclusion(self):
         """Test checking whether an event is binned."""
         self.assertTrue({'x': 0.5, 'y': 10} in self.bl)

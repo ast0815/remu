@@ -764,6 +764,36 @@ class RectangularBinning(Binning):
 
         return RectangularBinning(phasespace=phasespace, variables=variables, binedges=binedges, include_upper=self._include_upper)
 
+    def get_values_as_ndarray(self, shape=None):
+        """Return the bin values as nd array.
+
+        Arguments
+        ---------
+
+        shape: Shape of the resulting array.
+               Default: len(bins)
+        """
+
+        ret = np.copy(self.bins._value_array)
+        if shape is not None:
+            ret = ret.reshape(shape, order='C')
+        return ret
+
+    def get_entries_as_ndarray(self, shape=None):
+        """Return the number of entries as nd array.
+
+        Arguments
+        ---------
+
+        shape: Shape of the resulting array.
+               Default: len(bins)
+        """
+
+        ret = np.copy(self.bins._entries_array)
+        if shape is not None:
+            ret = ret.reshape(shape, order='C')
+        return ret
+
     def __eq__(self, other):
         """Rectangular binnings are equal if the variables and edges match."""
         try:
