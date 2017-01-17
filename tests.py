@@ -2,6 +2,7 @@ import unittest
 import ruamel.yaml as yaml
 from binning import *
 from migration import *
+import numpy as np
 
 class TestPhasSpaces(unittest.TestCase):
     def setUp(self):
@@ -308,7 +309,7 @@ class TestRectangularBinnings(unittest.TestCase):
     def setUp(self):
         self.bl = RectangularBinning(binedges={'x': [0,1,2], 'y': (-10,0,10,20,float('inf'))}, variables=['x', 'y'])
         self.bl0 = RectangularBinning(binedges={'x': [0,1], 'y': (-10,0,10,20,float('inf'))}, variables=['x', 'y'])
-        self.bu = RectangularBinning(binedges={'x': [0,1,2], 'y': (-10,0,10,20,float('inf'))}, variables=['x', 'y'], include_upper=True)
+        self.bu = RectangularBinning(binedges={'x': np.linspace(0,2,3), 'y': (-10,0,10,20,float('inf'))}, variables=['x', 'y'], include_upper=True)
         self.bxyz = RectangularBinning(binedges={'x': [0,1,2], 'y': (-10,0,10,20,float('inf')), 'z': (0,1,2)}, variables=['x', 'y', 'z'])
 
     def test_tuples(self):

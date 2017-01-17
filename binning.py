@@ -615,7 +615,7 @@ class RectangularBinning(Binning):
         self._binedges = kwargs.pop('binedges', None)
         if self._binedges is None:
             raise ValueError("Undefined bin edges!")
-        self._binedges = dict((k, tuple(v)) for k, v in self._binedges.items())
+        self._binedges = dict((k, tuple(float(f) for f in v)) for k, v in self._binedges.items())
 
         self.variables = kwargs.pop('variables', None)
         if self.variables is None:
