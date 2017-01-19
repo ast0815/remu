@@ -41,7 +41,7 @@ class LikelihoodMachine(object):
 
         return self._reduced_log_likelihood(reduced_truth_vector)
 
-    def absolute_max_log_likelihood(self, disp=False, method='differential_evolution', kwargs=None):
+    def absolute_max_log_likelihood(self, disp=False, method='basinhopping', kwargs=None):
         """Calculate the maximum achievable log likelihood.
 
         Arguments
