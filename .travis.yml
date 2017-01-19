@@ -15,6 +15,7 @@ addons:
     packages:
       - libopenblas-base
       - libopenblas-dev
+      - liblapack-dev
 
 # commands to be run before installation
 before_install:
