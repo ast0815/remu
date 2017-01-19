@@ -2,10 +2,6 @@ import numpy as np
 from scipy.stats import poisson
 from scipy import optimize
 
-def multi_poisson_likelihood(n, mu):
-    """Calculate the log likelihood of a multi-bin poisson experiment."""
-
-
 class LikelihoodMachine(object):
     """Class that calculates likelihoods for truth vectors."""
 
