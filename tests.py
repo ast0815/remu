@@ -527,7 +527,7 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.data_vector[2] += 1
         self.data_vector[3] -= 1
         ret = self.L.absolute_max_log_likelihood(kwargs={})
-        ll, x, s = ret.fun, ret.x, ret.success
+        s = ret.lowest_optimization_result.success
         self.assertTrue(s)
 
 if __name__ == '__main__':
