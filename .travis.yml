@@ -13,9 +13,11 @@ matrix:
 addons:
   apt:
     packages:
+      # Packages we need to compile scipy for Python 2.6
       - libopenblas-base
       - libopenblas-dev
       - liblapack-dev
+      - gfortran
 
 # commands to be run before installation
 before_install:
