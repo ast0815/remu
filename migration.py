@@ -72,7 +72,7 @@ class ResponseMatrix(object):
 
         # Normalize to number of simulated events
         N_t = self._truth_binning.get_values_as_ndarray()
-        M /= N_t
+        M /= np.where(N_t > 0., N_t, 1.)
 
         if shape is not None:
             M = M.reshape(shape, order='C')
