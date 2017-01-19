@@ -2,6 +2,7 @@ import unittest
 import ruamel.yaml as yaml
 from binning import *
 from migration import *
+from likelihood import *
 import numpy as np
 
 class TestPhasSpaces(unittest.TestCase):
@@ -481,6 +482,53 @@ class TestResponseMatrices(unittest.TestCase):
         truth = self.rm.get_truth_values_as_ndarray()
         resp = self.rm.get_response_matrix_as_ndarray()
         self.assertTrue(np.all(reco == resp.dot(truth)))
+
+class TestLikelihoodMachines(unittest.TestCase):
+    def setUp(self):
+        with open('testdata/test-truth-binning.yml', 'r') as f:
+            tb = yaml.load(f)
+        with open('testdata/test-reco-binning.yml', 'r') as f:
+            rb = yaml.load(f)
+        rm = ResponseMatrix(rb, tb)
+        rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        self.data_vector = rm.get_reco_entries_as_ndarray() # Entries because we need integer event numbers
+        self.truth_vector = rm.get_truth_values_as_ndarray()
+        self.response_matrix = rm.get_response_matrix_as_ndarray()
+        self.L = LikelihoodMachine(self.data_vector, self.response_matrix)
+
+    def test_log_likelihood(self):
+        """Test basic likelihood computation."""
+
+        self.assertAlmostEqual(self.L.log_likelihood(self.truth_vector), -5.1096282421)
+        self.truth_vector[0] += 1
+        self.assertAlmostEqual(self.L.log_likelihood(self.truth_vector), -5.2465820247)
+
+    def test_absolute_max_log_likelihood(self):
+        """Test absolute likelihood maximisation."""
+        fun = lambda x: x
+        ret = self.L.absolute_max_log_likelihood(method='differential_evolution')
+        ll, x, s = ret.L, ret.x, ret.success
+        self.assertTrue(s)
+        self.assertAlmostEqual(ll, -5.110, places=3)
+        self.assertAlmostEqual(x[0], 2, places=2)
+        self.assertAlmostEqual(x[1], 4, places=2)
+        self.assertAlmostEqual(x[2], 2, places=2)
+        self.assertAlmostEqual(x[3], 2, places=2)
+        ret = self.L.absolute_max_log_likelihood(method='basinhopping')
+        ll, x, s = ret.L, ret.x, ret.lowest_optimization_result.success
+        self.assertTrue(s)
+        self.assertAlmostEqual(ll, -5.110, places=3)
+        self.assertAlmostEqual(x[0], 2, places=2)
+        self.assertAlmostEqual(x[1], 4, places=2)
+        self.assertAlmostEqual(x[2], 2, places=2)
+        self.assertAlmostEqual(x[3], 2, places=2)
+        self.data_vector[0] += 1
+        self.data_vector[1] -= 1
+        self.data_vector[2] += 1
+        self.data_vector[3] -= 1
+        ret = self.L.absolute_max_log_likelihood(kwargs={})
+        ll, x, s = ret.fun, ret.x, ret.success
+        self.assertTrue(s)
 
 if __name__ == '__main__':
     unittest.main()
