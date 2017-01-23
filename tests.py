@@ -496,13 +496,57 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.response_matrix = rm.get_response_matrix_as_ndarray()
         self.L = LikelihoodMachine(self.data_vector, self.response_matrix)
 
+    def test_log_probabilities(self):
+        """Test n-dimensional calculation of probabilities."""
+        # Three data sets
+        data = np.array([
+                [2,4],
+                [2,1],
+                [2,0],
+               ])
+
+        # Two simple response matrices
+        resp = np.array([
+                [[1.,0.],
+                 [0.,1.]],
+
+                [[0.,1.],
+                 [1.,0.]],
+               ])
+
+        # Five theories
+        truth = np.array([
+                 [2.,4.],
+                 [2.,3.],
+                 [2.,2.],
+                 [2.,1.],
+                 [2.,0.],
+                ])
+
+        # Calculate *all* probabilities:
+        ret = LikelihoodMachine.log_probability(data, resp, truth)
+        self.assertEqual(ret.shape, (3,2,5))
+        np.testing.assert_allclose(ret, np.array(
+            [[[-2.93972921, -3.0904575,  -3.71231793, -5.48490665,     -np.inf],
+              [-4.32602357, -3.90138771, -3.71231793, -4.09861229,     -np.inf]],
+
+             [[-3.92055846, -3.20824053, -2.61370564, -2.30685282,     -np.inf],
+              [-3.22741128, -2.80277542, -2.61370564, -3.,             -np.inf]],
+
+             [[-5.30685282, -4.30685282, -3.30685282, -2.30685282, -1.30685282],
+              [-3.92055846, -3.4959226,  -3.30685282, -3.69314718,     -np.inf]]]
+            ))
+
     def test_log_likelihood(self):
         """Test basic likelihood computation."""
-
         self.assertAlmostEqual(self.L.log_likelihood(self.truth_vector), -5.1096282421)
         ret = self.L.log_likelihood([self.truth_vector, self.truth_vector])
         self.assertAlmostEqual(ret[0], -5.1096282421)
         self.assertAlmostEqual(ret[1], -5.1096282421)
+        ret = self.L.log_likelihood([[self.truth_vector]*2]*3)
+        self.assertAlmostEqual(ret[0][0], -5.1096282421)
+        self.assertAlmostEqual(ret[1][1], -5.1096282421)
+        self.assertAlmostEqual(ret[2][1], -5.1096282421)
         self.truth_vector[0] += 1
         self.assertAlmostEqual(self.L.log_likelihood(self.truth_vector), -5.2465820247)
 
