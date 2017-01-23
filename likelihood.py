@@ -142,3 +142,17 @@ class LikelihoodMachine(object):
 
         return res
 
+    def generate_random_data_sample(self, truth_vector, size=None):
+        """Generate random data samples from the provided truth_vector."""
+
+        mu = self.response_matrix.dot(truth_vector)
+        if size is not None:
+            # Append truth vector shape to requested shape of data sets
+            try:
+                shape = list(size)
+            except TypeError:
+                shape = [size]
+            shape.extend(mu.shape)
+            size = shape
+
+        return np.random.poisson(mu, size=size)

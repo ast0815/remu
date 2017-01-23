@@ -533,5 +533,15 @@ class TestLikelihoodMachines(unittest.TestCase):
         s = ret.lowest_optimization_result.success
         self.assertTrue(s)
 
+    def test_data_sample_generation(self):
+        """Test the generatrion of random samples."""
+        truth = np.array([1.,2.,3.,4.])
+        mc = self.L.generate_random_data_sample(truth)
+        self.assertEqual(mc.shape, (4,))
+        mc = self.L.generate_random_data_sample(truth, 3)
+        self.assertEqual(mc.shape, (3,4))
+        mc = self.L.generate_random_data_sample(truth, (5,6))
+        self.assertEqual(mc.shape, (5,6,4))
+
 if __name__ == '__main__':
     unittest.main()
