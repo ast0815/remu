@@ -500,6 +500,9 @@ class TestLikelihoodMachines(unittest.TestCase):
         """Test basic likelihood computation."""
 
         self.assertAlmostEqual(self.L.log_likelihood(self.truth_vector), -5.1096282421)
+        ret = self.L.log_likelihood([self.truth_vector, self.truth_vector])
+        self.assertAlmostEqual(ret[0], -5.1096282421)
+        self.assertAlmostEqual(ret[1], -5.1096282421)
         self.truth_vector[0] += 1
         self.assertAlmostEqual(self.L.log_likelihood(self.truth_vector), -5.2465820247)
 

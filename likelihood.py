@@ -17,21 +17,54 @@ class LikelihoodMachine(object):
         # How to use the reduced reposne matrix:
         # reco = reduced_response.dot(truth[eff])
 
+    @staticmethod
+    def _create_vector_array(vector, shape):
+        """Create an array of `shape` containing n `vector`s."""
+
+        n = np.prod(shape, dtype=int)
+        m = len(vector)
+        arr = np.ndarray((n, m), dtype=vector.dtype)
+        for i in range(n):
+            arr[i,:] = vector
+        arr = arr.reshape( list(shape) + [m] )
+
+        return arr
+
     def _reduced_log_likelihood(self, reduced_truth_vector):
         """Calculate a more efficient log likelihood using only truth values that have an influence."""
-        reco = self._reduced_response_matrix.dot(reduced_truth_vector)
-        ll = np.sum(poisson.logpmf(self.data_vector, reco))
-        if np.isfinite(ll):
-            return ll
-        else:
-            return -np.inf
+        reco = np.tensordot(reduced_truth_vector, self._reduced_response_matrix, axes=([-1],[-1]))
+
+        # Create a data vector of the right shape
+        data = LikelihoodMachine._create_vector_array(self.data_vector, reco.shape[:-1])
+
+        ll = np.sum(poisson.logpmf(data, reco), axis=-1)
+        ll = np.where(np.isfinite(ll), ll, -np.inf)
+        return ll
 
     def log_likelihood(self, truth_vector):
-        """Calculate the log likelihood of a vector of truth expectation values."""
+        """Calculate the log likelihood of a vector of truth expectation values.
 
-        reduced_truth_vector = truth_vector[self._eff]
+        Arguments
+        ---------
 
-        ignored_truth_values = truth_vector[np.logical_not(self._eff)]
+        truth_vector : Array of truth expectation values.
+                       Can be a multidimensional array of truth vectors.
+                       The shape of the array must be `(a, b, c, ..., n_truth_values)`.
+        """
+
+        # Calculate the mask of efficient truth values.
+        # For single truth vectors, it is just the _eff vector.
+        # For arrays of truth vectors, we need to create an identical array of _eff vectors.
+        truth_vector = np.array(truth_vector)
+        truth_shape = truth_vector.shape
+        eff_index = LikelihoodMachine._create_vector_array(self._eff, truth_shape[:-1])
+
+        # Reduced vectors in correct shape
+        reduced_shape = np.copy(truth_shape)
+        reduced_shape[-1] = np.sum(self._eff)
+        reduced_truth_vector = truth_vector[eff_index].reshape(reduced_shape)
+
+        ignored_truth_values = truth_vector[np.logical_not(eff_index)]
         if np.sum(ignored_truth_values) > 0:
             print("Warning: Truth contains expectation values for bins with zero efficiency!")
 
