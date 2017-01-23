@@ -141,20 +141,9 @@ class LikelihoodMachine(object):
 
         return LikelihoodMachine._reduced_log_probability(data_vector, response_matrix, truth_vector)
 
-    def log_likelihood(self, truth_vector):
-        """Calculate the log likelihood of a vector of truth expectation values.
+    def _reduce_truth_vector(self, truth_vector):
+        """Return a reduced truth vector view."""
 
-        Arguments
-        ---------
-
-        truth_vector : Array of truth expectation values.
-                       Can be a multidimensional array of truth vectors.
-                       The shape of the array must be `(a, b, c, ..., n_truth_values)`.
-        """
-
-        # Calculate the mask of efficient truth values.
-        # For single truth vectors, it is just the _eff vector.
-        # For arrays of truth vectors, we need to create an identical array of _eff vectors.
         truth_vector = np.array(truth_vector)
         truth_shape = truth_vector.shape
         eff_index = LikelihoodMachine._create_vector_array(self._eff, truth_shape[:-1])
@@ -167,6 +156,22 @@ class LikelihoodMachine(object):
         ignored_truth_values = truth_vector[np.logical_not(eff_index)]
         if np.sum(ignored_truth_values) > 0:
             print("Warning: Truth contains expectation values for bins with zero efficiency!")
+
+        return reduced_truth_vector
+
+    def log_likelihood(self, truth_vector):
+        """Calculate the log likelihood of a vector of truth expectation values.
+
+        Arguments
+        ---------
+
+        truth_vector : Array of truth expectation values.
+                       Can be a multidimensional array of truth vectors.
+                       The shape of the array must be `(a, b, c, ..., n_truth_values)`.
+        """
+
+        # Use reduced truth values for efficient calculations.
+        reduced_truth_vector = self._reduce_truth_vector(truth_vector)
 
         return self._reduced_log_likelihood(reduced_truth_vector)
 
@@ -256,3 +261,51 @@ class LikelihoodMachine(object):
             size = shape
 
         return np.random.poisson(mu, size=size)
+
+    def p_value(self, truth_vector, N=2500):
+        """Calculate the p-value of a truth vector given the measured data.
+
+        Arguments
+        ---------
+
+        truth_vector : The evaluated theory.
+        N : The number of MC evaluations of the theory.
+
+        Returns
+        -------
+
+        p : The probability of measuring data as unlikely or more unlikely than
+            the actual data.
+
+        The p-value is estimated by randomly creating `N` data sample according
+        to the given theory.  The number of data-sets with that yield a
+        likelihood as bad as or worse than the likelihood given the actual data
+        `n` are counted. The estimate for p is then
+
+            p = n/N.
+
+        The variance of the estimator follows that of binomial statistics:
+
+            var(p) = var(n) / N^2 = Np(1-p) / N^2 <= 1 / 4N.
+
+        The expected uncertainty can thus be directly influenced by choosing an
+        appropriat number of evaluations.
+        """
+
+        # Draw N fake data distributions
+        fake_data = self.generate_random_data_sample(truth_vector, N)
+
+        # Reduce truth vectors to efficient values
+        reduced_truth_vector = self._reduce_truth_vector(truth_vector)
+
+        # Calculate probabilities of each generated sample
+        prob = LikelihoodMachine._reduced_log_probability(fake_data, self._reduced_response_matrix, reduced_truth_vector)
+
+        # Get likelihood of actual data
+        p0 = self._reduced_log_likelihood(reduced_truth_vector)
+
+        # Count number of probabilities lower than or equal to the likelihood of the real data
+        n = np.sum(prob <= p0)
+
+        # Return the quotient
+        return float(n) / N
