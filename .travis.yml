@@ -30,7 +30,7 @@ install:
 
 # command to run tests
 script:
-  - coverage run --source '.' tests.py
+  - ./run_tests.sh
 
 # command to run after tests
 after_success:
