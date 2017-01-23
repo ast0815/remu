@@ -272,19 +272,21 @@ class LikelihoodMachine(object):
         p : The probability of measuring data as unlikely or more unlikely than
             the actual data.
 
-        The p-value is estimated by randomly creating `N` data sample according
-        to the given theory.  The number of data-sets with that yield a
-        likelihood as bad as or worse than the likelihood given the actual data
-        `n` are counted. The estimate for p is then
+        The p-value is estimated by randomly creating `N` data samples
+        according to the given theory. The number of data-sets that yield a
+        likelihood as bad as, or worse than the likelihood given the actual
+        data, `n`, are counted. The estimate for p is then
 
             p = n/N.
 
         The variance of the estimator follows that of binomial statistics:
 
-            var(p) = var(n) / N^2 = Np(1-p) / N^2 <= 1 / 4N.
+                     var(n)   Np(1-p)      1
+            var(p) = ------ = ------- <= ---- .
+                      N^2       N^2       4N
 
         The expected uncertainty can thus be directly influenced by choosing an
-        appropriat number of evaluations.
+        appropriate number of evaluations.
         """
 
         # Draw N fake data distributions
