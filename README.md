@@ -28,4 +28,5 @@ Tests
 
 Run all test cases of the framework:
 
-    $ python tests.py
+    $ pip install -r test-requirements.txt
+    $ ./run_tests.sh
