@@ -58,14 +58,9 @@ class LikelihoodMachine(object):
         n = np.prod(shape, dtype=int)
         m = len(flat_vector)
         if append:
-            arr = np.ndarray((n, m), dtype=vector.dtype)
-            for i in range(n):
-                arr[i,:] = flat_vector
-            arr = arr.reshape( list(shape) + list(vector.shape) )
+            arr = np.broadcast_to(vector, list(shape) + list(vector.shape))
         else:
-            arr = np.ndarray((m, n), dtype=vector.dtype)
-            for i in range(n):
-                arr[:,i] = flat_vector
+            arr = np.repeat(flat_vector,n)
             arr = arr.reshape( list(vector.shape) + list(shape) )
 
         return arr
