@@ -38,6 +38,7 @@ class LikelihoodMachine(object):
 
         # Calculte the reduced response matrix for speedier calculations
         self._reduced_response_matrix, self._eff = LikelihoodMachine._reduce_response_matrix(self.response_matrix)
+        self._n_eff = np.sum(self._eff)
 
     @staticmethod
     def _reduce_response_matrix(response_matrix):
@@ -80,11 +81,10 @@ class LikelihoodMachine(object):
 
         flat_vector = vector.flat
 
-        n = np.prod(shape, dtype=int)
-        m = len(flat_vector)
         if append:
             arr = np.broadcast_to(vector, list(shape) + list(vector.shape))
         else:
+            n = np.prod(shape, dtype=int)
             arr = np.repeat(flat_vector,n)
             arr = arr.reshape( list(vector.shape) + list(shape) )
 
@@ -170,12 +170,8 @@ class LikelihoodMachine(object):
 
         # Reduced vectors in correct shape
         reduced_shape = np.copy(truth_shape)
-        reduced_shape[-1] = np.sum(self._eff)
+        reduced_shape[-1] = self._n_eff
         reduced_truth_vector = truth_vector[eff_index].reshape(reduced_shape)
-
-        ignored_truth_values = truth_vector[np.logical_not(eff_index)]
-        if np.sum(ignored_truth_values) > 0:
-            print("Warning: Truth contains expectation values for bins with zero efficiency!")
 
         return reduced_truth_vector
 
@@ -332,7 +328,7 @@ class LikelihoodMachine(object):
         """
 
         # Create a CompositeHypothesis that uses only the efficient truth values
-        n = np.sum(self._eff)
+        n = self._n_eff
         bounds = [(0,None)]*n
         eff_to_all = np.eye(len(self._eff))[:,self._eff]
         translate = lambda x: eff_to_all.dot(x)
