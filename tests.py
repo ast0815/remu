@@ -587,18 +587,18 @@ class TestLikelihoodMachines(unittest.TestCase):
         mc = self.L.generate_random_data_sample(truth, (5,6))
         self.assertEqual(mc.shape, (5,6,4))
 
-    def test_p_value(self):
+    def test_likelihood_p_value(self):
         """Test the calculation of p-values."""
-        p = self.L.p_value(self.truth_vector)
+        p = self.L.likelihood_p_value(self.truth_vector)
         self.assertEqual(p, 1.0)
         self.truth_vector[0] += 4
-        p = self.L.p_value(self.truth_vector, N=250000)
+        p = self.L.likelihood_p_value(self.truth_vector, N=250000)
         self.assertAlmostEqual(p, 0.612, places=2)
-        p = self.L.p_value(self.truth_vector, N=250000)
+        p = self.L.likelihood_p_value(self.truth_vector, N=250000)
         self.assertAlmostEqual(p, 0.612, places=2)
-        p = self.L.p_value(self.truth_vector, N=250000)
+        p = self.L.likelihood_p_value(self.truth_vector, N=250000)
         self.assertAlmostEqual(p, 0.612, places=2)
-        p = self.L.p_value(self.truth_vector, N=250000)
+        p = self.L.likelihood_p_value(self.truth_vector, N=250000)
         self.assertAlmostEqual(p, 0.612, places=2)
 
 if __name__ == '__main__':

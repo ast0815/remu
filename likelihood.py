@@ -257,8 +257,8 @@ class LikelihoodMachine(object):
 
         return np.random.poisson(mu, size=size)
 
-    def p_value(self, truth_vector, N=2500):
-        """Calculate the p-value of a truth vector given the measured data.
+    def likelihood_p_value(self, truth_vector, N=2500):
+        """Calculate the likelihood p-value of a truth vector given the measured data.
 
         Arguments
         ---------
