@@ -2,6 +2,31 @@ import numpy as np
 from scipy.stats import poisson
 from scipy import optimize
 
+class CompositeHypothesis(object):
+    """A CompositeHypothesis translates a set of parameters into a truth vector."""
+
+    def __init__(self, parameter_limits, translation_function):
+        """Initialize the CompositeHypothesis.
+
+        Arguments
+        ---------
+
+        parameter_limits : An iterable of lower and upper limits of the hypothesis.
+                          The number of limits determines the number of parameters.
+                          Parameters can be `None`. This sets no limit in that direction.
+
+                              [ (x1_min, x1_max), (x2_min, x2_max), ... ]
+
+        translation_function : The function to translate a vector of parameters into
+                               a vector of truth expectation values:
+
+                                   truth_vector = translation_function(parameter_vector)
+
+        """
+
+        self.parameter_limits = parameter_limits
+        self.translate = translation_function
+
 class LikelihoodMachine(object):
     """Class that calculates likelihoods for truth vectors."""
 
@@ -170,8 +195,125 @@ class LikelihoodMachine(object):
 
         return self._reduced_log_likelihood(reduced_truth_vector)
 
-    def absolute_max_log_likelihood(self, disp=False, method='basinhopping', kwargs=None):
-        """Calculate the maximum achievable log likelihood.
+    def max_log_likelihood(self, composite_hypothesis, disp=False, method='basinhopping', kwargs=None):
+        """Calculate the maximum log likelihood in the given CompositeHypothesis.
+
+        Arguments
+        ---------
+
+        composite_hypothesis : The hypothesis to be evaluated.
+        disp : Display status messages during optimization.
+        method : Select the method to be used for maximization,
+                 either 'differential_evolution' or 'basinhopping'.
+                 Default: 'basinhopping'
+        kwargs : Keyword arguments to be passed to the minimizer.
+                 If `None`, reasonable default values will be used.
+
+        Returns
+        -------
+
+        res : OptimizeResult object containing the maximum likelihood `res.L`.
+        """
+
+        # Negative log likelihood function
+        nll = lambda x: -self.log_likelihood(composite_hypothesis.translate(x))
+
+        # Parameter limits
+        bounds = composite_hypothesis.parameter_limits
+        def limit(bounds):
+            l=[0.,0.]
+            if bounds[0] is None:
+                l[0] = -np.inf
+            else:
+                l[0] = bounds[0]
+            if bounds[1] is None:
+                l[1] = np.inf
+            else:
+                l[1] = bounds[1]
+
+            return l
+
+        limits = np.array(map(limit, bounds), dtype=float).transpose()
+        ranges = limits[1]-limits[0]
+
+        if method == 'differential_evolution':
+            # Set upper bound for truth bins to the total number of events in the data
+            if kwargs is None:
+                kwargs = {}
+
+            res = optimize.differential_evolution(nll, bounds, disp=disp, **kwargs)
+        elif method == 'basinhopping':
+            # Start values
+            def start_value(limits):
+                if None in limits:
+                    if limits[0] is not None:
+                        # No upper limit
+                        # Start at lower limit
+                        return limits[0]
+                    elif limits[1] is not None:
+                        # No lower limit
+                        # Start at upper limit
+                        return limits[1]
+                    else:
+                        # Neither lower nor upper limit
+                        # Start at 0.
+                        return 0.
+                else:
+                    # Start at halfway point between limits
+                    return (limits[1]+limits[0]) / 2.
+
+            x0 = np.array(map(start_value, bounds))
+
+            # Step length for basin hopping
+            def step_value(limits):
+                if None in limits:
+                    return 1.
+                else:
+                    # Step size in the order of the parameter range
+                    return (limits[1]-limits[0]) / 2.
+            step = np.array(map(step_value, bounds))
+
+            # Number of parameters
+            n = len(bounds)
+
+            # Define a step function that does *not* produce illegal parameter values
+            def step_fun(x):
+                # Vary parameters according to their value,
+                # but at least by a minimum amount.
+                dx = np.random.randn(n) * np.maximum(np.abs(x - x0), step)
+
+                # Make sure the new values are within bounds
+                ret = x + dx
+                ret = np.where(ret > limits[1], limits[1]-((ret-limits[1]) % ranges), ret)
+                ret = np.where(ret < limits[0], limits[0]+((limits[0]-ret) % ranges), ret)
+
+                return ret
+
+            # Local minimizer options
+            if kwargs is None:
+                kwargs = {
+                    'take_step': step_fun,
+                    'T': n,
+                    'minimizer_kwargs': {
+                        'method': 'L-BFGS-B',
+                        'bounds': bounds,
+                        'options': {
+                            #'disp': True,
+                        }
+                    }
+                }
+
+            res = optimize.basinhopping(nll, x0, disp=disp, **kwargs)
+        else:
+            raise ValueError("Unknown method: %s"%(method,))
+
+        res.L = -res.fun
+        res.x
+
+        return res
+
+    def absolute_max_log_likelihood(self, disp=False, kwargs=None):
+        """Calculate the maximum log likelihood achievable with the given data.
 
         Arguments
         ---------
@@ -189,57 +331,17 @@ class LikelihoodMachine(object):
         res : OptimizeResult object containing the maximum likelihood `res.L`.
         """
 
-        # Negative log likelihood function
-        nll = lambda x: -self._reduced_log_likelihood(x)
-
-        # Number of effective parameters
+        # Create a CompositeHypothesis that uses only the efficient truth values
         n = np.sum(self._eff)
+        bounds = [(0,None)]*n
+        eff_to_all = np.eye(len(self._eff))[:,self._eff]
+        translate = lambda x: eff_to_all.dot(x)
+        super_hypothesis = CompositeHypothesis(bounds, translate)
 
-        # Number of data events
-        ndata = np.sum(self.data_vector)
+        res = self.max_log_likelihood(super_hypothesis, disp=disp, method='basinhopping', kwargs=kwargs)
 
-        if method == 'differential_evolution':
-            # Set upper bound for truth bins to the total number of events in the data
-            bounds = [(0,ndata)] * n
-            if kwargs is None:
-                kwargs = {}
-
-            res = optimize.differential_evolution(nll, bounds, disp=disp, **kwargs)
-        elif method == 'basinhopping':
-            # Start with a flat distribution of truth values
-            mu0 = float(ndata) / n
-            x0 = [mu0] * n
-
-            # Define a step function that does *not* produce negative bin values
-            def step_fun(x):
-                # Vary bins according to their filling,
-                # but at least by a minimum amount.
-                dx = np.random.randn(n) * (np.sqrt(x) + mu0)
-                return np.abs(x+dx)
-
-            # Local minimizer options
-            if kwargs is None:
-                kwargs = {
-                    'take_step': step_fun,
-                    'T': n,
-                    'minimizer_kwargs': {
-                        'method': 'L-BFGS-B',
-                        'bounds': [(0, None)]*n, # No negative values!
-                        'options': {
-                            #'disp': True,
-                        }
-                    }
-                }
-
-            res = optimize.basinhopping(nll, x0, disp=disp, **kwargs)
-        else:
-            raise ValueError("Unknown method: %s"%(method,))
-
-        res.L = -res.fun
-        reduced_x = res.x
-        res.x = np.zeros(self.response_matrix.shape[1], dtype=float)
-        res.x[self._eff] = reduced_x
-
+        # Translate vector of efficient truth values back to complete vector
+        res.x = translate(res.x)
         return res
 
     def generate_random_data_sample(self, truth_vector, size=None):

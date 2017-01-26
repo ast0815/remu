@@ -550,18 +550,34 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.truth_vector[0] += 1
         self.assertAlmostEqual(self.L.log_likelihood(self.truth_vector), -5.2465820247)
 
-    def test_absolute_max_log_likelihood(self):
-        """Test absolute likelihood maximisation."""
+    def test_max_log_likelihood(self):
+        """Test maximum likelihood calculation with CompositeHypotheses"""
         fun = lambda x: x
-        ret = self.L.absolute_max_log_likelihood(method='differential_evolution')
-        ll, x, s = ret.L, ret.x, ret.success
-        self.assertTrue(s)
+        H = CompositeHypothesis([(0,None)]*4, fun)
+        ret = self.L.max_log_likelihood(H, method='basinhopping')
+        ll, x = ret.L, ret.x
         self.assertAlmostEqual(ll, -5.110, places=3)
         self.assertAlmostEqual(x[0], 2, places=2)
         self.assertAlmostEqual(x[1], 4, places=2)
         self.assertAlmostEqual(x[2], 2, places=2)
         self.assertAlmostEqual(x[3], 2, places=2)
-        ret = self.L.absolute_max_log_likelihood(method='basinhopping')
+        fun = lambda x: np.repeat(x,2)
+        H = CompositeHypothesis([(0,5),(0,5)], fun)
+        ret = self.L.max_log_likelihood(H, method='differential_evolution')
+        ll, x, s = ret.L, ret.x, ret.success
+        self.assertTrue(s)
+        self.assertAlmostEqual(ll, -5.145, places=3)
+        self.assertAlmostEqual(x[0], 2.49, places=2)
+        self.assertAlmostEqual(x[1], 2.13, places=2)
+        ret = self.L.max_log_likelihood(H, method='basinhopping')
+        ll, x = ret.L, ret.x
+        self.assertAlmostEqual(ll, -5.145, places=3)
+        self.assertAlmostEqual(x[0], 2.49, places=2)
+        self.assertAlmostEqual(x[1], 2.13, places=2)
+
+    def test_absolute_max_log_likelihood(self):
+        """Test absolute likelihood maximisation."""
+        ret = self.L.absolute_max_log_likelihood()
         ll, x, s = ret.L, ret.x, ret.lowest_optimization_result.success
         self.assertTrue(s)
         self.assertAlmostEqual(ll, -5.110, places=3)
