@@ -764,6 +764,32 @@ class RectangularBinning(Binning):
 
         return RectangularBinning(phasespace=phasespace, variables=variables, binedges=binedges, include_upper=self._include_upper)
 
+    def marginalize(self, variables):
+        """Marginalize out the given variables and return a new RectangularBinning."""
+
+        # Create new binning
+        new_variables = list(self.variables)
+        map(new_variables.remove, variables)
+        new_binedges = deepcopy(self._binedges)
+        map(new_binedges.pop, variables)
+        new_includeupper = self._include_upper
+
+        new_binning = RectangularBinning(variables=new_variables, binedges=new_binedges, include_upper=new_includeupper)
+
+        # Find the axis numbers of the variables
+        axes = tuple([self.variables.index(v) for v in variables])
+
+        # Copy and project values
+        new_values = np.sum(self.get_values_as_ndarray(shape=self._nbins), axis=axes)
+
+        # Copy and project values
+        new_entries = np.sum(self.get_entries_as_ndarray(shape=self._nbins), axis=axes)
+
+        new_binning.bins._value_array=new_values
+        new_binning.bins._entries_array=new_entries
+
+        return new_binning
+
     def get_values_as_ndarray(self, shape=None):
         """Return the bin values as nd array.
 

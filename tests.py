@@ -395,6 +395,15 @@ class TestRectangularBinnings(unittest.TestCase):
         bt = self.bl.cartesian_product(bz)
         self.assertEqual(bt, self.bxyz)
 
+    def test_marginalization(self):
+        """Test marginalizations of rectangular binnings."""
+        self.bxyz.fill({'x':0, 'y':0, 'z':0})
+        self.bxyz.fill({'x':0, 'y':0, 'z':1}, weight=2.)
+        nb = self.bxyz.marginalize(['z'])
+        self.assertEqual(nb, self.bl)
+        self.assertEqual(nb.bins[1].entries, 2)
+        self.assertEqual(nb.bins[1].value, 3.)
+
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.bl
