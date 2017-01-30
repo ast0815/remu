@@ -630,16 +630,16 @@ class RectangularBinning(Binning):
                    Will be generated from binedges if not given.
         """
 
-        self._binedges = kwargs.pop('binedges', None)
-        if self._binedges is None:
+        self.binedges = kwargs.pop('binedges', None)
+        if self.binedges is None:
             raise ValueError("Undefined bin edges!")
-        self._binedges = dict((k, tuple(float(f) for f in v)) for k, v in self._binedges.items())
+        self.binedges = dict((k, tuple(float(f) for f in v)) for k, v in self.binedges.items())
 
         self.variables = kwargs.pop('variables', None)
         if self.variables is None:
-            self.variables = self._binedges.keys()
+            self.variables = self.binedges.keys()
         self.variables = tuple(self.variables)
-        self._nbins = tuple(len(self._binedges[v])-1 for v in self.variables)
+        self._nbins = tuple(len(self.binedges[v])-1 for v in self.variables)
         self._stepsize = [1]
         # Calculate the step size (or stride) for each variable index.
         # We use a row-major ordering (C-style).
@@ -656,7 +656,7 @@ class RectangularBinning(Binning):
             self._stepsize.insert(0, self._stepsize[0] * n)
         self._stepsize = tuple(self._stepsize)
         self._totbins = self._stepsize[0]
-        self._edges = tuple(self._binedges[v] for v in self.variables)
+        self._edges = tuple(self.binedges[v] for v in self.variables)
 
         self._include_upper = kwargs.pop('include_upper', False)
 
@@ -726,7 +726,7 @@ class RectangularBinning(Binning):
 
         i_var = []
         for var in self.variables:
-            edges = self._binedges[var]
+            edges = self.binedges[var]
             i = np.digitize(event[var], edges, right=self._include_upper)
             if i > 0 and i < len(edges):
                 i_var.append(i-1)
@@ -759,8 +759,8 @@ class RectangularBinning(Binning):
 
         phasespace = self.phasespace * other.phasespace
         variables = list(self.variables) + list(other.variables)
-        binedges = self._binedges.copy()
-        binedges.update(other._binedges)
+        binedges = self.binedges.copy()
+        binedges.update(other.binedges)
 
         return RectangularBinning(phasespace=phasespace, variables=variables, binedges=binedges, include_upper=self._include_upper)
 
@@ -777,7 +777,7 @@ class RectangularBinning(Binning):
         # Create new binning
         new_variables = list(self.variables)
         map(new_variables.remove, variables)
-        new_binedges = deepcopy(self._binedges)
+        new_binedges = deepcopy(self.binedges)
         map(new_binedges.pop, variables)
         new_includeupper = self._include_upper
 
@@ -849,7 +849,7 @@ class RectangularBinning(Binning):
         """Rectangular binnings are equal if the variables and edges match."""
         try:
             return (self.variables == other.variables
-                    and self._binedges == other._binedges
+                    and self.binedges == other.binedges
                     and self._edges == other._edges
                     and self._nbins == other._nbins
                     and self._stepsize == other._stepsize
