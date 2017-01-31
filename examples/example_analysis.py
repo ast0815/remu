@@ -1,7 +1,7 @@
 from __future__ import print_function
 
 import numpy as np
-import matplotlib
+from matplotlib import pyplot as plt
 
 # Set working directory and sys.path
 import sys, os
