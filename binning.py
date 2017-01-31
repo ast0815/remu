@@ -816,7 +816,7 @@ class RectangularBinning(Binning):
         return self.marginalize(rm_variables)
 
     def get_values_as_ndarray(self, shape=None):
-        """Return the bin values as nd array.
+        """Return the bin values as ndarray.
 
         Arguments
         ---------
@@ -830,8 +830,20 @@ class RectangularBinning(Binning):
             ret = ret.reshape(shape, order='C')
         return ret
 
+    def set_values_from_ndarray(self, arr):
+        """Set the bin values from ndarray.
+
+        Arguments
+        ---------
+
+        arr: Numpy ndarray containing the values.
+
+        """
+
+        self.bins._value_array.flat[:] = arr.flat
+
     def get_entries_as_ndarray(self, shape=None):
-        """Return the number of entries as nd array.
+        """Return the number of entries as ndarray.
 
         Arguments
         ---------
@@ -844,6 +856,18 @@ class RectangularBinning(Binning):
         if shape is not None:
             ret = ret.reshape(shape, order='C')
         return ret
+
+    def set_entries_from_ndarray(self, arr):
+        """Set the bin entries from ndarray.
+
+        Arguments
+        ---------
+
+        arr: Numpy ndarray containing the values.
+
+        """
+
+        self.bins._entries_array.flat[:] = arr.flat
 
     def __eq__(self, other):
         """Rectangular binnings are equal if the variables and edges match."""

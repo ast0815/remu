@@ -369,6 +369,16 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertEqual(arr.shape, (2,4))
         self.assertEqual(arr[0,0], 0)
         self.assertEqual(arr[1,1], 2)
+        arr[0,0] = 7
+        arr[1,1] = 11
+        self.bl.set_entries_from_ndarray(arr)
+        self.assertEqual(self.bl.bins[0].entries, 7)
+        self.assertEqual(self.bl.bins[5].entries, 11)
+        arr[0,0] = 5
+        arr[1,1] = 6
+        self.bl.set_values_from_ndarray(arr)
+        self.assertEqual(self.bl.bins[0].value, 5)
+        self.assertEqual(self.bl.bins[5].value, 6)
 
     def test_inclusion(self):
         """Test checking whether an event is binned."""
