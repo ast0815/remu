@@ -128,7 +128,7 @@ class Bin(object):
 
         self.phasespace = kwargs.pop('phasespace', None)
         if self.phasespace is None:
-            raise ValueError("Undefined phase space!")
+            raise TypeError("Undefined phase space!")
 
         self._value_array = kwargs.pop('value_array', None)
         if self._value_array is None:
@@ -139,7 +139,7 @@ class Bin(object):
             self._entries_array = np.array([kwargs.pop('entries', 0)])
 
         if len(kwargs) > 0:
-            raise ValueError("Unknown kwargs: %s"%(kwargs,))
+            raise TypeError("Unknown kwargs: %s"%(kwargs,))
 
     @property
     def value(self):
@@ -249,7 +249,7 @@ class RectangularBin(Bin):
         self.include_upper = kwargs.pop('include_upper', False)
         self.edges = kwargs.pop('edges', None)
         if self.edges is None:
-            raise ValueError("Edges are not defined")
+            raise TypeError("Edges are not defined")
 
         # Create PhaseSpace from edges if necessary
         phasespace = kwargs.get('phasespace', None)
@@ -370,14 +370,14 @@ class Binning(object):
 
         self.phasespace = kwargs.pop('phasespace', None)
         if self.phasespace is None:
-            raise ValueError("Undefined phase space!")
+            raise TypeError("Undefined phase space!")
 
         self.bins = kwargs.pop('bins', None)
         if self.bins is None:
-            raise ValueError("Undefined bins!")
+            raise TypeError("Undefined bins!")
 
         if len(kwargs) > 0:
-            raise ValueError("Unknown kwargs: %s"%(kwargs,))
+            raise TypeError("Unknown kwargs: %s"%(kwargs,))
 
     def get_event_bin_number(self, event):
         """Returns the bin number of the given event.
@@ -632,7 +632,7 @@ class RectangularBinning(Binning):
 
         self.binedges = kwargs.pop('binedges', None)
         if self.binedges is None:
-            raise ValueError("Undefined bin edges!")
+            raise TypeError("Undefined bin edges!")
         self.binedges = dict((k, tuple(float(f) for f in v)) for k, v in self.binedges.items())
 
         self.variables = kwargs.pop('variables', None)
@@ -668,7 +668,7 @@ class RectangularBinning(Binning):
 
         bins = kwargs.pop('bins', None)
         if bins is not None:
-            raise ValueError("Cannot define bins of RectangularBinning! Define binedges instead.")
+            raise TypeError("Cannot define bins of RectangularBinning! Define binedges instead.")
         else:
             # Create bin proxy
             bins = _RecBinProxy(self)
