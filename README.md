@@ -30,3 +30,15 @@ Run all test cases of the framework:
 
     $ pip install -r test-requirements.txt
     $ ./run_tests.sh
+
+Examples
+--------
+
+The folder `examples` contains example analyses that show how one can use this
+software. The examples need some additional packages to run:
+
+    $ pip install -r example-requirements.txt
+
+They can be run like this:
+
+    $ python examples/example_analysis.py

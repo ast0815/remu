@@ -1,15 +1,13 @@
 from __future__ import print_function
 
+import numpy as np
+import matplotlib
+
 # Set working directory and sys.path
 import sys, os
 pathname = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
 sys.path.append(pathname)
 os.chdir(os.path.dirname(sys.argv[0]))
-
-import numpy as np
-import matplotlib
-matplotlib.use('Agg') # Using a non-GUI backend to avoid dependencies
-from matplotlib import pyplot as plt
 
 import binning
 import migration
