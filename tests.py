@@ -426,8 +426,10 @@ class TestRectangularBinnings(unittest.TestCase):
     def test_plots(self):
         """Test plots."""
         f = open('/dev/null', 'w')
-        self.bl.plot_entries(f)
-        self.bl.plot_values(f)
+        figax = self.bl.plot_entries(f, kwargs1d={'label': 'entries'})
+        self.bl.plot_values(f, figax=figax)
+        self.bl.plot_values(f, variables=(None,None), kwargs2d={'label': 'values'})
+
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
