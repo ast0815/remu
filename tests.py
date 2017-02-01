@@ -423,6 +423,12 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertEqual(nb.bins[1].entries, 2)
         self.assertEqual(nb.bins[1].value, 3.)
 
+    def test_plots(self):
+        """Test plots."""
+        f = open('/dev/null', 'w')
+        self.bl.plot_entries(f)
+        self.bl.plot_values(f)
+
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.bl
@@ -436,6 +442,12 @@ class TestResponseMatrices(unittest.TestCase):
         with open('testdata/test-reco-binning.yml', 'r') as f:
             self.rb = yaml.load(f)
         self.rm = ResponseMatrix(self.rb, self.tb)
+
+    def test_plots(self):
+        """Test plots."""
+        f = open('/dev/null', 'w')
+        self.rm.plot_entries(f)
+        self.rm.plot_values(f)
 
     def test_fill(self):
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')

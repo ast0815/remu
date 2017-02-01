@@ -3,6 +3,7 @@ import ruamel.yaml as yaml
 import re
 import numpy as np
 import csv
+from matplotlib import pyplot as plt
 
 class PhaseSpace(object):
     """A PhaseSpace defines the possible combinations of variables that characterize an event.
@@ -868,6 +869,119 @@ class RectangularBinning(Binning):
         """
 
         self.bins._entries_array.flat[:] = arr.flat
+
+    def plot_ndarray(self, filename, arr, variables=None, kwargs1d={}, kwargs2d={}, figax=None):
+        """Plot a visual representation of an array containing the entries or values of the binning.
+
+        Arguments
+        ---------
+
+        filename : The target filename of the plot.
+        arr : The array containing the data to be plotted.
+        variables : `list`, list of variables to plot marginal histograms for.
+                    `None`, plor marginal histograms for all variables.
+                    `(list, list)`, plot 2D histograms of the cartesian product of the two variable lists.
+                    `(None, None)`, plot 2D histograms of all possible variable combinations.
+                    2D histograms where both variables are identical are plotted as 1D histograms.
+                    Default: `None`
+        figax : Pair of figure and axes to be used for plotting.
+                Can be used to plot multiple binnings on top of one another.
+                Default: Create new figure and axes.
+        kwargs1d, kwargs2d : Additional keyword arguments for the 1D/2D histograms.
+                             If the key `label` is present, a legend will be drawn.
+
+        Returns
+        -------
+
+        fig, ax : The figure and axis objects.
+
+        """
+
+        if variables is None:
+            variables = (self.variables, None)
+        if variables == (None, None):
+            variables = (self.variables, self.variables)
+
+        if variables[1] is None:
+            ny = len(variables[0])
+            nx = 1
+        else:
+            ny = len(variables[0])
+            nx = len(variables[1])
+
+        if figax is None:
+            fig, ax = plt.subplots(ny, nx, squeeze=False, figsize=(4*nx,4*ny), sharex='col')
+        else:
+            fig, ax = figax
+
+        temp_binning = deepcopy(self)
+        temp_binning.set_values_from_ndarray(arr)
+
+        def make_finite(edges):
+            ret = list(edges)
+            if not np.isfinite(ret[0]):
+                ret[0] = ret[1] - (ret[2] - ret[1])
+            if not np.isfinite(ret[-1]):
+                ret[-1] = ret[-2] + (ret[-2] - ret[-3])
+            return ret
+
+        for i in range(ny):
+            y_var = variables[0][i]
+            y_edg = make_finite(self.binedges[y_var])
+            for j in range(nx):
+                if variables[1] is None:
+                    x_var = y_var
+                    x_edg = y_edg
+                else:
+                    x_var = variables[1][j]
+                    x_edg = make_finite(self.binedges[x_var])
+
+                if y_var == x_var:
+                    # 1D histogram
+
+                    nn = temp_binning.project([y_var]).get_values_as_ndarray()
+
+                    ax[i][j].set_xlabel(y_var)
+
+                    ax[i][j].plot(y_edg[:-1], nn, drawstyle='steps-post', **kwargs1d)
+
+                    if 'label' in kwargs1d:
+                        ax[i][j].legend(loc='best', framealpha=0.5)
+
+                else:
+                    # 2D histogram
+
+                    tb = temp_binning.project([x_var, y_var])
+                    arr = tb.get_values_as_ndarray()
+                    if tb.variables[0] != y_var:
+                        arr = arr.transpose()
+
+                    # Bin centres
+                    x = np.convolve(x_edg, np.ones(2)/2, mode='valid')
+                    y = np.convolve(y_edg, np.ones(2)/2, mode='valid')
+                    xx = np.broadcast_to(x, (len(y),len(x))).flatten()
+                    yy = np.repeat(y, len(x))
+
+                    if i==len(variables[0])-1:
+                        ax[i][j].set_xlabel(x_var)
+                    if j==0:
+                        ax[i][j].set_ylabel(y_var)
+
+                    ax[i][j].hist2d(xx, yy, weights=arr.flatten(), bins=(x_edg, y_edg), **kwargs2d)
+
+                    if 'label' in kwargs1d:
+                        ax[i][j].legend(loc='best', framealpha=0.5)
+
+        fig.tight_layout()
+        fig.savefig(filename)
+
+        return fig, ax
+
+    def plot_values(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None):
+        return self.plot_ndarray(filename, self.bins._value_array, variables, kwargs1d, kwargs2d, figax)
+
+    def plot_entries(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None):
+        return self.plot_ndarray(filename, self.bins._entries_array, variables, kwargs1d, kwargs2d, figax)
 
     def __eq__(self, other):
         """Rectangular binnings are equal if the variables and edges match."""

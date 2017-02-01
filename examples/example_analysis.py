@@ -74,78 +74,29 @@ if __name__ == '__main__':
 
 
     print("Plotting results...")
+    print("- 'response.png'")
+    response.plot_values('response.png', variables=(None, None))
+
     print("- 'reco1.png'")
-    fig, ax = plt.subplots(2)
-    reco_binning.set_values_from_ndarray(resp.dot(ret1.x))
-    ax[0].set_xlabel(r"$x_{0,reco}$")
-    edg = reco_binning.binedges['x_0_reco']
-    N = data1_x0
-    ax[0].plot(edg[:-1], N, drawstyle='steps-post', label="Data")
-    N = reco_binning.project(['x_0_reco']).get_values_as_ndarray()
-    ax[0].plot(edg[:-1], N, '--r', linewidth=2, drawstyle='steps-post', label="$L_{max}$")
-    ax[0].legend(loc='best')
-    ax[1].set_xlabel(r"$x_{1,reco}$")
-    edg = reco_binning.binedges['x_1_reco']
-    N = data1_x1
-    ax[1].plot(edg[:-1], N, drawstyle='steps-post', label="Data")
-    N = reco_binning.project(['x_1_reco']).get_values_as_ndarray()
-    ax[1].plot(edg[:-1], N, '--r', linewidth=2, drawstyle='steps-post', label="$L_{max}$")
-    ax[1].legend(loc='best')
-    fig.savefig('reco1.png')
+    figax = reco_binning.plot_ndarray('reco1.png', data1,
+                kwargs1d={'linestyle': 'solid', 'label': "Data"})
+    figax = reco_binning.plot_ndarray('reco1.png', resp.dot(ret1.x), figax=figax,
+                kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': 'r', 'label': "$L_\mathrm{max}$"})
 
     print("- 'truth1.png'")
-    fig, ax = plt.subplots(2)
-    truth_binning.set_values_from_ndarray(ret1.x)
-    ax[0].set_xlabel(r"$x_{0,truth}$")
-    edg = truth_binning.binedges['x_0_truth']
-    N = truth1_x0
-    ax[0].plot(edg[:-1], N, drawstyle='steps-post', label="Data")
-    N = truth_binning.project(['x_0_truth']).get_values_as_ndarray()
-    ax[0].plot(edg[:-1], N, '--r', linewidth=2, drawstyle='steps-post', label="$L_{max}$")
-    ax[0].legend(loc='best')
-    ax[1].set_xlabel(r"$x_{1,truth}$")
-    edg = truth_binning.binedges['x_0_truth']
-    N = truth1_x1
-    ax[1].plot(edg[:-1], N, drawstyle='steps-post', label="Data")
-    N = truth_binning.project(['x_1_truth']).get_values_as_ndarray()
-    ax[1].plot(edg[:-1], N, '--r', linewidth=2, drawstyle='steps-post', label="$L_{max}$")
-    ax[1].legend(loc='best')
-    fig.savefig('truth1.png')
+    figax = reco_binning.plot_ndarray('truth1.png', truth1,
+                kwargs1d={'linestyle': 'solid', 'label': "Truth"})
+    figax = truth_binning.plot_ndarray('truth1.png', ret1.x, figax=figax,
+                kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': 'r', 'label': "$L_\mathrm{max}$"})
 
     print("- 'reco2.png'")
-    fig, ax = plt.subplots(2)
-    reco_binning.set_values_from_ndarray(resp.dot(ret2.x))
-    ax[0].set_xlabel(r"$x_{0,reco}$")
-    edg = reco_binning.binedges['x_0_reco']
-    N = data2_x0
-    ax[0].plot(edg[:-1], N, drawstyle='steps-post', label="Data")
-    N = reco_binning.project(['x_0_reco']).get_values_as_ndarray()
-    ax[0].plot(edg[:-1], N, '--r', linewidth=2, drawstyle='steps-post', label="$L_{max}$")
-    ax[0].legend(loc='best')
-    ax[1].set_xlabel(r"$x_{1,reco}$")
-    edg = reco_binning.binedges['x_1_reco']
-    N = data2_x1
-    ax[1].plot(edg[:-1], N, drawstyle='steps-post', label="Data")
-    N = reco_binning.project(['x_1_reco']).get_values_as_ndarray()
-    ax[1].plot(edg[:-1], N, '--r', linewidth=2, drawstyle='steps-post', label="$L_{max}$")
-    ax[1].legend(loc='best')
-    fig.savefig('reco2.png')
+    figax = reco_binning.plot_ndarray('reco2.png', data2,
+                kwargs1d={'linestyle': 'solid', 'label': "Data"})
+    figax = reco_binning.plot_ndarray('reco2.png', resp.dot(ret2.x), figax=figax,
+                kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': 'r', 'label': "$L_\mathrm{max}$"})
 
     print("- 'truth2.png'")
-    fig, ax = plt.subplots(2)
-    truth_binning.set_values_from_ndarray(ret2.x)
-    ax[0].set_xlabel(r"$x_{0,truth}$")
-    edg = truth_binning.binedges['x_0_truth']
-    N = truth2_x0
-    ax[0].plot(edg[:-1], N, drawstyle='steps-post', label="Data")
-    N = truth_binning.project(['x_0_truth']).get_values_as_ndarray()
-    ax[0].plot(edg[:-1], N, '--r', linewidth=2, drawstyle='steps-post', label="$L_{max}$")
-    ax[0].legend(loc='best')
-    ax[1].set_xlabel(r"$x_{1,truth}$")
-    edg = truth_binning.binedges['x_0_truth']
-    N = truth2_x1
-    ax[1].plot(edg[:-1], N, drawstyle='steps-post', label="Data")
-    N = truth_binning.project(['x_1_truth']).get_values_as_ndarray()
-    ax[1].plot(edg[:-1], N, '--r', linewidth=2, drawstyle='steps-post', label="$L_{max}$")
-    ax[1].legend(loc='best')
-    fig.savefig('truth2.png')
+    figax = reco_binning.plot_ndarray('truth2.png', truth2,
+                kwargs1d={'linestyle': 'solid', 'label': "Truth"})
+    figax = truth_binning.plot_ndarray('truth2.png', ret2.x, figax=figax,
+                kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': 'r', 'label': "$L_\mathrm{max}$"})
