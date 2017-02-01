@@ -13,6 +13,11 @@ import binning
 import migration
 import likelihood
 
+# Threading
+from multiprocessing.dummy import Pool
+pool = Pool()
+
+# Performance profiling
 import timeit
 from bprofile import BProfile
 profile = BProfile('call_profile.png')
@@ -63,15 +68,15 @@ if __name__ == '__main__':
     lm2 = likelihood.LikelihoodMachine(data2, resp)
 
     print("Calculating absolute maximum likelihood...")
-    with profile:
-        start_time = timeit.default_timer()
-        ret1 = lm1.absolute_max_log_likelihood()
-        print("Data1: N=%.1f, ll=%.1f, p=%.3f"%(np.sum(ret1.x), ret1.L, lm1.likelihood_p_value(ret1.x)))
-        ret2 = lm2.absolute_max_log_likelihood()
-        print("Data2: N=%.1f, ll=%.1f, p=%.3f"%(np.sum(ret2.x), ret2.L, lm2.likelihood_p_value(ret2.x)))
-        elapsed = timeit.default_timer() - start_time
-        print("Time: %.1f"%(elapsed,))
-
+    start_time = timeit.default_timer()
+    # Threaded:
+    ret1, ret2 = pool.map(lambda lm: lm.absolute_max_log_likelihood(), [lm1, lm2])
+    # Un-threaded:
+    #ret1, ret2 = map(lambda lm: lm.absolute_max_log_likelihood(), [lm1, lm2])
+    print("Data1: N=%.1f, ll=%.1f, p=%.3f"%(np.sum(ret1.x), ret1.L, lm1.likelihood_p_value(ret1.x)))
+    print("Data2: N=%.1f, ll=%.1f, p=%.3f"%(np.sum(ret2.x), ret2.L, lm2.likelihood_p_value(ret2.x)))
+    elapsed = timeit.default_timer() - start_time
+    print("Time: %.1f"%(elapsed,))
 
     print("Plotting results...")
     print("- 'response.png'")
