@@ -68,14 +68,75 @@ if __name__ == '__main__':
 
     print("Calculating absolute maximum likelihood...")
     start_time = timeit.default_timer()
-    # Threaded:
-    ret1, ret2 = pool.map(lambda lm: lm.absolute_max_log_likelihood(), [lm1, lm2])
-    # Un-threaded:
-    #ret1, ret2 = map(lambda lm: lm.absolute_max_log_likelihood(), [lm1, lm2])
+    def lm_maxlog(lm):
+        return lm.absolute_max_log_likelihood(kwargs={'niter':10})
+    pool = Pool()
+    ret1, ret2 = pool.map(lm_maxlog, [lm1, lm2])
+    del pool
+    elapsed = timeit.default_timer() - start_time
+    print("Time: %.1f"%(elapsed,))
+
+    print("Calculating p-values...")
+    start_time = timeit.default_timer()
     print("Data1: N=%.1f, ll=%.1f, p=%.3f"%(np.sum(ret1.x), ret1.L, lm1.likelihood_p_value(ret1.x)))
     print("Data2: N=%.1f, ll=%.1f, p=%.3f"%(np.sum(ret2.x), ret2.L, lm2.likelihood_p_value(ret2.x)))
     elapsed = timeit.default_timer() - start_time
     print("Time: %.1f"%(elapsed,))
+
+    print("Calculating event number limits...")
+    def shape_to_truth(shape, total):
+        # Shape integral
+        s = np.sum(shape)
+        # Calculate missing bin from integral of shape
+        x = np.exp(-s)
+        truth = np.append(shape, x)
+        truth *= total / np.sum(truth)
+
+        return truth
+
+    eff = lm1._eff
+    n_eff = lm1._n_eff
+
+    class TransFun(object):
+        """Helper class to translate shape parameters to truth vectors."""
+
+        def __init__(self, total):
+            self.total = total
+
+        def __call__(self, x):
+            truth = np.zeros_like(truth1, dtype=float)
+            truth[eff] = shape_to_truth(x, self.total)
+            return truth
+
+    def hyp_factory(total):
+        return likelihood.CompositeHypothesis([(0.,None)]*(n_eff-1), TransFun(total))
+
+    test_total = np.linspace(500, 1500, 11)
+    test_hyp = map(hyp_factory, test_total)
+
+    start_time = timeit.default_timer()
+    def pair_maxlog(pair):
+        return pair[0].max_log_likelihood(pair[1], kwargs={'niter':10})
+    pool = Pool()
+    test_ret = pool.map(pair_maxlog, [(lm1,h) for h in test_hyp])
+    del pool
+    elapsed = timeit.default_timer() - start_time
+    print("Time: %.1f"%(elapsed,))
+
+    print("Calculating p-values...")
+    start_time = timeit.default_timer()
+    def pair_pval(pair):
+        return pair[0].likelihood_p_value(pair[1])
+    pool = Pool()
+    test_p = pool.map(pair_pval, [(lm1,h.translate(r.x)) for h,r in zip(test_hyp, test_ret)])
+    del pool
+    elapsed = timeit.default_timer() - start_time
+    print("Time: %.1f"%(elapsed,))
+
+    for tot, hyp, ret, p in zip(test_total, test_hyp, test_ret, test_p):
+        truth_binning.plot_ndarray('N%d.png'%(tot,), hyp.translate(ret.x), variables=(None,None))
+        tr = hyp.translate(ret.x)
+        print("N=%.1f (%.1f), ll=%.1f, p=%.3f"%(tot, np.sum(tr), ret.L, p))
 
     print("Plotting results...")
     print("- 'response.png'")
@@ -88,7 +149,7 @@ if __name__ == '__main__':
                 kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': 'r', 'label': "$L_\mathrm{max}$"})
 
     print("- 'truth1.png'")
-    figax = reco_binning.plot_ndarray('truth1.png', truth1,
+    figax = truth_binning.plot_ndarray('truth1.png', truth1,
                 kwargs1d={'linestyle': 'solid', 'label': "Truth"})
     figax = truth_binning.plot_ndarray('truth1.png', ret1.x, figax=figax,
                 kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': 'r', 'label': "$L_\mathrm{max}$"})
@@ -100,7 +161,16 @@ if __name__ == '__main__':
                 kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': 'r', 'label': "$L_\mathrm{max}$"})
 
     print("- 'truth2.png'")
-    figax = reco_binning.plot_ndarray('truth2.png', truth2,
+    figax = truth_binning.plot_ndarray('truth2.png', truth2,
                 kwargs1d={'linestyle': 'solid', 'label': "Truth"})
     figax = truth_binning.plot_ndarray('truth2.png', ret2.x, figax=figax,
                 kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': 'r', 'label': "$L_\mathrm{max}$"})
+
+    for tot, hyp, ret in zip(test_total, test_hyp, test_ret):
+        fname = 'N%d.png'%(tot,)
+        print("- '%s'"%(fname,))
+        figax = truth_binning.plot_ndarray(fname, truth1,
+                    kwargs1d={'linestyle': 'solid', 'label': "Truth"})
+        tr = hyp.translate(ret.x)
+        figax = truth_binning.plot_ndarray('N%d.png'%(tot,), tr, figax=figax,
+                    kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': 'r', 'label': "$L^*_\mathrm{max}$"})
