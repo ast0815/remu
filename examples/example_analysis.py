@@ -13,9 +13,8 @@ import binning
 import migration
 import likelihood
 
-# Threading
-from multiprocessing.dummy import Pool
-pool = Pool()
+# Parallelization
+from multiprocessing import Pool
 
 # Performance profiling
 import timeit

@@ -191,7 +191,7 @@ class LikelihoodMachine(object):
 
         return self._reduced_log_likelihood(reduced_truth_vector)
 
-    def max_log_likelihood(self, composite_hypothesis, disp=False, method='basinhopping', kwargs=None):
+    def max_log_likelihood(self, composite_hypothesis, disp=False, method='basinhopping', kwargs={}):
         """Calculate the maximum log likelihood in the given CompositeHypothesis.
 
         Arguments
@@ -203,7 +203,7 @@ class LikelihoodMachine(object):
                  either 'differential_evolution' or 'basinhopping'.
                  Default: 'basinhopping'
         kwargs : Keyword arguments to be passed to the minimizer.
-                 If `None`, reasonable default values will be used.
+                 If empty, reasonable default values will be used.
 
         Returns
         -------
@@ -233,11 +233,10 @@ class LikelihoodMachine(object):
         ranges = limits[1]-limits[0]
 
         if method == 'differential_evolution':
-            # Set upper bound for truth bins to the total number of events in the data
-            if kwargs is None:
-                kwargs = {}
+            kw = {}
+            kw.update(kwargs)
 
-            res = optimize.differential_evolution(nll, bounds, disp=disp, **kwargs)
+            res = optimize.differential_evolution(nll, bounds, disp=disp, **kw)
         elif method == 'basinhopping':
             # Start values
             def start_value(limits):
@@ -285,21 +284,22 @@ class LikelihoodMachine(object):
 
                 return ret
 
-            # Local minimizer options
-            if kwargs is None:
-                kwargs = {
-                    'take_step': step_fun,
-                    'T': n,
-                    'minimizer_kwargs': {
-                        'method': 'L-BFGS-B',
-                        'bounds': bounds,
-                        'options': {
-                            #'disp': True,
-                        }
+            # Minimizer options
+            kw = {
+                'take_step': step_fun,
+                'T': n,
+                'niter': 100,
+                'minimizer_kwargs': {
+                    'method': 'L-BFGS-B',
+                    'bounds': bounds,
+                    'options': {
+                        #'disp': True,
                     }
                 }
+            }
+            kw.update(kwargs)
 
-            res = optimize.basinhopping(nll, x0, disp=disp, **kwargs)
+            res = optimize.basinhopping(nll, x0, disp=disp, **kw)
         else:
             raise ValueError("Unknown method: %s"%(method,))
 
@@ -308,7 +308,7 @@ class LikelihoodMachine(object):
 
         return res
 
-    def absolute_max_log_likelihood(self, disp=False, kwargs=None):
+    def absolute_max_log_likelihood(self, disp=False, kwargs={}):
         """Calculate the maximum log likelihood achievable with the given data.
 
         Arguments
@@ -319,7 +319,7 @@ class LikelihoodMachine(object):
                  either 'differential_evolution' or 'basinhopping'.
                  Default: 'basinhopping'
         kwargs : Keyword arguments to be passed to the minimizer.
-                 If `None`, reasonable default values will be used.
+                 If empty, reasonable default values will be used.
 
         Returns
         -------
