@@ -191,12 +191,15 @@ class LikelihoodMachine(object):
 
         return self._reduced_log_likelihood(reduced_truth_vector)
 
-    def max_log_likelihood(self, composite_hypothesis, disp=False, method='basinhopping', kwargs={}):
-        """Calculate the maximum log likelihood in the given CompositeHypothesis.
+    @staticmethod
+    def max_log_probability(data_vector, response_matrix, composite_hypothesis, disp=False, method='basinhopping', kwargs={}):
+        """Calculate the maximum possible probability in the given CompositeHypothesis, given `reduced_response_matrix` and `data_vector`.
 
         Arguments
         ---------
 
+        data_vector : Vector of measure values.
+        response_matrix : The response matrix that translates truth into reco space.
         composite_hypothesis : The hypothesis to be evaluated.
         disp : Display status messages during optimization.
         method : Select the method to be used for maximization,
@@ -211,8 +214,8 @@ class LikelihoodMachine(object):
         res : OptimizeResult object containing the maximum likelihood `res.L`.
         """
 
-        # Negative log likelihood function
-        nll = lambda x: -self.log_likelihood(composite_hypothesis.translate(x))
+        # Negative log probability function
+        nll = lambda x: -LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(x))
 
         # Parameter limits
         bounds = composite_hypothesis.parameter_limits
@@ -307,6 +310,9 @@ class LikelihoodMachine(object):
         res.x
 
         return res
+
+    def max_log_likelihood(self, composite_hypothesis, *args, **kwargs):
+        return LikelihoodMachine.max_log_probability(self.data_vector, self.response_matrix, composite_hypothesis, *args, **kwargs)
 
     def absolute_max_log_likelihood(self, disp=False, kwargs={}):
         """Calculate the maximum log likelihood achievable with the given data.
