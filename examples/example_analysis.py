@@ -126,9 +126,9 @@ if __name__ == '__main__':
     print("Calculating p-values...")
     start_time = timeit.default_timer()
     def pair_pval(pair):
-        return pair[0].likelihood_p_value(pair[1])
+        return pair[0].max_likelihood_p_value(*pair[1], N=25, kwargs={'niter':4})
     pool = Pool()
-    test_p = pool.map(pair_pval, [(lm1,h.translate(r.x)) for h,r in zip(test_hyp, test_ret)])
+    test_p = pool.map(pair_pval, [(lm1,(h,r.x)) for h,r in zip(test_hyp, test_ret)])
     del pool
     elapsed = timeit.default_timer() - start_time
     print("Time: %.1f"%(elapsed,))
