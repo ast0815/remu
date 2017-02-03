@@ -410,3 +410,58 @@ class LikelihoodMachine(object):
 
         # Return the quotient
         return float(n) / N
+
+    def max_likelihood_p_value(self, composite_hypothesis, parameters, N=250, **kwargs):
+        """Calculate the maximum likelihood p-value of a composite hypothesis given the measured data.
+
+        Arguments
+        ---------
+
+        composite_hypothesis : The evaluated theory.
+        parameters : The assumed true parameters of the composite hypothesis.
+        N : The number of MC evaluations of the theory.
+
+        Additional keyword arguments will be passed to the likelihood maximizer.
+
+        Returns
+        -------
+
+        p : The probability of measuring data that yields a lower maximum
+            likelihood than the actual data.
+
+        The p-value is estimated by randomly creating `N` data samples
+        according to the given theory. The number of data-sets that yield a
+        maximum likelihood as bad as, or worse than the likelihood given the
+        actual data, `n`, are counted. The estimate for p is then
+
+            p = n/N.
+
+        The variance of the estimator follows that of binomial statistics:
+
+                     var(n)   Np(1-p)      1
+            var(p) = ------ = ------- <= ---- .
+                      N^2       N^2       4N
+
+        The expected uncertainty can thus be directly influenced by choosing an
+        appropriate number of evaluations.
+        """
+
+        # Get truth vector from assumed true hypothesis
+        truth_vector = composite_hypothesis.translate(parameters)
+
+        # Draw N fake data distributions
+        fake_data = self.generate_random_data_sample(truth_vector, N)
+
+        # Calculate the maximum probabilities
+        def prob_fun(data):
+            return LikelihoodMachine.max_log_probability(data, self.response_matrix, composite_hypothesis, **kwargs).L
+        prob = map(prob_fun, fake_data)
+
+        # Get likelihood of actual data
+        p0 = self.log_likelihood(truth_vector)
+
+        # Count number of probabilities lower than or equal to the likelihood of the real data
+        n = np.sum(prob <= p0)
+
+        # Return the quotient
+        return float(n) / N

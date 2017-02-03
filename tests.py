@@ -430,7 +430,6 @@ class TestRectangularBinnings(unittest.TestCase):
         self.bl.plot_values(f, figax=figax)
         self.bl.plot_values(f, variables=(None,None), kwargs2d={'label': 'values'})
 
-
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.bl
@@ -631,7 +630,7 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.data_vector[1] -= 1
         self.data_vector[2] += 1
         self.data_vector[3] -= 1
-        ret = self.L.absolute_max_log_likelihood(kwargs={})
+        ret = self.L.absolute_max_log_likelihood(kwargs={'niter': 10})
         s = ret.lowest_optimization_result.success
         self.assertTrue(s)
 
@@ -658,6 +657,26 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertAlmostEqual(p, 0.612, places=2)
         p = self.L.likelihood_p_value(self.truth_vector, N=250000)
         self.assertAlmostEqual(p, 0.612, places=2)
+
+    def test_max_likelihood_p_value(self):
+        """Test the calculation of the p-value of composite hypotheses."""
+        self.L.data_vector[0] += 2
+        fun = lambda x: x
+        H = CompositeHypothesis([(0,None)]*4, fun)
+        ret = self.L.max_log_likelihood(H)
+        p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2})
+        print ret.x, H.translate(ret.x), p
+        fun = lambda x: np.repeat(x,2)
+        H = CompositeHypothesis([(0,5),(0,5)], fun)
+        ret = self.L.max_log_likelihood(H)
+        p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2})
+        print ret.x, H.translate(ret.x), p
+        fun = lambda x: np.repeat(x,4)
+        H = CompositeHypothesis([(0,5)], fun)
+        ret = self.L.max_log_likelihood(H)
+        p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2})
+        print ret.x, H.translate(ret.x), p
+
 
 if __name__ == '__main__':
     unittest.main()
