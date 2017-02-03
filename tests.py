@@ -660,21 +660,20 @@ class TestLikelihoodMachines(unittest.TestCase):
 
     def test_max_likelihood_p_value(self):
         """Test the calculation of the p-value of composite hypotheses."""
-        self.L.data_vector[0] += 2
         fun = lambda x: x
         H = CompositeHypothesis([(0,None)]*4, fun)
-        ret = self.L.max_log_likelihood(H)
+        ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
         p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2})
         print ret.x, H.translate(ret.x), p
         fun = lambda x: np.repeat(x,2)
         H = CompositeHypothesis([(0,5),(0,5)], fun)
-        ret = self.L.max_log_likelihood(H)
+        ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
         p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2})
         print ret.x, H.translate(ret.x), p
         fun = lambda x: np.repeat(x,4)
         H = CompositeHypothesis([(0,5)], fun)
-        ret = self.L.max_log_likelihood(H)
-        p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2})
+        ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
+        p = self.L.max_likelihood_p_value(H, kwargs={'niter':2})
         print ret.x, H.translate(ret.x), p
 
 

@@ -432,7 +432,7 @@ class LikelihoodMachine(object):
         # Return the quotient
         return float(n) / N
 
-    def max_likelihood_p_value(self, composite_hypothesis, parameters, N=250, **kwargs):
+    def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, **kwargs):
         """Calculate the maximum likelihood p-value of a composite hypothesis given the measured data.
 
         Arguments
@@ -440,6 +440,8 @@ class LikelihoodMachine(object):
 
         composite_hypothesis : The evaluated theory.
         parameters : The assumed true parameters of the composite hypothesis.
+                     If no parameters are given, they will be calculated with
+                     the maximum likelihood method.
         N : The number of MC evaluations of the theory.
 
         Additional keyword arguments will be passed to the likelihood maximizer.
@@ -468,6 +470,9 @@ class LikelihoodMachine(object):
         """
 
         # Get truth vector from assumed true hypothesis
+        if parameters is None:
+            parameters = self.max_log_likelihood(composite_hypothesis).x
+
         truth_vector = composite_hypothesis.translate(parameters)
 
         # Draw N fake data distributions
