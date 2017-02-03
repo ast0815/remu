@@ -211,7 +211,7 @@ class LikelihoodMachine(object):
         Returns
         -------
 
-        res : OptimizeResult object containing the maximum likelihood `res.L`.
+        res : OptimizeResult object containing the maximum log probability `res.P`.
         """
 
         # Negative log probability function
@@ -306,13 +306,34 @@ class LikelihoodMachine(object):
         else:
             raise ValueError("Unknown method: %s"%(method,))
 
-        res.L = -res.fun
+        res.P = -res.fun
         res.x
 
         return res
 
     def max_log_likelihood(self, composite_hypothesis, *args, **kwargs):
-        return LikelihoodMachine.max_log_probability(self.data_vector, self.response_matrix, composite_hypothesis, *args, **kwargs)
+        """Calculate the maximum possible Likelihood in the given CompositeHypothesis, given the measured data.
+
+        Arguments
+        ---------
+
+        composite_hypothesis : The hypothesis to be evaluated.
+        disp : Display status messages during optimization.
+        method : Select the method to be used for maximization,
+                 either 'differential_evolution' or 'basinhopping'.
+                 Default: 'basinhopping'
+        kwargs : Keyword arguments to be passed to the minimizer.
+                 If empty, reasonable default values will be used.
+
+        Returns
+        -------
+
+        res : OptimizeResult object containing the maximum log probability `res.L`.
+        """
+        ret = LikelihoodMachine.max_log_probability(self.data_vector, self.response_matrix, composite_hypothesis, *args, **kwargs)
+        ret.L = ret.P
+        del ret.P
+        return ret
 
     def absolute_max_log_likelihood(self, disp=False, kwargs={}):
         """Calculate the maximum log likelihood achievable with the given data.
@@ -454,7 +475,7 @@ class LikelihoodMachine(object):
 
         # Calculate the maximum probabilities
         def prob_fun(data):
-            return LikelihoodMachine.max_log_probability(data, self.response_matrix, composite_hypothesis, **kwargs).L
+            return LikelihoodMachine.max_log_probability(data, self.response_matrix, composite_hypothesis, **kwargs).P
         prob = map(prob_fun, fake_data)
 
         # Get likelihood of actual data
