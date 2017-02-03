@@ -491,3 +491,70 @@ class LikelihoodMachine(object):
 
         # Return the quotient
         return float(n) / N
+
+    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, **kwargs):
+        """Calculate the maximum likelihood ratio p-value of a two composite hypotheses given the measured data.
+
+        Arguments
+        ---------
+
+        H0 : The tested composite hypothesis.
+        H1 : The alternative composite hypothesis.
+        par0 : The assumed true parameters of the tested hypothesis.
+        par1 : The maximum likelihood parameters of the alternative hypothesis.
+        N : The number of MC evaluations of the theory.
+
+        Additional keyword arguments will be passed to the likelihood maximizer.
+
+        Returns
+        -------
+
+        p : The probability of measuring data that yields a lower maximum
+            likelihood ratio than the actual data.
+
+        The p-value is estimated by randomly creating `N` data samples
+        according to the given theory. The number of data-sets that yield a
+        maximum likelihood as bad as, or worse than the likelihood given the
+        actual data, `n`, are counted. The estimate for p is then
+
+            p = n/N.
+
+        The variance of the estimator follows that of binomial statistics:
+
+                     var(n)   Np(1-p)      1
+            var(p) = ------ = ------- <= ---- .
+                      N^2       N^2       4N
+
+        The expected uncertainty can thus be directly influenced by choosing an
+        appropriate number of evaluations.
+        """
+
+        # Get truth vector from assumed true hypothesis
+        if par0 is None:
+            par0 = self.max_log_likelihood(H0).x
+        if par1 is None:
+            par1 = self.max_log_likelihood(H1).x
+
+        truth_vector = H0.translate(par0)
+        alternative_truth = H1.translate(par1)
+
+        # Draw N fake data distributions
+        fake_data = self.generate_random_data_sample(truth_vector, N)
+
+        # Calculate the maximum probabilities
+        def ratio_fun(data):
+             p0 = LikelihoodMachine.max_log_probability(data, self.response_matrix, H0, **kwargs).P
+             p1 = LikelihoodMachine.max_log_probability(data, self.response_matrix, H1, **kwargs).P
+             return p0-p1 # difference because log
+        ratio = map(ratio_fun, fake_data)
+
+        # Get likelihood of actual data
+        p0 = self.log_likelihood(truth_vector)
+        p1 = self.log_likelihood(alternative_truth)
+        r0 = p0-p1 # difference because log
+
+        # Count number of probabilities lower than or equal to the likelihood of the real data
+        n = np.sum(ratio <= r0)
+
+        # Return the quotient
+        return float(n) / N
