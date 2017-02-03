@@ -471,7 +471,7 @@ class LikelihoodMachine(object):
 
         # Get truth vector from assumed true hypothesis
         if parameters is None:
-            parameters = self.max_log_likelihood(composite_hypothesis).x
+            parameters = self.max_log_likelihood(composite_hypothesis, **kwargs).x
 
         truth_vector = composite_hypothesis.translate(parameters)
 
@@ -531,9 +531,9 @@ class LikelihoodMachine(object):
 
         # Get truth vector from assumed true hypothesis
         if par0 is None:
-            par0 = self.max_log_likelihood(H0).x
+            par0 = self.max_log_likelihood(H0, **kwargs).x
         if par1 is None:
-            par1 = self.max_log_likelihood(H1).x
+            par1 = self.max_log_likelihood(H1, **kwargs).x
 
         truth_vector = H0.translate(par0)
         alternative_truth = H1.translate(par1)
