@@ -123,21 +123,6 @@ if __name__ == '__main__':
     elapsed = timeit.default_timer() - start_time
     print("Time: %.1f"%(elapsed,))
 
-    print("Calculating p-values...")
-    start_time = timeit.default_timer()
-    def pair_pval(pair):
-        return pair[0].max_likelihood_p_value(*pair[1], N=25, kwargs={'niter':4})
-    pool = Pool()
-    test_p = pool.map(pair_pval, [(lm1,(h,r.x)) for h,r in zip(test_hyp, test_ret)])
-    del pool
-    elapsed = timeit.default_timer() - start_time
-    print("Time: %.1f"%(elapsed,))
-
-    for tot, hyp, ret, p in zip(test_total, test_hyp, test_ret, test_p):
-        truth_binning.plot_ndarray('N%d.png'%(tot,), hyp.translate(ret.x), variables=(None,None))
-        tr = hyp.translate(ret.x)
-        print("N=%.1f (%.1f), ll=%.1f, p=%.3f"%(tot, np.sum(tr), ret.L, p))
-
     print("Plotting results...")
     print("- 'response.png'")
     response.plot_values('response.png', variables=(None, None))
@@ -174,3 +159,9 @@ if __name__ == '__main__':
         tr = hyp.translate(ret.x)
         figax = truth_binning.plot_ndarray('N%d.png'%(tot,), tr, figax=figax,
                     kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': 'r', 'label': "$L^*_\mathrm{max}$"})
+
+    print("- 'Nall.png'")
+    fig, ax = plt.subplots()
+    test_L = [r.L for r in test_ret]
+    ax.plot(test_total, test_L)
+    fig.savefig('Nall.png')
