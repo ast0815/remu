@@ -664,17 +664,12 @@ class TestLikelihoodMachines(unittest.TestCase):
         H = CompositeHypothesis([(0,None)]*4, fun)
         ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
         p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2})
-        print ret.x, H.translate(ret.x), p
-        fun = lambda x: np.repeat(x,2)
-        H = CompositeHypothesis([(0,5),(0,5)], fun)
+        self.assertTrue(0.3 < p and p < 0.5)
+        fun = lambda x: np.repeat(x,4)
+        H = CompositeHypothesis([(0,None)], fun)
         ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
         p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2})
-        print ret.x, H.translate(ret.x), p
-        fun = lambda x: np.repeat(x,4)
-        H = CompositeHypothesis([(0,5)], fun)
-        ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
-        p = self.L.max_likelihood_p_value(H, kwargs={'niter':2})
-        print ret.x, H.translate(ret.x), p
+        self.assertTrue(0.7 < p and p < 0.9)
 
     def test_max_likelihood_ratio_p_value(self):
         """Test the calculation of the p-value of composite hypotheses comparisons."""
@@ -682,15 +677,14 @@ class TestLikelihoodMachines(unittest.TestCase):
         H1 = CompositeHypothesis([(0,None)]*4, fun1)
         ret1 = self.L.max_log_likelihood(H1, kwargs={'niter':2})
         fun = lambda x: np.repeat(x,2)
-        H = CompositeHypothesis([(0,5),(0,5)], fun)
+        H = CompositeHypothesis([(0,None),(0,None)], fun)
         ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
-        p = self.L.max_likelihood_ratio_p_value(H, H1, par1=ret1.x, kwargs={'niter':2})
-        print ret.x, H.translate(ret.x), p
+        p = self.L.max_likelihood_ratio_p_value(H, H1, par0=ret.x, par1=ret1.x, kwargs={'niter':2})
+        self.assertTrue(0.8 < p and p <= 1.0)
         fun = lambda x: np.repeat(x,4)
-        H = CompositeHypothesis([(0,5)], fun)
-        ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
+        H = CompositeHypothesis([(0,None)], fun)
         p = self.L.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2})
-        print ret.x, H.translate(ret.x), p
+        self.assertTrue(0.8 < p and p <= 1.0)
 
 
 if __name__ == '__main__':
