@@ -870,7 +870,7 @@ class RectangularBinning(Binning):
 
         self.bins._entries_array.flat[:] = arr.flat
 
-    def plot_ndarray(self, filename, arr, variables=None, kwargs1d={}, kwargs2d={}, figax=None):
+    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
         """Plot a visual representation of an array containing the entries or values of the binning.
 
         Arguments
@@ -884,11 +884,13 @@ class RectangularBinning(Binning):
                     `(None, None)`, plot 2D histograms of all possible variable combinations.
                     2D histograms where both variables are identical are plotted as 1D histograms.
                     Default: `None`
+        divide : Divide the bin content by the bin size before plotting.
+                 Default: True
+        kwargs1d, kwargs2d : Additional keyword arguments for the 1D/2D histograms.
+                             If the key `label` is present, a legend will be drawn.
         figax : Pair of figure and axes to be used for plotting.
                 Can be used to plot multiple binnings on top of one another.
                 Default: Create new figure and axes.
-        kwargs1d, kwargs2d : Additional keyword arguments for the 1D/2D histograms.
-                             If the key `label` is present, a legend will be drawn.
 
         Returns
         -------
@@ -927,19 +929,21 @@ class RectangularBinning(Binning):
 
         for i in range(ny):
             y_var = variables[0][i]
-            y_edg = make_finite(self.binedges[y_var])
+            y_edg = np.array(make_finite(self.binedges[y_var]))
             for j in range(nx):
                 if variables[1] is None:
                     x_var = y_var
                     x_edg = y_edg
                 else:
                     x_var = variables[1][j]
-                    x_edg = make_finite(self.binedges[x_var])
+                    x_edg = np.array(make_finite(self.binedges[x_var]))
 
                 if y_var == x_var:
                     # 1D histogram
 
                     nn = temp_binning.project([y_var]).get_values_as_ndarray()
+                    if divide:
+                        nn /= (y_edg[1:] - y_edg[:-1])
 
                     ax[i][j].set_xlabel(y_var)
 
@@ -955,6 +959,7 @@ class RectangularBinning(Binning):
                     arr = tb.get_values_as_ndarray()
                     if tb.variables[0] != y_var:
                         arr = arr.transpose()
+                    arr = arr.flatten()
 
                     # Bin centres
                     x = np.convolve(x_edg, np.ones(2)/2, mode='valid')
@@ -962,12 +967,22 @@ class RectangularBinning(Binning):
                     xx = np.broadcast_to(x, (len(y),len(x))).flatten()
                     yy = np.repeat(y, len(x))
 
+                    if divide:
+                        # Bin areas
+                        wx = np.diff(x_edg)
+                        wy = np.diff(y_edg)
+                        wxx = np.broadcast_to(wx, (len(wy),len(wx))).flatten()
+                        wyy = np.repeat(wy, len(wx))
+                        A = wxx * wyy
+
+                        arr /= A
+
                     if i==len(variables[0])-1:
                         ax[i][j].set_xlabel(x_var)
                     if j==0:
                         ax[i][j].set_ylabel(y_var)
 
-                    ax[i][j].hist2d(xx, yy, weights=arr.flatten(), bins=(x_edg, y_edg), **kwargs2d)
+                    ax[i][j].hist2d(xx, yy, weights=arr, bins=(x_edg, y_edg), **kwargs2d)
 
                     if 'label' in kwargs1d:
                         ax[i][j].legend(loc='best', framealpha=0.5)
@@ -977,11 +992,11 @@ class RectangularBinning(Binning):
 
         return fig, ax
 
-    def plot_values(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None):
-        return self.plot_ndarray(filename, self.bins._value_array, variables, kwargs1d, kwargs2d, figax)
+    def plot_values(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
+        return self.plot_ndarray(filename, self.bins._value_array, variables, divide, kwargs1d, kwargs2d, figax)
 
-    def plot_entries(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None):
-        return self.plot_ndarray(filename, self.bins._entries_array, variables, kwargs1d, kwargs2d, figax)
+    def plot_entries(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
+        return self.plot_ndarray(filename, self.bins._entries_array, variables, divide, kwargs1d, kwargs2d, figax)
 
     def __eq__(self, other):
         """Rectangular binnings are equal if the variables and edges match."""

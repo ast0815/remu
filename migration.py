@@ -79,8 +79,8 @@ class ResponseMatrix(object):
 
         return M
 
-    def plot_values(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None):
-        return self._response_binning.plot_values(filename, variables, kwargs1d, kwargs2d, figax)
+    def plot_values(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
+        return self._response_binning.plot_values(filename, variables, divide, kwargs1d, kwargs2d, figax)
 
-    def plot_entries(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None):
-        return self._response_binning.plot_entries(filename, variables, kwargs1d, kwargs2d, figax)
+    def plot_entries(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
+        return self._response_binning.plot_entries(filename, variables, divide, kwargs1d, kwargs2d, figax)
