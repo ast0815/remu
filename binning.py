@@ -899,10 +899,17 @@ class RectangularBinning(Binning):
 
         """
 
-        if variables is None:
+        if type(variables) is list:
+            variables = (variables, None)
+            sharex = False
+        elif variables is None:
             variables = (self.variables, None)
-        if variables == (None, None):
+            sharex = False
+        elif variables == (None, None):
             variables = (self.variables, self.variables)
+            sharex = 'col'
+        elif type(variables[0]) is list and type(variables[1]) is list:
+            sharex = 'col'
 
         if variables[1] is None:
             ny = len(variables[0])
@@ -912,7 +919,7 @@ class RectangularBinning(Binning):
             nx = len(variables[1])
 
         if figax is None:
-            fig, ax = plt.subplots(ny, nx, squeeze=False, figsize=(4*nx,4*ny), sharex='col')
+            fig, ax = plt.subplots(ny, nx, squeeze=False, figsize=(4*nx,4*ny), sharex=sharex)
         else:
             fig, ax = figax
 
