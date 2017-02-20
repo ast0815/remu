@@ -111,12 +111,12 @@ if __name__ == '__main__':
     def hyp_factory(total):
         return likelihood.CompositeHypothesis([(0.,None)]*(n_eff-1), TransFun(total))
 
-    test_total = np.linspace(500, 1500, 11)
+    test_total = np.linspace(950, 1050, 11)
     test_hyp = map(hyp_factory, test_total)
 
     start_time = timeit.default_timer()
     def pair_maxlog(pair):
-        return pair[0].max_log_likelihood(pair[1], kwargs={'niter':10})
+        return pair[0].max_log_likelihood(pair[1], kwargs={'niter':20})
     pool = Pool()
     test_ret = pool.map(pair_maxlog, [(lm1,h) for h in test_hyp])
     del pool
@@ -162,6 +162,11 @@ if __name__ == '__main__':
 
     print("- 'Nall.png'")
     fig, ax = plt.subplots()
-    test_L = [r.L for r in test_ret]
+    test_L = [-2.*r.L for r in test_ret]
+    L_min = min(test_L)
     ax.plot(test_total, test_L)
+    ax.axhline(L_min, color='r', linestyle='dashed')
+    ax.axhline(L_min+1, color='r', linestyle='dashed')
+    ax.set_xlabel(r"$N$")
+    ax.set_ylabel(r"$-2\log(L)$")
     fig.savefig('Nall.png')
