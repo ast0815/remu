@@ -193,12 +193,12 @@ class LikelihoodMachine(object):
 
     @staticmethod
     def max_log_probability(data_vector, response_matrix, composite_hypothesis, disp=False, method='basinhopping', kwargs={}):
-        """Calculate the maximum possible probability in the given CompositeHypothesis, given `reduced_response_matrix` and `data_vector`.
+        """Calculate the maximum possible probability in the given CompositeHypothesis, given `response_matrix` and `data_vector`.
 
         Arguments
         ---------
 
-        data_vector : Vector of measure values.
+        data_vector : Vector of measured values.
         response_matrix : The response matrix that translates truth into reco space.
         composite_hypothesis : The hypothesis to be evaluated.
         disp : Display status messages during optimization.
