@@ -951,10 +951,11 @@ class RectangularBinning(Binning):
                     nn = temp_binning.project([y_var]).get_values_as_ndarray()
                     if divide:
                         nn /= (y_edg[1:] - y_edg[:-1])
+                    nn = np.append(nn, nn[-1])
 
                     ax[i][j].set_xlabel(y_var)
 
-                    ax[i][j].plot(y_edg[:-1], nn, drawstyle='steps-post', **kwargs1d)
+                    ax[i][j].plot(y_edg, nn, drawstyle='steps-post', **kwargs1d)
 
                     if 'label' in kwargs1d:
                         ax[i][j].legend(loc='best', framealpha=0.5)
