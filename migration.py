@@ -80,7 +80,17 @@ class ResponseMatrix(object):
         return M
 
     def plot_values(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
+        """Plot the values of the response binning.
+
+        This plots the distribution of events that have *both* a truth and reco bin.
+        """
+
         return self._response_binning.plot_values(filename, variables, divide, kwargs1d, kwargs2d, figax)
 
     def plot_entries(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
+        """Plot the entries of the response binning.
+
+        This plots the distribution of events that have *both* a truth and reco bin.
+        """
+
         return self._response_binning.plot_entries(filename, variables, divide, kwargs1d, kwargs2d, figax)
