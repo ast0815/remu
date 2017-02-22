@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats import poisson
 from scipy import optimize
 import pymc
+import inspect
 
 class CompositeHypothesis(object):
     """A CompositeHypothesis translates a set of parameters into a truth vector."""
@@ -600,13 +601,30 @@ class LikelihoodMachine(object):
 
         # The parameter pymc stochastics
         parameters = []
-        for n,p in zip(names, priors):
-            parameters.append(pymc.stochastic(dtype=float, name=n)(p))
+        names_priors = zip(names, priors)
+        for n,p in names_priors:
+            # Get default value of prior
+            default = inspect.getargspec(p).defaults[0]
+
+            parameters.append(pymc.Stochastic(
+                logp = p,
+                doc = '',
+                name = n,
+                parents = {},
+                value = default,
+                dtype=float))
 
         # The data likelihood
-        @pymc.stochastic(dtype=int, observed=True)
-        def data(value=self.data_vector, parameters=parameters):
+        def logp(value=self.data_vector, parameters=parameters):
             """The reconstructed data."""
             return self.log_likelihood(composite_hypothesis.translate(parameters))
+        data = pymc.Stochastic(
+            logp = logp,
+            doc = '',
+            name = 'data',
+            parents = {'parameters': parameters},
+            value = self.data_vector,
+            dtype = int,
+            observed = True)
 
         return pymc.MCMC({'data': data, 'parameters': parameters})
