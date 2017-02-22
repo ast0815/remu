@@ -109,7 +109,7 @@ if __name__ == '__main__':
             return truth
 
     def hyp_factory(total):
-        return likelihood.CompositeHypothesis([(0.,None)]*(n_eff-1), TransFun(total))
+        return likelihood.CompositeHypothesis(TransFun(total), [(0.,None)]*(n_eff-1))
 
     test_total = np.linspace(950, 1050, 11)
     test_hyp = map(hyp_factory, test_total)
