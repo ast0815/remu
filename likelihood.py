@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.stats import poisson
 from scipy import optimize
+import pymc
 
 class CompositeHypothesis(object):
     """A CompositeHypothesis translates a set of parameters into a truth vector."""
@@ -582,3 +583,30 @@ class LikelihoodMachine(object):
 
         # Return the quotient
         return float(n) / N
+
+    def MCMC(self, composite_hypothesis):
+        """Return a Marcov Chain Monte Carlo object for the hypothesis.
+
+        Only works with bounded parameter limts so far.
+
+        See documentation of PyMC.
+        """
+
+        priors = composite_hypothesis.parameter_priors
+
+        names = composite_hypothesis.parameter_names
+        if names is None:
+            names = [ 'par_%d'%(i,) for i in range(len(priors)) ]
+
+        # The parameter pymc stochastics
+        parameters = []
+        for n,p in zip(names, priors):
+            parameters.append(pymc.stochastic(dtype=float, name=n)(p))
+
+        # The data likelihood
+        @pymc.stochastic(dtype=int, observed=True)
+        def data(value=self.data_vector, parameters=parameters):
+            """The reconstructed data."""
+            return self.log_likelihood(composite_hypothesis.translate(parameters))
+
+        return pymc.MCMC({'data': data, 'parameters': parameters})

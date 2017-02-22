@@ -686,6 +686,13 @@ class TestLikelihoodMachines(unittest.TestCase):
         p = self.L.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2})
         self.assertTrue(0.8 < p and p <= 1.0)
 
+    def test_MCMC(self):
+        """Test Marcov Chain Monte Carlo."""
+        fun = lambda x: np.repeat(x,2)
+        pri = lambda value=50: -np.inf if (value<0 or value>100) else -np.log(100)
+        H = CompositeHypothesis(fun, parameter_priors=[pri, pri], parameter_names=['x','y'])
+        M = self.L.MCMC(H)
+        M.sample(1000, burn=50, thin=10, tune_interval=10, progress_bar=False)
 
 if __name__ == '__main__':
     unittest.main()
