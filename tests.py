@@ -594,7 +594,7 @@ class TestLikelihoodMachines(unittest.TestCase):
     def test_max_log_likelihood(self):
         """Test maximum likelihood calculation with CompositeHypotheses"""
         fun = lambda x: x
-        H = CompositeHypothesis([(0,None)]*4, fun)
+        H = CompositeHypothesis(fun, [(0,None)]*4)
         ret = self.L.max_log_likelihood(H, method='basinhopping')
         ll, x = ret.L, ret.x
         self.assertAlmostEqual(ll, -5.110, places=3)
@@ -603,7 +603,7 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertAlmostEqual(x[2], 2, places=2)
         self.assertAlmostEqual(x[3], 2, places=2)
         fun = lambda x: np.repeat(x,2)
-        H = CompositeHypothesis([(0,5),(0,5)], fun)
+        H = CompositeHypothesis(fun, [(0,5),(0,5)])
         ret = self.L.max_log_likelihood(H, method='differential_evolution')
         ll, x, s = ret.L, ret.x, ret.success
         self.assertTrue(s)
@@ -661,12 +661,12 @@ class TestLikelihoodMachines(unittest.TestCase):
     def test_max_likelihood_p_value(self):
         """Test the calculation of the p-value of composite hypotheses."""
         fun = lambda x: x
-        H = CompositeHypothesis([(0,None)]*4, fun)
+        H = CompositeHypothesis(fun, [(0,None)]*4)
         ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
         p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2})
         self.assertTrue(0.3 < p and p < 0.5)
         fun = lambda x: np.repeat(x,4)
-        H = CompositeHypothesis([(0,None)], fun)
+        H = CompositeHypothesis(fun, [(0,None)])
         ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
         p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2})
         self.assertTrue(0.7 < p and p < 0.9)
@@ -674,15 +674,15 @@ class TestLikelihoodMachines(unittest.TestCase):
     def test_max_likelihood_ratio_p_value(self):
         """Test the calculation of the p-value of composite hypotheses comparisons."""
         fun1 = lambda x: x
-        H1 = CompositeHypothesis([(0,None)]*4, fun1)
+        H1 = CompositeHypothesis(fun1, [(0,None)]*4)
         ret1 = self.L.max_log_likelihood(H1, kwargs={'niter':2})
         fun = lambda x: np.repeat(x,2)
-        H = CompositeHypothesis([(0,None),(0,None)], fun)
+        H = CompositeHypothesis(fun, [(0,None),(0,None)])
         ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
         p = self.L.max_likelihood_ratio_p_value(H, H1, par0=ret.x, par1=ret1.x, kwargs={'niter':2})
         self.assertTrue(0.8 < p and p <= 1.0)
         fun = lambda x: np.repeat(x,4)
-        H = CompositeHypothesis([(0,None)], fun)
+        H = CompositeHypothesis(fun, [(0,None)])
         p = self.L.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2})
         self.assertTrue(0.8 < p and p <= 1.0)
 

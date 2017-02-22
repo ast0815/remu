@@ -5,26 +5,50 @@ from scipy import optimize
 class CompositeHypothesis(object):
     """A CompositeHypothesis translates a set of parameters into a truth vector."""
 
-    def __init__(self, parameter_limits, translation_function):
+    def __init__(self, translation_function, parameter_limits=None, parameter_priors=None, parameter_names=None):
         """Initialize the CompositeHypothesis.
 
         Arguments
         ---------
-
-        parameter_limits : An iterable of lower and upper limits of the hypothesis.
-                          The number of limits determines the number of parameters.
-                          Parameters can be `None`. This sets no limit in that direction.
-
-                              [ (x1_min, x1_max), (x2_min, x2_max), ... ]
 
         translation_function : The function to translate a vector of parameters into
                                a vector of truth expectation values:
 
                                    truth_vector = translation_function(parameter_vector)
 
+        parameter_limits : An iterable of lower and upper limits of the hypothesis' parameters.
+                           The number of limits determines the number of parameters.
+                           Parameters can be `None`. This sets no limit in that direction.
+
+                               [ (x1_min, x1_max), (x2_min, x2_max), ... ]
+
+                           Parameter limits are used in likelihood maximization.
+
+        parameter_priors : An iterable of prior probability density functions.
+                           The number of priors determines the number of parameters.
+                           Each function must return the logarithmic probability density,
+                           given a value of the corresponding parameter.
+
+                               prior(value=default) = log( pdf(value) )
+
+                           They should return `-numpy.inf` for excluded values.
+                           The function's argument *must* be named `value` and a default *must* be provided.
+                           Parameter priors are used in Marcov Chain Monte Carlo evaluations.
+
+        parameter_names : Optional. Iterable of the parameter names.
+                          These names will be used in some plotting comvenience functions.
+
+        Depending on the use case, one can provide `parameter_limits` and/or `parameter_priors`,
+        but they are *not* checked for consistency!
+
         """
 
+        if parameter_limits is None and parameter_priors is None:
+            raise TypeError("Must provide at least one of `parameter_lmits` and/or `parameter_priors`")
+
         self.parameter_limits = parameter_limits
+        self.parameter_priors = parameter_priors
+        self.parameter_names = parameter_names
         self.translate = translation_function
 
 class LikelihoodMachine(object):
@@ -359,7 +383,7 @@ class LikelihoodMachine(object):
         bounds = [(0,None)]*n
         eff_to_all = np.eye(len(self._eff))[:,self._eff]
         translate = lambda x: eff_to_all.dot(x)
-        super_hypothesis = CompositeHypothesis(bounds, translate)
+        super_hypothesis = CompositeHypothesis(translate, bounds)
 
         res = self.max_log_likelihood(super_hypothesis, disp=disp, method='basinhopping', kwargs=kwargs)
 
