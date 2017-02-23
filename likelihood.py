@@ -588,7 +588,7 @@ class LikelihoodMachine(object):
     def MCMC(self, composite_hypothesis):
         """Return a Marcov Chain Monte Carlo object for the hypothesis.
 
-        Only works with bounded parameter limts so far.
+        The hypothesis must define priors for its parameters.
 
         See documentation of PyMC.
         """
