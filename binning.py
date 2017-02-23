@@ -957,8 +957,15 @@ class RectangularBinning(Binning):
 
                     ax[i][j].plot(y_edg, nn, drawstyle='steps-post', **kwargs1d)
 
+                    # Mark open ended bins
+                    if not np.isfinite(self.binedges[y_var][0]):
+                        ax[i][j].axhline(nn[0], -0.1, 0.0, color='k', linestyle='dotted', clip_on=False)
+
+                    if not np.isfinite(self.binedges[y_var][-1]):
+                        ax[i][j].axhline(nn[-1], 1.0, 1.1, color='k', linestyle='dotted', clip_on=False)
+
                     if 'label' in kwargs1d:
-                        ax[i][j].legend(loc='best', framealpha=0.5)
+                        ax[i][j].legend(loc='best', framealpha=0.5, prop={'size':10})
 
                 else:
                     # 2D histogram
