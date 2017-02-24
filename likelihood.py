@@ -59,8 +59,8 @@ class LikelihoodMachine(object):
     def __init__(self, data_vector, response_matrix):
         """Initialize the LikelihoodMachine with the given data and response matrix."""
 
-        self.data_vector = data_vector
-        self.response_matrix = response_matrix
+        self.data_vector = np.array(data_vector)
+        self.response_matrix = np.array(response_matrix)
 
         # Calculte the reduced response matrix for speedier calculations
         self._reduced_response_matrix, self._eff = LikelihoodMachine._reduce_response_matrix(self.response_matrix)

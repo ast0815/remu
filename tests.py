@@ -632,10 +632,10 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertAlmostEqual(x[1], 4, places=2)
         self.assertAlmostEqual(x[2], 2, places=2)
         self.assertAlmostEqual(x[3], 2, places=2)
-        self.data_vector[0] += 1
-        self.data_vector[1] -= 1
-        self.data_vector[2] += 1
-        self.data_vector[3] -= 1
+        self.L.data_vector[0] += 1
+        self.L.data_vector[1] -= 1
+        self.L.data_vector[2] += 1
+        self.L.data_vector[3] -= 1
         ret = self.L.absolute_max_log_likelihood(kwargs={'niter': 10})
         s = ret.lowest_optimization_result.success
         self.assertTrue(s)
