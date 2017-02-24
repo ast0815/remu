@@ -81,8 +81,14 @@ class LikelihoodMachine(object):
             reco = reduced_response_matrix.dot(truth_vector[efficiency_vector])
 
         """
-        eff = ( response_matrix.sum(axis=0) > 0. )
-        reduced_response_matrix = response_matrix[:,eff]
+
+        # Only deal with truth bins that have a efficiency > 0 in any of the response matrices
+        eff = np.sum(response_matrix, axis=-2)
+        if eff.ndim > 1:
+            eff = np.max(eff, axis=tuple(range(eff.ndim-1)))
+        eff = ( eff > 0. )
+
+        reduced_response_matrix = response_matrix[...,eff]
 
         return reduced_response_matrix, eff
 
@@ -117,14 +123,14 @@ class LikelihoodMachine(object):
         return arr
 
     @staticmethod
-    def _reduced_log_probability(data_vector, reduced_response_matrix, reduced_truth_vector):
-        """Calculate the log probabilty of measuring `data_vector`, given `reduced_response_matrix` and `reduced_truth_vector`.
+    def log_probability(data_vector, response_matrix, truth_vector):
+        """Calculate the log probabilty of measuring `data_vector`, given `response_matrix` and `truth_vector`.
 
         Each of the three objects can actually be an array of vectors/matrices:
 
             data_vector.shape = (a,b,...,n_data)
-            reduced_response_matrix.shape = (c,d,...,n_data,n_truth)
-            reduced_truth_vector.shape = (e,f,...,n_truth)
+            response_matrix.shape = (c,d,...,n_data,n_truth)
+            truth_vector.shape = (e,f,...,n_truth)
 
         In this case, the return value will have the following shape:
 
@@ -133,16 +139,16 @@ class LikelihoodMachine(object):
         """
 
         data_shape = data_vector.shape
-        response_shape = reduced_response_matrix.shape
-        truth_shape = reduced_truth_vector.shape
+        response_shape = response_matrix.shape
+        truth_shape = truth_vector.shape
 
         # Extend response_matrix to shape (a,b,...,c,d,...,n_data,n_truth)
-        resp = LikelihoodMachine._create_vector_array(reduced_response_matrix, data_shape[:-1])
+        resp = LikelihoodMachine._create_vector_array(response_matrix, data_shape[:-1])
 
         # Reco expectation values of shape (a,b,...,c,d,...,e,f,...,n_data)
         # We need to set the terms of the einstein sum according to the number of axes.
         # N-dimensional case: 'a...dkl,e...fl->a...de...fk'
-        ax_resp = len(resp.shape)
+        ax_resp = resp.ndim
         if ax_resp == 2:
             ein_resp = ''
         elif ax_resp == 3:
@@ -160,7 +166,7 @@ class LikelihoodMachine(object):
             ein_truth = 'ef'
         elif ax_truth > 3:
             ein_truth = 'e...f'
-        reco = np.einsum(ein_resp+'kl,'+ein_truth+'l->'+ein_resp+ein_truth+'k', resp, reduced_truth_vector)
+        reco = np.einsum(ein_resp+'kl,'+ein_truth+'l->'+ein_resp+ein_truth+'k', resp, truth_vector)
 
         # Create a data vector of the shape (a,b,...,n_data,c,d,...,e,f,...)
         data = LikelihoodMachine._create_vector_array(data_vector, list(response_shape[:-2])+list(truth_shape[:-1]), append=False)
@@ -174,18 +180,28 @@ class LikelihoodMachine(object):
 
         return lp
 
-    def _reduced_log_likelihood(self, reduced_truth_vector):
+    def _reduced_log_likelihood(self, reduced_truth_vector, systematics='profile'):
         """Calculate a more efficient log likelihood using only truth values that have an influence."""
-        return LikelihoodMachine._reduced_log_probability(self.data_vector, self._reduced_response_matrix, reduced_truth_vector)
+        ll = LikelihoodMachine.log_probability(self.data_vector, self._reduced_response_matrix, reduced_truth_vector)
 
-    @staticmethod
-    def log_probability(data_vector, response_matrix, truth_vector):
-        """Calculate the log probabilty of measuring `data_vector`, given `reduced_response_matrix` and `reduced_truth_vector`."""
+        # Deal with systematics, i.e. multiple response matrices
+        systaxis = tuple(range(self.data_vector.ndim-1, self.data_vector.ndim-1+self._reduced_response_matrix.ndim-2))
+        if systematics is not None and len(systaxis) > 0:
+            if systematics == 'profile' or systematics == 'maximum':
+                # Return maximum
+                ll = np.max(ll, axis=systaxis)
+            elif systematics == 'marginal' or systematics == 'average':
+                # Return average
+                N_resp = np.prod(self._reduced_response_matrix.shape[:-2])
+                ll = np.log(np.sum(np.exp(ll), axis=systaxis) / N_resp)
+            elif type(systematics) is tuple:
+                # Return specific result
+                index = tuple([ slice(None) ] * (self.data_vector.ndim-1) + list(systematics) + [Ellipsis])
+                ll = ll[index]
+            else:
+                raise ValueError("Unknown systematics method!")
 
-        # TODO: Think of a good way to reduce multiple response_matrices at once.
-        #       Just pass the full response matrices and truth vectors for now.
-
-        return LikelihoodMachine._reduced_log_probability(data_vector, response_matrix, truth_vector)
+        return ll
 
     def _reduce_truth_vector(self, truth_vector):
         """Return a reduced truth vector view."""
@@ -201,7 +217,7 @@ class LikelihoodMachine(object):
 
         return reduced_truth_vector
 
-    def log_likelihood(self, truth_vector):
+    def log_likelihood(self, truth_vector, systematics='profile'):
         """Calculate the log likelihood of a vector of truth expectation values.
 
         Arguments
@@ -210,15 +226,23 @@ class LikelihoodMachine(object):
         truth_vector : Array of truth expectation values.
                        Can be a multidimensional array of truth vectors.
                        The shape of the array must be `(a, b, c, ..., n_truth_values)`.
+        systematics : How to deal with detector systematics, i.e. multiple response matrices.
+                      'profile', 'maximum': Choose the response matrix that yields the highest probability.
+                      'marginal', 'average': Sum the probabilites yielded by the matrices.
+                      `tuple(index)`: Select one specific matrix.
+                      `None` : Do nothing, return multiple likelihoods.
+                      Defaults to `profile`.
         """
 
         # Use reduced truth values for efficient calculations.
         reduced_truth_vector = self._reduce_truth_vector(truth_vector)
 
-        return self._reduced_log_likelihood(reduced_truth_vector)
+        ll = self._reduced_log_likelihood(reduced_truth_vector, systematics=systematics)
+
+        return ll
 
     @staticmethod
-    def max_log_probability(data_vector, response_matrix, composite_hypothesis, disp=False, method='basinhopping', kwargs={}):
+    def max_log_probability(data_vector, response_matrix, composite_hypothesis, systematics='profile', disp=False, method='basinhopping', kwargs={}):
         """Calculate the maximum possible probability in the given CompositeHypothesis, given `response_matrix` and `data_vector`.
 
         Arguments
@@ -226,7 +250,12 @@ class LikelihoodMachine(object):
 
         data_vector : Vector of measured values.
         response_matrix : The response matrix that translates truth into reco space.
+                          Can be an arbitrarily shaped array of response matrices.
         composite_hypothesis : The hypothesis to be evaluated.
+        systematics : How to deal with detector systematics, i.e. multiple response matrices.
+                      'profile', 'maximum': Choose the response matrix that yields the highest probability.
+                      'marginal', 'average': Sum the probabilites yielded by the matrices.
+                      Defaults to 'profile'.
         disp : Display status messages during optimization.
         method : Select the method to be used for maximization,
                  either 'differential_evolution' or 'basinhopping'.
@@ -241,7 +270,13 @@ class LikelihoodMachine(object):
         """
 
         # Negative log probability function
-        nll = lambda x: -LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(x))
+        if systematics == 'profile' or systematics == 'maximum':
+            nll = lambda x: -np.max(LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(x)))
+        elif systematics == 'marginal' or systematics == 'average':
+            N_resp = np.prod(response_matrix.shape[:-2])
+            nll = lambda x: -np.log(np.sum(np.exp(LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(x)))) / N_resp)
+        else:
+            raise ValueError("Unknown systematics method!")
 
         # Parameter limits
         bounds = composite_hypothesis.parameter_limits
@@ -344,6 +379,10 @@ class LikelihoodMachine(object):
         ---------
 
         composite_hypothesis : The hypothesis to be evaluated.
+        systematics : How to deal with detector systematics, i.e. multiple response matrices.
+                      'profile', 'maximum': Choose the response matrix that yields the highest likelihood.
+                      'marginal', 'average': Sum the probabilites yielded by the matrices.
+                      Defaults to 'profile'.
         disp : Display status messages during optimization.
         method : Select the method to be used for maximization,
                  either 'differential_evolution' or 'basinhopping'.
@@ -361,12 +400,16 @@ class LikelihoodMachine(object):
         del ret.P
         return ret
 
-    def absolute_max_log_likelihood(self, disp=False, kwargs={}):
+    def absolute_max_log_likelihood(self, systematics='profile', disp=False, kwargs={}):
         """Calculate the maximum log likelihood achievable with the given data.
 
         Arguments
         ---------
 
+        systematics : How to deal with detector systematics, i.e. multiple response matrices.
+                      'profile', 'maximum': Choose the response matrix that yields the highest likelihood.
+                      'marginal', 'average': Sum the probabilites yielded by the matrices.
+                      Defaults to 'profile'.
         disp : Display status messages during optimization.
         method : Select the method to be used for maximization,
                  either 'differential_evolution' or 'basinhopping'.
@@ -387,7 +430,7 @@ class LikelihoodMachine(object):
         translate = lambda x: eff_to_all.dot(x)
         super_hypothesis = CompositeHypothesis(translate, bounds)
 
-        res = self.max_log_likelihood(super_hypothesis, disp=disp, method='basinhopping', kwargs=kwargs)
+        res = self.max_log_likelihood(super_hypothesis, systematics=systematics, disp=disp, method='basinhopping', kwargs=kwargs)
 
         # Translate vector of efficient truth values back to complete vector
         res.x = translate(res.x)
@@ -408,7 +451,7 @@ class LikelihoodMachine(object):
 
         return np.random.poisson(mu, size=size)
 
-    def likelihood_p_value(self, truth_vector, N=2500):
+    def likelihood_p_value(self, truth_vector, N=2500, systematics='profile'):
         """Calculate the likelihood p-value of a truth vector given the measured data.
 
         Arguments
@@ -416,6 +459,10 @@ class LikelihoodMachine(object):
 
         truth_vector : The evaluated theory.
         N : The number of MC evaluations of the theory.
+        systematics : How to deal with detector systematics, i.e. multiple response matrices.
+                      'profile', 'maximum': Choose the response matrix that yields the highest likelihood.
+                      'marginal', 'average': Sum the probabilites yielded by the matrices.
+                      Defaults to 'profile'.
 
         Returns
         -------
@@ -447,10 +494,10 @@ class LikelihoodMachine(object):
         reduced_truth_vector = self._reduce_truth_vector(truth_vector)
 
         # Calculate probabilities of each generated sample
-        prob = LikelihoodMachine._reduced_log_probability(fake_data, self._reduced_response_matrix, reduced_truth_vector)
+        prob = LikelihoodMachine.log_probability(fake_data, self._reduced_response_matrix, reduced_truth_vector)
 
         # Get likelihood of actual data
-        p0 = self._reduced_log_likelihood(reduced_truth_vector)
+        p0 = self._reduced_log_likelihood(reduced_truth_vector, systematics=systematics)
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
         n = np.sum(prob <= p0)
@@ -458,7 +505,7 @@ class LikelihoodMachine(object):
         # Return the quotient
         return float(n) / N
 
-    def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, **kwargs):
+    def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, systematics='profile', **kwargs):
         """Calculate the maximum likelihood p-value of a composite hypothesis given the measured data.
 
         Arguments
@@ -510,7 +557,7 @@ class LikelihoodMachine(object):
         prob = map(prob_fun, fake_data)
 
         # Get likelihood of actual data
-        p0 = self.log_likelihood(truth_vector)
+        p0 = self.log_likelihood(truth_vector, systematics=systematics)
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
         n = np.sum(prob <= p0)
@@ -518,7 +565,7 @@ class LikelihoodMachine(object):
         # Return the quotient
         return float(n) / N
 
-    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, **kwargs):
+    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, systematics='profile', **kwargs):
         """Calculate the maximum likelihood ratio p-value of a two composite hypotheses given the measured data.
 
         Arguments
@@ -557,9 +604,9 @@ class LikelihoodMachine(object):
 
         # Get truth vector from assumed true hypothesis
         if par0 is None:
-            par0 = self.max_log_likelihood(H0, **kwargs).x
+            par0 = self.max_log_likelihood(H0, systematics=systematics, **kwargs).x
         if par1 is None:
-            par1 = self.max_log_likelihood(H1, **kwargs).x
+            par1 = self.max_log_likelihood(H1, systematics=systematics, **kwargs).x
 
         truth_vector = H0.translate(par0)
         alternative_truth = H1.translate(par1)
@@ -569,14 +616,14 @@ class LikelihoodMachine(object):
 
         # Calculate the maximum probabilities
         def ratio_fun(data):
-             p0 = LikelihoodMachine.max_log_probability(data, self.response_matrix, H0, **kwargs).P
-             p1 = LikelihoodMachine.max_log_probability(data, self.response_matrix, H1, **kwargs).P
+             p0 = LikelihoodMachine.max_log_probability(data, self.response_matrix, H0, systematics=systematics, **kwargs).P
+             p1 = LikelihoodMachine.max_log_probability(data, self.response_matrix, H1, systematics=systematics, **kwargs).P
              return p0-p1 # difference because log
         ratio = map(ratio_fun, fake_data)
 
         # Get likelihood of actual data
-        p0 = self.log_likelihood(truth_vector)
-        p1 = self.log_likelihood(alternative_truth)
+        p0 = self.log_likelihood(truth_vector, systematics=systematics)
+        p1 = self.log_likelihood(alternative_truth, systematics=systematics)
         r0 = p0-p1 # difference because log
 
         # Count number of probabilities lower than or equal to the likelihood of the real data

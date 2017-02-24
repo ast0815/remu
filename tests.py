@@ -538,10 +538,15 @@ class TestLikelihoodMachines(unittest.TestCase):
             rb = yaml.load(f)
         rm = ResponseMatrix(rb, tb)
         rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        self.data_vector = rm.get_reco_entries_as_ndarray() # Entries because we need integer event numbers
+        data_vector = rm.get_reco_entries_as_ndarray() # Entries because we need integer event numbers
         self.truth_vector = rm.get_truth_values_as_ndarray()
-        self.response_matrix = rm.get_response_matrix_as_ndarray()
-        self.L = LikelihoodMachine(self.data_vector, self.response_matrix)
+        response_matrix = []
+        response_matrix.append(rm.get_response_matrix_as_ndarray())
+        # Create a second response matric for systematics stuff
+        rm._truth_binning.fill_from_csv_file('testdata/test-data.csv')
+        response_matrix.append(rm.get_response_matrix_as_ndarray())
+        self.L = LikelihoodMachine(data_vector, response_matrix[0])
+        self.L2 = LikelihoodMachine(data_vector, response_matrix)
 
     def test_log_probabilities(self):
         """Test n-dimensional calculation of probabilities."""
@@ -594,6 +599,18 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertAlmostEqual(ret[0][0], -5.1096282421)
         self.assertAlmostEqual(ret[1][1], -5.1096282421)
         self.assertAlmostEqual(ret[2][1], -5.1096282421)
+        ret = self.L2.log_likelihood(self.truth_vector, systematics='profile')
+        self.assertAlmostEqual(ret, -5.1096282421)
+        ret = self.L2.log_likelihood(self.truth_vector, systematics='marginal')
+        self.assertAlmostEqual(ret, -5.58442415546)
+        ret = self.L2.log_likelihood(self.truth_vector, systematics=None)
+        self.assertAlmostEqual(ret[0], -5.1096282421)
+        self.assertAlmostEqual(ret[1], -6.52011704)
+        ret = self.L2.log_likelihood(self.truth_vector, systematics=(0,))
+        self.assertAlmostEqual(ret, -5.1096282421)
+        ret = self.L2.log_likelihood([self.truth_vector, self.truth_vector], systematics=(1,))
+        self.assertAlmostEqual(ret[0], -6.52011704)
+        self.assertAlmostEqual(ret[1], -6.52011704)
         self.truth_vector[0] += 1
         self.assertAlmostEqual(self.L.log_likelihood(self.truth_vector), -5.2465820247)
 
@@ -608,6 +625,16 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertAlmostEqual(x[1], 4, places=2)
         self.assertAlmostEqual(x[2], 2, places=2)
         self.assertAlmostEqual(x[3], 2, places=2)
+        ret = self.L2.max_log_likelihood(H, systematics='profile')
+        ll, x = ret.L, ret.x
+        self.assertAlmostEqual(ll, -5.110, places=3)
+        ret = self.L2.max_log_likelihood(H, systematics='marginal')
+        ll, x = ret.L, ret.x
+        self.assertAlmostEqual(ll, -5.518, places=3)
+        self.assertAlmostEqual(x[0], 2.217, places=2)
+        self.assertAlmostEqual(x[1], 5.410, places=2)
+        self.assertAlmostEqual(x[2], 2.507, places=2)
+        self.assertAlmostEqual(x[3], 2.181, places=2)
         fun = lambda x: np.repeat(x,2)
         H = CompositeHypothesis(fun, [(0,5),(0,5)])
         ret = self.L.max_log_likelihood(H, method='differential_evolution')
