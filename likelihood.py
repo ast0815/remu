@@ -436,10 +436,11 @@ class LikelihoodMachine(object):
         res.x = translate(res.x)
         return res
 
-    def generate_random_data_sample(self, truth_vector, size=None):
+    @staticmethod
+    def generate_random_data_sample(response_matrix, truth_vector, size=None):
         """Generate random data samples from the provided truth_vector."""
 
-        mu = self.response_matrix.dot(truth_vector)
+        mu = response_matrix.dot(truth_vector)
         if size is not None:
             # Append truth vector shape to requested shape of data sets
             try:
@@ -488,7 +489,7 @@ class LikelihoodMachine(object):
         """
 
         # Draw N fake data distributions
-        fake_data = self.generate_random_data_sample(truth_vector, N)
+        fake_data = LikelihoodMachine.generate_random_data_sample(self.response_matrix, truth_vector, N)
 
         # Reduce truth vectors to efficient values
         reduced_truth_vector = self._reduce_truth_vector(truth_vector)
@@ -549,7 +550,7 @@ class LikelihoodMachine(object):
         truth_vector = composite_hypothesis.translate(parameters)
 
         # Draw N fake data distributions
-        fake_data = self.generate_random_data_sample(truth_vector, N)
+        fake_data = LikelihoodMachine.generate_random_data_sample(self.response_matrix, truth_vector, N)
 
         # Calculate the maximum probabilities
         def prob_fun(data):
@@ -612,7 +613,7 @@ class LikelihoodMachine(object):
         alternative_truth = H1.translate(par1)
 
         # Draw N fake data distributions
-        fake_data = self.generate_random_data_sample(truth_vector, N)
+        fake_data = LikelihoodMachine.generate_random_data_sample(self.response_matrix, truth_vector, N)
 
         # Calculate the maximum probabilities
         def ratio_fun(data):

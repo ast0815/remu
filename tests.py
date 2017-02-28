@@ -670,11 +670,11 @@ class TestLikelihoodMachines(unittest.TestCase):
     def test_data_sample_generation(self):
         """Test the generatrion of random samples."""
         truth = np.array([1.,2.,3.,4.])
-        mc = self.L.generate_random_data_sample(truth)
+        mc = LikelihoodMachine.generate_random_data_sample(self.L.response_matrix, truth)
         self.assertEqual(mc.shape, (4,))
-        mc = self.L.generate_random_data_sample(truth, 3)
+        mc = LikelihoodMachine.generate_random_data_sample(self.L.response_matrix, truth, 3)
         self.assertEqual(mc.shape, (3,4))
-        mc = self.L.generate_random_data_sample(truth, (5,6))
+        mc = LikelihoodMachine.generate_random_data_sample(self.L.response_matrix, truth, (5,6))
         self.assertEqual(mc.shape, (5,6,4))
 
     def test_likelihood_p_value(self):
