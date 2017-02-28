@@ -470,18 +470,12 @@ class Binning(object):
         Other keyword arguments are passed on to the Binning's `fill` method
         """
 
-        with open(filename, 'r') as f:
-            dr = csv.DictReader(f, delimiter=',', strict=True)
-            for event in dr:
-                for k in event:
-                    # Parse the fields as floats
-                    event[k] = float(event[k])
-
-                if weightfield is None:
-                    self.fill(event, **kwargs)
-                else:
-                    weight = event.pop(weightfield)
-                    self.fill(event, weight=weight, **kwargs)
+        data = np.genfromtxt(filename, delimiter=',', names=True)
+        if weightfield is None:
+            self.fill(data, **kwargs)
+        else:
+            weight = data[weightfield]
+            self.fill(data, weight=weight, **kwargs)
 
     def reset(self, value=0., entries=0):
         """Reset all bin values."""
