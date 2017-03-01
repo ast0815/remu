@@ -267,6 +267,8 @@ class LikelihoodMachine(object):
         -------
 
         res : OptimizeResult object containing the maximum log probability `res.P`.
+              In case of `systematics=='profile'`, it also contains the index of
+              the response matrix that yielded the maximum likelihood `res.i`
         """
 
         # Negative log probability function
@@ -368,7 +370,8 @@ class LikelihoodMachine(object):
             raise ValueError("Unknown method: %s"%(method,))
 
         res.P = -res.fun
-        res.x
+        if systematics == 'profile' or systematics == 'maximum':
+            res.i = np.argmax(LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(res.x)))
 
         return res
 
@@ -394,6 +397,8 @@ class LikelihoodMachine(object):
         -------
 
         res : OptimizeResult object containing the maximum log probability `res.L`.
+              In case of `systematics=='profile'`, it also contains the index of
+              the response matrix that yielded the maximum likelihood `res.i`
         """
         ret = LikelihoodMachine.max_log_probability(self.data_vector, self.response_matrix, composite_hypothesis, *args, **kwargs)
         ret.L = ret.P
