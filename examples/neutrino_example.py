@@ -11,6 +11,7 @@ from __future__ import print_function
 import numpy as np
 from matplotlib import pyplot as plt
 from pymc.Matplot import plot as mcplot
+from pymc.Matplot import summary_plot
 
 # Set working directory and sys.path
 import sys, os
@@ -50,17 +51,19 @@ if __name__ == '__main__':
 
     print("Getting normalised response matrix...")
     resp = response.get_response_matrix_as_ndarray()
+    # Fake a 10% efficiency uncertainty
+    resp = np.array([resp * x for x in np.linspace(0.9, 1.1, 10)])
 
     print("Creating test data...")
     truth = response.get_truth_values_as_ndarray() / toy_div
-    data = likelihood.LikelihoodMachine.generate_random_data_sample(resp, truth, N_toy)
+    data = likelihood.LikelihoodMachine.generate_random_data_sample(resp[0], truth, N_toy)
 
     print("Creating likelihood machines...")
     lm = [ likelihood.LikelihoodMachine(x, resp) for x in data ]
 
     print("Calculating absolute maximum likelihood...")
     def lm_maxlog(x):
-        return x.absolute_max_log_likelihood(kwargs={'niter':100})
+        return x.absolute_max_log_likelihood(kwargs={'niter':10})
     pool = Pool()
     ret = pool.map(lm_maxlog, lm)
     del pool
@@ -72,19 +75,24 @@ if __name__ == '__main__':
     H = [ likelihood.CompositeHypothesis(lambda x: x, parameter_priors=[prior]*len(truth)) for i in range(N_toy) ]
     M = [ lm[i].MCMC(H[i]) for i in range(N_toy) ]
     def f_MCMC(i):
-        M[i].sample(10000, burn=5000, thin=10, tune_interval=100, progress_bar=False)
+        # Do the actual MCMC sampling
+        M[i].sample(5000, burn=0, thin=100, tune_interval=200, tune_throughout=True, progress_bar=False)
         # Debug plots to check convergence of MCMC
         mcplot(M[i])
+        summary_plot(M[i])
         # Get all traces and save them in an array
         # Must be done here, because MCMC object are not pickleable
         ret = {}
         for par in M[i].stochastics:
             ret[str(par)] = M[i].trace(par)[:]
         # Parameters are namedd 'par_i'
-        ret = np.array([ ret['par_%d'%(j,)] for j in range(len(truth)) ])
-        return ret
+        arr = np.array([ ret['par_%d'%(j,)] for j in range(len(truth)) ])
+        toy_trace = np.array(ret['toy_index'])
+        return arr, toy_trace
     pool = Pool()
-    trace = np.array(pool.map(f_MCMC, range(N_toy)))
+    trace, toy_index = zip(*pool.map(f_MCMC, range(N_toy)))
+    trace = np.array(trace)
+    toy_index = np.array(toy_index)
     del pool
     median = np.median(trace, axis=-1)
     total = np.sum(trace, axis=-2)
@@ -108,7 +116,7 @@ if __name__ == '__main__':
     for i in range(N_toy):
         figax = reco_binning.plot_ndarray('maxL-data.png', data[i], figax=figax,
                     kwargs1d={'linestyle': 'solid', 'color': col[i], 'label': "Data$_{%02d}$"%(i,)})
-        figax = reco_binning.plot_ndarray('maxL-data.png', resp.dot(H[i].translate(ret[i].x)), figax=figax,
+        figax = reco_binning.plot_ndarray('maxL-data.png', resp[ret[i].i].dot(H[i].translate(ret[i].x)), figax=figax,
                     kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': col[i], 'label': "$L_\mathrm{max,%02d}$"%(i,)})
 
     print("- median posterior")
@@ -122,7 +130,7 @@ if __name__ == '__main__':
     for i in range(N_toy):
         figax = reco_binning.plot_ndarray('posterior-data.png', data[i], figax=figax,
                     kwargs1d={'linestyle': 'solid', 'color': col[i], 'label': "Data$_{%02d}$"%(i,)})
-        figax = reco_binning.plot_ndarray('posterior-data.png', resp.dot(H[i].translate(median[i])), figax=figax,
+        figax = reco_binning.plot_ndarray('posterior-data.png', resp[0].dot(H[i].translate(median[i])), figax=figax,
                     kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': col[i], 'label': "median $P_\mathrm{post,%02d}$"%(i,)})
 
 

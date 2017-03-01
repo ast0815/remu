@@ -667,17 +667,24 @@ class LikelihoodMachine(object):
                 value = default,
                 dtype=float))
 
+        # Toy index as additional stochastic
+        n_toys = np.prod(self.response_matrix.shape[:-2])
+        toy_index = pymc.DiscreteUniform('toy_index', lower=0, upper=(n_toys-1))
+
         # The data likelihood
-        def logp(value=self.data_vector, parameters=parameters):
+        def logp(value=self.data_vector, parameters=parameters, toy_index=toy_index):
             """The reconstructed data."""
-            return self.log_likelihood(composite_hypothesis.translate(parameters))
+            return self.log_likelihood(composite_hypothesis.translate(parameters), systematics=(toy_index,))
         data = pymc.Stochastic(
             logp = logp,
             doc = '',
             name = 'data',
-            parents = {'parameters': parameters},
+            parents = {'parameters': parameters, 'toy_index': toy_index},
             value = self.data_vector,
             dtype = int,
             observed = True)
 
-        return pymc.MCMC({'data': data, 'parameters': parameters})
+        M = pymc.MCMC({'data': data, 'parameters': parameters, 'toy_index': toy_index})
+        M.use_step_method(pymc.DiscreteMetropolis, toy_index, proposal_distribution='Prior')
+
+        return M
