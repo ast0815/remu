@@ -19,6 +19,11 @@ class CompositeHypothesis(object):
 
                                    truth_vector = translation_function(parameter_vector)
 
+                               It must support translating arrays of parameter vectors into
+                               arrays of truth vectors:
+
+                                   [truth_vector, ...] = translation_function([parameter_vector, ...])
+
         parameter_limits : An iterable of lower and upper limits of the hypothesis' parameters.
                            The number of limits determines the number of parameters.
                            Parameters can be `None`. This sets no limit in that direction.
@@ -71,6 +76,11 @@ class JeffreysPrior(object):
 
                                    truth_vector = translation_function(parameter_vector)
 
+                               It must support translating arrays of parameter vectors into
+                               arrays of truth vectors:
+
+                                   [truth_vector, ...] = translation_function([parameter_vector, ...])
+
         parameter_limits : An iterable of lower and upper limits of the hypothesis' parameters.
                            The number of limits determines the number of parameters.
                            Parameters can be `None`. This sets no limit in that direction.
@@ -104,22 +114,30 @@ class JeffreysPrior(object):
         """Calculate the Fisher information matrix for the given parameters."""
 
         resp = self.response_matrix[toy_index]
+        par_mat = np.array(np.broadcast_to(parameters, (self._npar, self._npar)))
+        i_diag = np.diag_indices(self._npar)
 
+        # list of parameter sets -> list of reco values
         def reco_expectation(theta):
-            return resp.dot(self.translate(theta))
+            ret = np.tensordot(self.translate(theta), resp, [[-1], [-1]])
+            return ret
 
-        def diff_i(theta, i):
-            def curried(x):
-                par = np.copy(theta)
-                par[i] = x
-                return reco_expectation(par)
+        # npar by npar matrix of reco values
+        expect = np.broadcast_to(reco_expectation(par_mat), (self._npar, self._npar, self._nreco))
 
-            return derivative(curried, x0=theta[i], dx=self.dx[i])
+        # Diff expects the last axis to be the parameters, not the reco values!
+        # varied parameter set -> transposed list of reco values
+        def curried(x):
+            par_mat[i_diag] = x
+            return reco_expectation(par_mat).T
 
-        par_range = range(self._npar)
-        fish = np.array([ [ (diff_i(parameters, i) * diff_i(parameters, j))/reco_expectation(parameters) for j in par_range ] for i in par_range ])
+        diff = derivative(curried, x0=parameters, dx=self.dx).T
 
-        return fish.sum(-1)
+        diff_i = np.broadcast_to(diff, (self._npar, self._npar, self._nreco))
+        diff_j = np.swapaxes(diff_i, 0, 1)
+
+        fish = (diff_i * diff_j / expect).sum(-1)
+        return fish
 
     def __call__(self, value, toy_index=0):
         """Calculate the prior probability of the given parameter set."""

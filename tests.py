@@ -721,7 +721,7 @@ class TestLikelihoodMachines(unittest.TestCase):
 
     def test_MCMC(self):
         """Test Marcov Chain Monte Carlo."""
-        fun = lambda x: np.repeat(x,2)
+        fun = lambda x: np.repeat(x, 2, axis=-1)
         pri = JeffreysPrior(self.L.response_matrix, fun, [(0,100), (0,100)], (50,50))
         H = CompositeHypothesis(fun, parameter_priors=[pri], parameter_names=['x'])
         M = self.L.MCMC(H)
