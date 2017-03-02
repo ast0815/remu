@@ -722,8 +722,8 @@ class TestLikelihoodMachines(unittest.TestCase):
     def test_MCMC(self):
         """Test Marcov Chain Monte Carlo."""
         fun = lambda x: np.repeat(x,2)
-        pri = lambda value=50: -np.inf if (value<0 or value>100) else -np.log(100)
-        H = CompositeHypothesis(fun, parameter_priors=[pri, pri], parameter_names=['x','y'])
+        pri = JeffreysPrior(self.L.response_matrix, fun, [(0,100), (0,100)], (50,50))
+        H = CompositeHypothesis(fun, parameter_priors=[pri], parameter_names=['x'])
         M = self.L.MCMC(H)
         M.sample(1000, burn=50, thin=10, tune_interval=10, progress_bar=False)
 

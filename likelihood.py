@@ -1,6 +1,7 @@
 import numpy as np
 from scipy.stats import poisson
 from scipy import optimize
+from scipy.misc import derivative
 import pymc
 import inspect
 
@@ -52,6 +53,84 @@ class CompositeHypothesis(object):
         self.parameter_priors = parameter_priors
         self.parameter_names = parameter_names
         self.translate = translation_function
+
+class JeffreysPrior(object):
+    """Universal non-informative prior for use in Bayesian MCMC analysis."""
+
+    def __init__(self, response_matrix, translation_function, parameter_limits, default_values, dx=None):
+        """Initilize a JeffreysPrior.
+
+        Arguments
+        ---------
+
+        response_matrix : Response matrix that translates truth into reco bins.
+                          Can be an array of matrices.
+
+        translation_function : The function to translate a vector of parameters into
+                               a vector of truth expectation values:
+
+                                   truth_vector = translation_function(parameter_vector)
+
+        parameter_limits : An iterable of lower and upper limits of the hypothesis' parameters.
+                           The number of limits determines the number of parameters.
+                           Parameters can be `None`. This sets no limit in that direction.
+
+                               [ (x1_min, x1_max), (x2_min, x2_max), ... ]
+
+        default_values : The default values of the parameters
+
+        dx : Array of step sizes to be used in numerical differentiation.
+             Default: `numpy.full(len(parameter_limits), 1e-3)`
+
+        """
+
+        old_shape = response_matrix.shape
+        new_shape = (int(np.prod(old_shape[:-2])), old_shape[-2], old_shape[-1])
+        self.response_matrix = response_matrix.reshape(new_shape)
+
+        self.translate = translation_function
+
+        limits = zip(*parameter_limits)
+        self.lower_limits = np.array([ x if x is not None else -np.inf for x in limits[0] ])
+        self.upper_limits = np.array([ x if x is not None else np.inf for x in limits[1] ])
+
+        self.default_values = np.array(default_values)
+
+        self._npar = len(parameter_limits)
+        self._nreco = response_matrix.shape[-2]
+        self.dx = dx or np.full(self._npar, 1e-3)
+
+    def fisher_matrix(self, parameters, toy_index=0):
+        """Calculate the Fisher information matrix for the given parameters."""
+
+        resp = self.response_matrix[toy_index]
+
+        def reco_expectation(theta):
+            return resp.dot(self.translate(theta))
+
+        def diff_i(theta, i):
+            def curried(x):
+                par = np.copy(theta)
+                par[i] = x
+                return reco_expectation(par)
+
+            return derivative(curried, x0=theta[i], dx=self.dx[i])
+
+        par_range = range(self._npar)
+        fish = np.array([ [ (diff_i(parameters, i) * diff_i(parameters, j))/reco_expectation(parameters) for j in par_range ] for i in par_range ])
+
+        return fish.sum(-1)
+
+    def __call__(self, value, toy_index=0):
+        """Calculate the prior probability of the given parameter set."""
+
+        # Out of bounds?
+        if np.any(value < self.lower_limits) or np.any(value > self.upper_limits):
+            return -np.inf
+
+        sign, log_det = np.linalg.slogdet(self.fisher_matrix(value, toy_index))
+
+        return 0.5*log_det
 
 class LikelihoodMachine(object):
     """Class that calculates likelihoods for truth vectors."""
@@ -652,24 +731,31 @@ class LikelihoodMachine(object):
         if names is None:
             names = [ 'par_%d'%(i,) for i in range(len(priors)) ]
 
+        # Toy index as additional stochastic
+        n_toys = np.prod(self.response_matrix.shape[:-2])
+        toy_index = pymc.DiscreteUniform('toy_index', lower=0, upper=(n_toys-1))
+
         # The parameter pymc stochastics
         parameters = []
         names_priors = zip(names, priors)
         for n,p in names_priors:
             # Get default value of prior
-            default = inspect.getargspec(p).defaults[0]
+            if isinstance(p, JeffreysPrior):
+                # Jeffreys prior?
+                default = p.default_values
+                parents = {'toy_index': toy_index}
+            else:
+                # Regular function
+                default = inspect.getargspec(p).defaults[0]
+                parents = {}
 
             parameters.append(pymc.Stochastic(
                 logp = p,
                 doc = '',
                 name = n,
-                parents = {},
+                parents = parents,
                 value = default,
                 dtype=float))
-
-        # Toy index as additional stochastic
-        n_toys = np.prod(self.response_matrix.shape[:-2])
-        toy_index = pymc.DiscreteUniform('toy_index', lower=0, upper=(n_toys-1))
 
         # The data likelihood
         def logp(value=self.data_vector, parameters=parameters, toy_index=toy_index):
