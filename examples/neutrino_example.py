@@ -60,8 +60,8 @@ if __name__ == '__main__':
     # Fake a 10% efficiency uncertainty
     resp = np.array([true_resp * x for x in np.linspace(0.9, 1.1, 10)])
     eff = resp.sum(axis=1)
-    max_eff = eff.max(axis=0)
     min_eff = eff.min(axis=0)
+    max_eff = eff.max(axis=0)
     i_eff = (min_eff > 0.2)
 
     print("Creating test data...")
@@ -120,14 +120,9 @@ if __name__ == '__main__':
     response.plot_values('migration.png', variables=(['muMomRec','muCosThetaRec'], ['muMomTrue','muCosThetaTrue']))
 
     print("- efficiencies")
-    i = range(len(min_eff))
-    fig, ax = plt.subplots(1)
-    ax.set_xlabel("Bin #")
-    ax.set_ylabel("Efficiency")
-    ax.fill_between(i, min_eff, max_eff, step='mid')
-    fig.savefig('efficiencies.png')
+    lm[0].plot_bin_efficiencies('efficiencies.png')
 
-    print("- parameters")
+    print("- parameter example traces")
     # Debug plots to check convergence of MCMC
     for i, t in enumerate(trace[0]):
         mcplot(t, 'par_%d'%(i,), last=False)

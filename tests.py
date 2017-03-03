@@ -727,5 +727,10 @@ class TestLikelihoodMachines(unittest.TestCase):
         M = self.L.MCMC(H)
         M.sample(1000, burn=50, thin=10, tune_interval=10, progress_bar=False)
 
+    def test_plots(self):
+        """Test plots."""
+        f = open('/dev/null', 'w')
+        self.L.plot_bin_efficiencies(f)
+
 if __name__ == '__main__':
     unittest.main()
