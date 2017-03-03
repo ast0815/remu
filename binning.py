@@ -4,6 +4,7 @@ import re
 import numpy as np
 import csv
 from matplotlib import pyplot as plt
+from matplotlib.colors import LogNorm
 
 class PhaseSpace(object):
     """A PhaseSpace defines the possible combinations of variables that characterize an event.
@@ -991,7 +992,9 @@ class RectangularBinning(Binning):
                     if j==0:
                         ax[i][j].set_ylabel(y_var)
 
-                    ax[i][j].hist2d(xx, yy, weights=arr, bins=(x_edg, y_edg), **kwargs2d)
+                    kw = {'norm': LogNorm()}
+                    kw.update(kwargs2d)
+                    ax[i][j].hist2d(xx, yy, weights=arr, bins=(x_edg, y_edg), **kw)
 
                     if 'label' in kwargs1d:
                         ax[i][j].legend(loc='best', framealpha=0.5)
