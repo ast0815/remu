@@ -28,15 +28,21 @@ import likelihood
 # Parallelization
 from multiprocessing import Pool
 
-# We split the MC into parts for training and testing
-N_toy = 5
-toy_div = 100
-
 if __name__ == '__main__':
     # Parse arguments
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test", help="do a quicker test-run", action='store_true')
+    parser.add_argument("--test", help="do a quick test-run", action='store_true')
+    parser.add_argument("--quicktest", help="do a quicker test-run", action='store_true')
     args = parser.parse_args()
+
+    # We split the MC into parts for training and testing
+    if args.quicktest:
+        N_toy = 2
+    elif args.test:
+        N_toy = 20
+    else:
+        N_toy = 100
+    toy_div = 100
 
     print("Loading the truth and reco binnings...")
 
@@ -74,7 +80,7 @@ if __name__ == '__main__':
 
     print("Calculating absolute maximum likelihood...")
     def lm_maxlog(x):
-        return x.absolute_max_log_likelihood(kwargs={'niter':10})
+        return x.absolute_max_log_likelihood(kwargs={'niter':20})
     pool = Pool()
     ret = pool.map(lm_maxlog, lm)
     del pool
@@ -84,14 +90,14 @@ if __name__ == '__main__':
         return -np.inf if value < 0. else -0.5*np.log(value) # P = 1/sqrt(lambda), Jeffreys prior for Poisson expectation values
     # Free floating hypothesis
     prior = likelihood.JeffreysPrior(resp, lambda x: x, [(0,None)]*len(truth), [100.]*len(truth))
-    H = [ likelihood.CompositeHypothesis(lambda x: x, parameter_priors=[prior]) for i in range(N_toy) ]
-    M = [ lm[i].MCMC(H[i]) for i in range(N_toy) ]
+    H = likelihood.CompositeHypothesis(lambda x: x, parameter_priors=[prior])
+    M = [ lm[i].MCMC(H) for i in range(N_toy) ]
     def f_MCMC(i):
         # Do the actual MCMC sampling
-        if args.test:
+        if args.quicktest or args.test:
             M[i].sample(100*1000, burn=10*1000, thin=1000, tune_interval=1000, tune_throughout=True, progress_bar=True)
         else:
-            M[i].sample(1000*1000, burn=100*1000, thin=1000, tune_interval=1000, tune_throughout=True, progress_bar=True)
+            M[i].sample(1000*1000, burn=100*1000, thin=10*1000, tune_interval=1000, tune_throughout=True, progress_bar=False)
         # Get all traces and save them in an array
         # Must be done here, because MCMC object are not pickleable
         ret = {}
@@ -132,61 +138,52 @@ if __name__ == '__main__':
         fig.savefig('par_%d.png'%(i,))
     mcplot(toy_index[0], 'toy_index')
 
-    col = ['r', 'g', 'b', 'm', 'c'] * 10
+    percentiles = [0.5, 2.5, 16., 50., 84., 97.5, 99.5]
+    col = ['red', 'orange', 'green', 'black', 'green', 'orange', 'red']
+
     print("- posterior median")
     figax = None
     figax = truth_binning.plot_ndarray('posterior-median-truth.png', truth, figax=figax,
-                kwargs1d={'linestyle': 'solid', 'color': 'k', 'label': "Truth"})
-    for i in range(N_toy):
-        figax = truth_binning.plot_ndarray('posterior-median-truth.png', H[i].translate(median[i]), figax=figax,
-                    kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': col[i], 'label': "$P_\mathrm{post,%02d}$ median"%(i,)})
-    figax = None
-    for i in range(N_toy):
-        figax = reco_binning.plot_ndarray('posterior-median-data.png', data[i], figax=figax,
-                    kwargs1d={'linestyle': 'solid', 'color': col[i], 'label': "Data$_{%02d}$"%(i,)})
-        figax = reco_binning.plot_ndarray('posterior-median-data.png', true_resp.dot(H[i].translate(median[i])), figax=figax,
-                    kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': col[i], 'label': "$P_\mathrm{post,%02d}$ median"%(i,)})
+                kwargs1d={'linestyle': 'dashed', 'color': 'c', 'linewidth': 2., 'label': "Truth", 'zorder': 1})
+    median_percentiles = np.percentile(H.translate(median), percentiles, axis=0)
+    for p, m, c in zip(percentiles, median_percentiles, col):
+        figax = truth_binning.plot_ndarray('posterior-median-truth.png', m, figax=figax,
+                    kwargs1d={'linestyle': 'solid', 'linewidth': 2.0, 'color': c, 'label': "$P_\mathrm{post}$ median %.1f%%ile"%(p,), 'zorder': -abs(p-50.)})
 
     print("- posterior mean")
     figax = None
     figax = truth_binning.plot_ndarray('posterior-mean-truth.png', truth, figax=figax,
-                kwargs1d={'linestyle': 'solid', 'color': 'k', 'label': "Truth"})
-    for i in range(N_toy):
-        figax = truth_binning.plot_ndarray('posterior-mean-truth.png', H[i].translate(mean[i]), figax=figax,
-                    kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': col[i], 'label': "$P_\mathrm{post,%02d}$ mean"%(i,)})
-    figax = None
-    for i in range(N_toy):
-        figax = reco_binning.plot_ndarray('posterior-mean-data.png', data[i], figax=figax,
-                    kwargs1d={'linestyle': 'solid', 'color': col[i], 'label': "Data$_{%02d}$"%(i,)})
-        figax = reco_binning.plot_ndarray('posterior-mean-data.png', true_resp.dot(H[i].translate(mean[i])), figax=figax,
-                    kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': col[i], 'label': "$P_\mathrm{post,%02d}$ mean"%(i,)})
+                kwargs1d={'linestyle': 'dashed', 'color': 'c', 'linewidth': 2., 'label': "Truth", 'zorder': 1})
+    mean_percentiles = np.percentile(H.translate(median), percentiles, axis=0)
+    for p, m, c in zip(percentiles, mean_percentiles, col):
+        figax = truth_binning.plot_ndarray('posterior-mean-truth.png', m, figax=figax,
+                    kwargs1d={'linestyle': 'solid', 'linewidth': 2.0, 'color': c, 'label': "$P_\mathrm{post}$ mean %.1f%%ile"%(p,), 'zorder': -abs(p-50.)})
 
     print("- total")
     fig, ax = plt.subplots()
-    ax.set_xlabel("total true events")
-    ax.hist(total.T, histtype='step', color=col[0:len(total)], label=["$P_\mathrm{post,%02d}$"%(i,) for i in range(N_toy)])
-    ax.axvline(np.sum(truth), color='k', linewidth=2., linestyle='dotted', label="Truth")
+    ax.set_xlabel("Fake data throw")
+    ax.set_ylabel("Total true events")
+    #ax.hist2d(np.indices(total.shape)[0].flatten(), total.flatten(), [len(total), 20])
+    ax.boxplot(total.T, whis=[2.5, 97.5], showmeans=True, whiskerprops={'linestyle': 'solid'})
+    ax.axhline(np.sum(truth), color='c', linewidth=2., linestyle='dashed', label="Truth")
     ax.legend(loc='best', framealpha=0.5)
     fig.savefig('total.png')
 
     print("- eff total")
     fig, ax = plt.subplots()
-    ax.set_xlabel("total true efficient events")
-    ax.hist(eff_total.T, histtype='step', color=col[0:len(total)], label=["$P_\mathrm{post,%02d}$"%(i,) for i in range(N_toy)])
-    ax.axvline(np.sum(eff_truth), color='k', linewidth=2., linestyle='dotted', label="Truth")
+    ax.set_xlabel("Fake data throw")
+    ax.set_ylabel("Total true efficient events")
+    #ax.hist2d(np.indices(eff_total.shape)[0].flatten(), eff_total.flatten(), [len(eff_total), 20])
+    ax.boxplot(eff_total.T, whis=[2.5, 97.5], showmeans=True, whiskerprops={'linestyle': 'solid'})
+    ax.axhline(np.sum(eff_truth), color='c', linewidth=2., linestyle='dashed', label="Truth")
     ax.legend(loc='best', framealpha=0.5)
     fig.savefig('eff_total.png')
 
     print("- max likelihood")
     figax = None
     figax = truth_binning.plot_ndarray('maxL-truth.png', truth, figax=figax,
-                kwargs1d={'linestyle': 'solid', 'color': 'k', 'label': "Truth"})
-    for i in range(N_toy):
-        figax = truth_binning.plot_ndarray('maxL-truth.png', H[i].translate(ret[i].x), figax=figax,
-                    kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': col[i], 'label': "$L_\mathrm{max,%02d}$"%(i,)})
-    figax = None
-    for i in range(N_toy):
-        figax = reco_binning.plot_ndarray('maxL-data.png', data[i], figax=figax,
-                    kwargs1d={'linestyle': 'solid', 'color': col[i], 'label': "Data$_{%02d}$"%(i,)})
-        figax = reco_binning.plot_ndarray('maxL-data.png', resp[ret[i].i].dot(H[i].translate(ret[i].x)), figax=figax,
-                    kwargs1d={'linestyle': 'dashed', 'linewidth': 2.0, 'color': col[i], 'label': "$L_\mathrm{max,%02d}$"%(i,)})
+                kwargs1d={'linestyle': 'dashed', 'color': 'c', 'linewidth': 2., 'label': "Truth", 'zorder': 1})
+    maxlik_percentiles = np.percentile([H.translate(r.x) for r in ret], percentiles, axis=0)
+    for p, m, c in zip(percentiles, maxlik_percentiles, col):
+        figax = truth_binning.plot_ndarray('maxL-truth.png', m, figax=figax,
+                    kwargs1d={'linestyle': 'solid', 'linewidth': 2.0, 'color': c, 'label': "$L_\mathrm{max}$ %.1f%%ile"%(p,), 'zorder': -abs(p-50.)})
