@@ -799,16 +799,9 @@ class LikelihoodMachine(object):
 
         eff = self.response_matrix.sum(axis=-2)
         eff.shape = (np.prod(eff.shape[:-1]), eff.shape[-1])
-        percentiles = [0.5, 2.5, 16., 50., 84., 97.5, 99.5]
-        eff_percentiles = np.percentile(eff, percentiles, axis=0)
-        i = range(eff_percentiles.shape[1])
 
         fig, ax = plt.subplots(1)
         ax.set_xlabel("Truth bin #")
         ax.set_ylabel("Efficiency")
-        ax.fill_between(i, eff_percentiles[0], eff_percentiles[-1], step='mid', linewidth=0., color='red'   , label='99%')
-        ax.fill_between(i, eff_percentiles[1], eff_percentiles[-2], step='mid', linewidth=0., color='yellow', label='95%')
-        ax.fill_between(i, eff_percentiles[2], eff_percentiles[-3], step='mid', linewidth=0., color='green' , label='68%')
-        ax.step(i, eff_percentiles[3], where='mid', linewidth=2., color='k' , label='median')
-        ax.legend(loc='best')
+        ax.boxplot(eff, whis=[5., 95.], showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(eff.shape[1]))
         fig.savefig(filename)
