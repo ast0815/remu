@@ -41,7 +41,7 @@ if __name__ == '__main__':
     elif args.test:
         N_toy = 20
     else:
-        N_toy = 100
+        N_toy = 50
     toy_div = 100
 
     print("Loading the truth and reco binnings...")
@@ -68,7 +68,7 @@ if __name__ == '__main__':
     eff = resp.sum(axis=1)
     min_eff = eff.min(axis=0)
     max_eff = eff.max(axis=0)
-    i_eff = (min_eff > 0.2)
+    i_eff = (max_eff > 0.15)
 
     print("Creating test data...")
     truth = response.get_truth_values_as_ndarray() / toy_div
@@ -86,18 +86,22 @@ if __name__ == '__main__':
     del pool
 
     print("Calculating posterior probabilities...")
-    def prior(value=1.):
-        return -np.inf if value < 0. else -0.5*np.log(value) # P = 1/sqrt(lambda), Jeffreys prior for Poisson expectation values
-    # Free floating hypothesis
-    prior = likelihood.JeffreysPrior(resp, lambda x: x, [(0,None)]*len(truth), [100.]*len(truth))
-    H = likelihood.CompositeHypothesis(lambda x: x, parameter_priors=[prior])
+    ntruth = len(truth)
+    def trans(par):
+        """Free floating truth bins vs given shape.
+
+        Just return the parameters 1-to-1 as truth bin values"""
+        return par
+    prior = likelihood.JeffreysPrior(resp, trans, [(0,2000)]*len(truth), [100.]*len(truth))
+    H = likelihood.CompositeHypothesis(trans, parameter_priors=[prior])
     M = [ lm[i].MCMC(H) for i in range(N_toy) ]
+    M.insert(0, lm[0].MCMC(H, prior_only=True)) # Add MCMC to sample prior
     def f_MCMC(i):
         # Do the actual MCMC sampling
         if args.quicktest or args.test:
             M[i].sample(100*1000, burn=10*1000, thin=1000, tune_interval=1000, tune_throughout=True, progress_bar=True)
         else:
-            M[i].sample(1000*1000, burn=100*1000, thin=10*1000, tune_interval=1000, tune_throughout=True, progress_bar=False)
+            M[i].sample(2000*1000, burn=100*1000, thin=10*1000, tune_interval=1000, tune_throughout=True, progress_bar=False)
         # Get all traces and save them in an array
         # Must be done here, because MCMC object are not pickleable
         ret = {}
@@ -108,11 +112,13 @@ if __name__ == '__main__':
         toy_trace = np.array(ret['toy_index'])
         return arr, toy_trace
     pool = Pool()
-    trace, toy_index = zip(*pool.map(f_MCMC, range(N_toy)))
+    trace, toy_index = zip(*pool.map(f_MCMC, range(N_toy+1)))
     del pool
     #trace, toy_index = zip(*map(f_MCMC, range(N_toy)))
-    trace = np.array(trace)
-    toy_index = np.array(toy_index)
+    prior_trace = np.array(trace[0])
+    trace = np.array(trace[1:])
+    prior_toy_index = np.array(toy_index[0])
+    toy_index = np.array(toy_index[1:])
     median = np.median(trace, axis=-1)
     mean = np.mean(trace, axis=-1)
     total = np.sum(trace, axis=-2)
@@ -128,8 +134,15 @@ if __name__ == '__main__':
     print("- efficiencies")
     lm[0].plot_bin_efficiencies('efficiencies.png')
 
-    print("- parameter example traces")
+    print("- parameter traces")
     # Debug plots to check convergence of MCMC
+    for i, t in enumerate(prior_trace):
+        mcplot(t, 'par_%d'%(i,), last=False)
+        fig = plt.gcf()
+        ax = fig.axes[-1]
+        ax.axvline(truth[i], linewidth=2, linestyle='dashed', color='r')
+        fig.savefig('prior_par_%d.png'%(i,))
+    mcplot(prior_toy_index, 'prior_toy_index')
     for i, t in enumerate(trace[0]):
         mcplot(t, 'par_%d'%(i,), last=False)
         fig = plt.gcf()
@@ -164,8 +177,8 @@ if __name__ == '__main__':
     ax.set_xlabel("Fake data throw")
     ax.set_ylabel("Total true events")
     #ax.hist2d(np.indices(total.shape)[0].flatten(), total.flatten(), [len(total), 20])
-    ax.boxplot(total.T, whis=[2.5, 97.5], showmeans=True, whiskerprops={'linestyle': 'solid'})
-    ax.axhline(np.sum(truth), color='c', linewidth=2., linestyle='dashed', label="Truth")
+    ax.boxplot(total.T, whis=[5., 95.], showmeans=True, whiskerprops={'linestyle': 'solid'})
+    ax.axhline(np.sum(truth), color='orange', linewidth=2., linestyle='dashed', label="Truth")
     ax.legend(loc='best', framealpha=0.5)
     fig.savefig('total.png')
 
@@ -174,8 +187,8 @@ if __name__ == '__main__':
     ax.set_xlabel("Fake data throw")
     ax.set_ylabel("Total true efficient events")
     #ax.hist2d(np.indices(eff_total.shape)[0].flatten(), eff_total.flatten(), [len(eff_total), 20])
-    ax.boxplot(eff_total.T, whis=[2.5, 97.5], showmeans=True, whiskerprops={'linestyle': 'solid'})
-    ax.axhline(np.sum(eff_truth), color='c', linewidth=2., linestyle='dashed', label="Truth")
+    ax.boxplot(eff_total.T, whis=[5., 95.], showmeans=True, whiskerprops={'linestyle': 'solid'})
+    ax.axhline(np.sum(eff_truth), color='orange', linewidth=2., linestyle='dashed', label="Truth")
     ax.legend(loc='best', framealpha=0.5)
     fig.savefig('eff_total.png')
 
