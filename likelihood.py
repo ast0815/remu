@@ -736,7 +736,7 @@ class LikelihoodMachine(object):
         # Return the quotient
         return float(n) / N
 
-    def MCMC(self, composite_hypothesis):
+    def MCMC(self, composite_hypothesis, prior_only=False):
         """Return a Marcov Chain Monte Carlo object for the hypothesis.
 
         The hypothesis must define priors for its parameters.
@@ -777,9 +777,14 @@ class LikelihoodMachine(object):
                 dtype=float))
 
         # The data likelihood
-        def logp(value=self.data_vector, parameters=parameters, toy_index=toy_index):
-            """The reconstructed data."""
-            return self.log_likelihood(composite_hypothesis.translate(parameters), systematics=(toy_index,))
+        if prior_only:
+            def logp(value=self.data_vector, parameters=parameters, toy_index=toy_index):
+                """Do not consider the data likelihood."""
+                return 0
+        else:
+            def logp(value=self.data_vector, parameters=parameters, toy_index=toy_index):
+                """The reconstructed data."""
+                return self.log_likelihood(composite_hypothesis.translate(parameters), systematics=(toy_index,))
         data = pymc.Stochastic(
             logp = logp,
             doc = '',
