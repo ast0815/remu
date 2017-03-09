@@ -63,7 +63,7 @@ class CompositeHypothesis(object):
 class JeffreysPrior(object):
     """Universal non-informative prior for use in Bayesian MCMC analysis."""
 
-    def __init__(self, response_matrix, translation_function, parameter_limits, default_values, dx=None):
+    def __init__(self, response_matrix, translation_function, parameter_limits, default_values, dx=None, total_truth_limit=None):
         """Initilize a JeffreysPrior.
 
         Arguments
@@ -93,6 +93,11 @@ class JeffreysPrior(object):
         dx : Array of step sizes to be used in numerical differentiation.
              Default: `numpy.full(len(parameter_limits), 1e-3)`
 
+        total_truth_limit : Maximum total number of truth events to consider in the prior.
+                            This can be used to make priors proper in a consistent way,
+                            since the limit is defined in the truth space, rather than
+                            the prior parameter space.
+
         """
 
         old_shape = response_matrix.shape
@@ -104,6 +109,8 @@ class JeffreysPrior(object):
         limits = zip(*parameter_limits)
         self.lower_limits = np.array([ x if x is not None else -np.inf for x in limits[0] ])
         self.upper_limits = np.array([ x if x is not None else np.inf for x in limits[1] ])
+
+        self.total_truth_limit = total_truth_limit or np.inf
 
         self.default_values = np.array(default_values)
 
@@ -145,6 +152,10 @@ class JeffreysPrior(object):
 
         # Out of bounds?
         if np.any(value < self.lower_limits) or np.any(value > self.upper_limits):
+            return -np.inf
+
+        # Out of total truth bound?
+        if np.sum(self.translate(value)) > self.total_truth_limit:
             return -np.inf
 
         sign, log_det = np.linalg.slogdet(self.fisher_matrix(value, toy_index))
