@@ -804,6 +804,9 @@ class LikelihoodMachine(object):
 
         eff = self.response_matrix.sum(axis=-2)
         eff.shape = (np.prod(eff.shape[:-1]), eff.shape[-1])
+        if eff.shape[0] == 1:
+            # Trick boxplot into working even if there is only one efficiency per bin
+            eff = np.broadcast_to(eff, (2, eff.shape[1]))
 
         fig, ax = plt.subplots(1)
         ax.set_xlabel("Truth bin #")
