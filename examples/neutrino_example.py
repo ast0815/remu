@@ -92,14 +92,16 @@ if __name__ == '__main__':
 
         Just return the parameters 1-to-1 as truth bin values"""
         return par
-    prior = likelihood.JeffreysPrior(resp, trans, [(0,2000)]*len(truth), [100.]*len(truth))
+    prior = likelihood.JeffreysPrior(resp, trans, [(0,None)]*len(truth), [100.]*len(truth), total_truth_limit=6000)
     H = likelihood.CompositeHypothesis(trans, parameter_priors=[prior])
     M = [ lm[i].MCMC(H) for i in range(N_toy) ]
     M.insert(0, lm[0].MCMC(H, prior_only=True)) # Add MCMC to sample prior
     def f_MCMC(i):
         # Do the actual MCMC sampling
-        if args.quicktest or args.test:
+        if args.quicktest:
             M[i].sample(100*1000, burn=10*1000, thin=1000, tune_interval=1000, tune_throughout=True, progress_bar=True)
+        elif args.test:
+            M[i].sample(200*1000, burn=10*1000, thin=1000, tune_interval=1000, tune_throughout=True, progress_bar=True)
         else:
             M[i].sample(2000*1000, burn=100*1000, thin=10*1000, tune_interval=1000, tune_throughout=True, progress_bar=False)
         # Get all traces and save them in an array
@@ -107,7 +109,7 @@ if __name__ == '__main__':
         ret = {}
         for par in M[i].stochastics:
             ret[str(par)] = M[i].trace(par)[:]
-        # Parameters are namedd 'par_i'
+        # Parameters are combined in 'par_0'
         arr = np.array( ret['par_0'].T )
         toy_trace = np.array(ret['toy_index'])
         return arr, toy_trace
@@ -123,6 +125,14 @@ if __name__ == '__main__':
     mean = np.mean(trace, axis=-1)
     total = np.sum(trace, axis=-2)
     eff_total = np.sum(trace[:,i_eff,:], axis=-2)
+
+    print("Calculating posterior p-values...")
+    def f_pvalue(i):
+        return [ lm[i].likelihood_p_value(x, generator_matrix_index=g) for x,g in zip(H.translate(trace[i].T), toy_index[i]) ]
+    pool = Pool()
+    p_values = np.array(pool.map(f_pvalue, range(N_toy)))
+    del pool
+    print(p_values)
 
     print("Plotting results...")
     print("- response")
@@ -180,6 +190,7 @@ if __name__ == '__main__':
     ax.boxplot(total.T, whis=[5., 95.], showmeans=True, whiskerprops={'linestyle': 'solid'})
     ax.axhline(np.sum(truth), color='orange', linewidth=2., linestyle='dashed', label="Truth")
     ax.legend(loc='best', framealpha=0.5)
+    fig.tight_layout()
     fig.savefig('total.png')
 
     print("- eff total")
@@ -190,7 +201,16 @@ if __name__ == '__main__':
     ax.boxplot(eff_total.T, whis=[5., 95.], showmeans=True, whiskerprops={'linestyle': 'solid'})
     ax.axhline(np.sum(eff_truth), color='orange', linewidth=2., linestyle='dashed', label="Truth")
     ax.legend(loc='best', framealpha=0.5)
+    fig.tight_layout()
     fig.savefig('eff_total.png')
+
+    print("- posterior p-values")
+    fig, ax = plt.subplots(1)
+    ax.set_xlabel("Fake data throw")
+    ax.set_ylabel("Posterior p-value")
+    ax.boxplot(p_values.T, whis=[5., 95.], showmeans=True, whiskerprops={'linestyle': 'solid'})
+    fig.tight_layout()
+    fig.savefig('posterior_p-values.png')
 
     print("- max likelihood")
     figax = None
