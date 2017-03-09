@@ -289,6 +289,25 @@ class LikelihoodMachine(object):
 
         return lp
 
+    @staticmethod
+    def _collapse_systematics_axes(ll, systaxis, systematics):
+        """Collapse the given axes according to the systematics mode."""
+
+        if systematics == 'profile' or systematics == 'maximum':
+            # Return maximum
+            ll = np.max(ll, axis=systaxis)
+        elif systematics == 'marginal' or systematics == 'average':
+            # Return average
+            ll = np.log(np.average(np.exp(ll), axis=systaxis))
+        elif type(systematics) is tuple:
+            # Return specific result
+            index = tuple([ slice(None) ] * min(systaxis) + list(systematics) + [Ellipsis])
+            ll = ll[index]
+        else:
+            raise ValueError("Unknown systematics method!")
+
+        return ll
+
     def _reduced_log_likelihood(self, reduced_truth_vector, systematics='profile'):
         """Calculate a more efficient log likelihood using only truth values that have an influence."""
         ll = LikelihoodMachine.log_probability(self.data_vector, self._reduced_response_matrix, reduced_truth_vector)
@@ -296,19 +315,7 @@ class LikelihoodMachine(object):
         # Deal with systematics, i.e. multiple response matrices
         systaxis = tuple(range(self.data_vector.ndim-1, self.data_vector.ndim-1+self._reduced_response_matrix.ndim-2))
         if systematics is not None and len(systaxis) > 0:
-            if systematics == 'profile' or systematics == 'maximum':
-                # Return maximum
-                ll = np.max(ll, axis=systaxis)
-            elif systematics == 'marginal' or systematics == 'average':
-                # Return average
-                N_resp = np.prod(self._reduced_response_matrix.shape[:-2])
-                ll = np.log(np.sum(np.exp(ll), axis=systaxis) / N_resp)
-            elif type(systematics) is tuple:
-                # Return specific result
-                index = tuple([ slice(None) ] * (self.data_vector.ndim-1) + list(systematics) + [Ellipsis])
-                ll = ll[index]
-            else:
-                raise ValueError("Unknown systematics method!")
+            ll = LikelihoodMachine._collapse_systematics_axes(ll, systaxis, systematics)
 
         return ll
 
@@ -566,7 +573,7 @@ class LikelihoodMachine(object):
 
         return np.random.poisson(mu, size=size)
 
-    def likelihood_p_value(self, truth_vector, N=2500, systematics='profile'):
+    def likelihood_p_value(self, truth_vector, N=2500, generator_matrix_index=None, systematics='profile'):
         """Calculate the likelihood p-value of a truth vector given the measured data.
 
         Arguments
@@ -574,6 +581,9 @@ class LikelihoodMachine(object):
 
         truth_vector : The evaluated theory.
         N : The number of MC evaluations of the theory.
+        generator_matrix_index : The index of the response matrix to be used to generate
+                                 the fake data. This needs to be specified only if the LikelihoodMachine
+                                 contains more than one response matrix.
         systematics : How to deal with detector systematics, i.e. multiple response matrices.
                       'profile', 'maximum': Choose the response matrix that yields the highest likelihood.
                       'marginal', 'average': Sum the probabilites yielded by the matrices.
@@ -602,17 +612,28 @@ class LikelihoodMachine(object):
         appropriate number of evaluations.
         """
 
-        # Draw N fake data distributions
-        fake_data = LikelihoodMachine.generate_random_data_sample(self.response_matrix, truth_vector, N)
-
         # Reduce truth vectors to efficient values
         reduced_truth_vector = self._reduce_truth_vector(truth_vector)
+
+        # Get likelihood of actual data
+        p0 = self._reduced_log_likelihood(reduced_truth_vector, systematics=systematics)
+
+        # Decide which matrix to use for data generation
+        if self._reduced_response_matrix.ndim > 2:
+            resp = self._reduced_response_matrix[generator_matrix_index]
+        else:
+            resp = self._reduced_response_matrix
+
+        # Draw N fake data distributions
+        fake_data = LikelihoodMachine.generate_random_data_sample(resp, reduced_truth_vector, N)
 
         # Calculate probabilities of each generated sample
         prob = LikelihoodMachine.log_probability(fake_data, self._reduced_response_matrix, reduced_truth_vector)
 
-        # Get likelihood of actual data
-        p0 = self._reduced_log_likelihood(reduced_truth_vector, systematics=systematics)
+        # Deal with systematics, i.e. multiple response matrices
+        if prob.ndim > 1:
+            systaxis = tuple(range(1, prob.ndim))
+            prob = LikelihoodMachine._collapse_systematics_axes(prob, systaxis, systematics)
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
         n = np.sum(prob <= p0)
@@ -668,7 +689,7 @@ class LikelihoodMachine(object):
 
         # Calculate the maximum probabilities
         def prob_fun(data):
-            return LikelihoodMachine.max_log_probability(data, self.response_matrix, composite_hypothesis, **kwargs).P
+            return LikelihoodMachine.max_log_probability(data, self.response_matrix, composite_hypothesis, systematics=systematics, **kwargs).P
         prob = map(prob_fun, fake_data)
 
         # Get likelihood of actual data
