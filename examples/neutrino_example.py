@@ -87,15 +87,30 @@ if __name__ == '__main__':
 
     print("Calculating posterior probabilities...")
     ntruth = len(truth)
+
+    # Super hypothesis
     def trans(par):
         """Free floating truth bins vs given shape.
 
         Just return the parameters 1-to-1 as truth bin values"""
         return par
     prior = likelihood.JeffreysPrior(resp, trans, [(0,None)]*len(truth), [100.]*len(truth), total_truth_limit=6000)
-    H = likelihood.CompositeHypothesis(trans, parameter_priors=[prior])
-    M = [ lm[i].MCMC(H) for i in range(N_toy) ]
-    M.insert(0, lm[0].MCMC(H, prior_only=True)) # Add MCMC to sample prior
+    H0 = likelihood.CompositeHypothesis(trans, parameter_priors=[prior])
+
+    # Alternative hypothesis
+    def alt_trans(par):
+        """Fixed shape with free scale parameter."""
+        par = np.asarray(par)
+        shape = tuple(list(par.shape[:-1]) + list(np.asarray(truth).shape))
+        ret = np.broadcast_to(truth, shape)
+        ret = (par[...,0] * ret.T).T
+        return ret
+    alt_prior = likelihood.JeffreysPrior(resp, alt_trans, [(0,None)], [1.], total_truth_limit=6000)
+    H1 = likelihood.CompositeHypothesis(alt_trans, parameter_priors=[alt_prior])
+
+    M = [ lm[i].MCMC(H0) for i in range(N_toy) ] # Super hypothesis
+    M += [ lm[i].MCMC(H1) for i in range(N_toy) ] # Alternative hypothesis
+    M.insert(0, lm[0].MCMC(H0, prior_only=True)) # Add MCMC to sample prior
     def f_MCMC(i):
         # Do the actual MCMC sampling
         if args.quicktest:
@@ -114,25 +129,34 @@ if __name__ == '__main__':
         toy_trace = np.array(ret['toy_index'])
         return arr, toy_trace
     pool = Pool()
-    trace, toy_index = zip(*pool.map(f_MCMC, range(N_toy+1)))
+    all_trace, all_toy_index = zip(*pool.map(f_MCMC, range(2*N_toy+1)))
     del pool
     #trace, toy_index = zip(*map(f_MCMC, range(N_toy)))
-    prior_trace = np.array(trace[0])
-    trace = np.array(trace[1:])
-    prior_toy_index = np.array(toy_index[0])
-    toy_index = np.array(toy_index[1:])
+    prior_trace = np.array(all_trace[0])
+    trace = np.array(all_trace[1:N_toy+1])
+    alt_trace = np.array(all_trace[N_toy+1:])
+    prior_toy_index = np.array(all_toy_index[0])
+    toy_index = np.array(all_toy_index[1:N_toy+1])
+    alt_toy_index = np.array(all_toy_index[N_toy+1:])
     median = np.median(trace, axis=-1)
     mean = np.mean(trace, axis=-1)
     total = np.sum(trace, axis=-2)
     eff_total = np.sum(trace[:,i_eff,:], axis=-2)
 
-    print("Calculating posterior p-values...")
-    def f_pvalue(i):
-        return [ lm[i].likelihood_p_value(x, generator_matrix_index=g) for x,g in zip(H.translate(trace[i].T), toy_index[i]) ]
-    pool = Pool()
-    p_values = np.array(pool.map(f_pvalue, range(N_toy)))
-    del pool
-    print(p_values)
+    print("Calculating Posterior distribution of Likelihood Ratio...")
+    def f_PLR(i):
+        L0 = lm[i].log_likelihood(H0.translate(trace[i].T), systematics=toy_index[i,...,np.newaxis])
+        L1 = lm[i].log_likelihood(H1.translate(alt_trace[i].T), systematics=alt_toy_index[i,...,np.newaxis])
+        # Build all possible combinations
+        # Assumes posteriors are independent, I guess
+        mg = np.array(np.meshgrid(L1, -L0)).T.sum(axis=-1).flatten()
+        return mg
+    #pool = Pool()
+    #PLR = np.array(pool.map(f_PLR, range(N_toy)))
+    #del pool
+    PLR = map(f_PLR, range(N_toy))
+    PLR = np.array(PLR)
+    print(PLR)
 
     print("Plotting results...")
     print("- response")
@@ -147,7 +171,7 @@ if __name__ == '__main__':
     print("- parameter traces")
     # Debug plots to check convergence of MCMC
     for i, t in enumerate(prior_trace):
-        mcplot(t, 'par_%d'%(i,), last=False)
+        mcplot(t, 'prior_par_%d'%(i,), last=False)
         fig = plt.gcf()
         ax = fig.axes[-1]
         ax.axvline(truth[i], linewidth=2, linestyle='dashed', color='r')
@@ -160,6 +184,12 @@ if __name__ == '__main__':
         ax.axvline(truth[i], linewidth=2, linestyle='dashed', color='r')
         fig.savefig('par_%d.png'%(i,))
     mcplot(toy_index[0], 'toy_index')
+    for i, t in enumerate(alt_trace[0]):
+        mcplot(t, 'alt_par_%d'%(i,), last=False)
+        fig = plt.gcf()
+        ax = fig.axes[-1]
+        fig.savefig('alt_par_%d.png'%(i,))
+    mcplot(alt_toy_index[0], 'alt_toy_index')
 
     percentiles = [0.5, 2.5, 16., 50., 84., 97.5, 99.5]
     col = ['red', 'orange', 'green', 'black', 'green', 'orange', 'red']
@@ -168,7 +198,7 @@ if __name__ == '__main__':
     figax = None
     figax = truth_binning.plot_ndarray('posterior-median-truth.png', truth, figax=figax,
                 kwargs1d={'linestyle': 'dashed', 'color': 'c', 'linewidth': 2., 'label': "Truth", 'zorder': 1})
-    median_percentiles = np.percentile(H.translate(median), percentiles, axis=0)
+    median_percentiles = np.percentile(H0.translate(median), percentiles, axis=0)
     for p, m, c in zip(percentiles, median_percentiles, col):
         figax = truth_binning.plot_ndarray('posterior-median-truth.png', m, figax=figax,
                     kwargs1d={'linestyle': 'solid', 'linewidth': 2.0, 'color': c, 'label': "$P_\mathrm{post}$ median %.1f%%ile"%(p,), 'zorder': -abs(p-50.)})
@@ -177,7 +207,7 @@ if __name__ == '__main__':
     figax = None
     figax = truth_binning.plot_ndarray('posterior-mean-truth.png', truth, figax=figax,
                 kwargs1d={'linestyle': 'dashed', 'color': 'c', 'linewidth': 2., 'label': "Truth", 'zorder': 1})
-    mean_percentiles = np.percentile(H.translate(median), percentiles, axis=0)
+    mean_percentiles = np.percentile(H0.translate(median), percentiles, axis=0)
     for p, m, c in zip(percentiles, mean_percentiles, col):
         figax = truth_binning.plot_ndarray('posterior-mean-truth.png', m, figax=figax,
                     kwargs1d={'linestyle': 'solid', 'linewidth': 2.0, 'color': c, 'label': "$P_\mathrm{post}$ mean %.1f%%ile"%(p,), 'zorder': -abs(p-50.)})
@@ -204,19 +234,19 @@ if __name__ == '__main__':
     fig.tight_layout()
     fig.savefig('eff_total.png')
 
-    print("- posterior p-values")
+    print("- Posterior distribution of Likelihood Ratios")
     fig, ax = plt.subplots(1)
     ax.set_xlabel("Fake data throw")
-    ax.set_ylabel("Posterior p-value")
-    ax.boxplot(p_values.T, whis=[5., 95.], showmeans=True, whiskerprops={'linestyle': 'solid'})
+    ax.set_ylabel("PLR")
+    ax.boxplot(PLR.T, whis=[5., 95.], showmeans=True, whiskerprops={'linestyle': 'solid'})
     fig.tight_layout()
-    fig.savefig('posterior_p-values.png')
+    fig.savefig('PLR.png')
 
     print("- max likelihood")
     figax = None
     figax = truth_binning.plot_ndarray('maxL-truth.png', truth, figax=figax,
                 kwargs1d={'linestyle': 'dashed', 'color': 'c', 'linewidth': 2., 'label': "Truth", 'zorder': 1})
-    maxlik_percentiles = np.percentile([H.translate(r.x) for r in ret], percentiles, axis=0)
+    maxlik_percentiles = np.percentile([H0.translate(r.x) for r in ret], percentiles, axis=0)
     for p, m, c in zip(percentiles, maxlik_percentiles, col):
         figax = truth_binning.plot_ndarray('maxL-truth.png', m, figax=figax,
                     kwargs1d={'linestyle': 'solid', 'linewidth': 2.0, 'color': c, 'label': "$L_\mathrm{max}$ %.1f%%ile"%(p,), 'zorder': -abs(p-50.)})
