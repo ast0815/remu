@@ -611,6 +611,10 @@ class TestLikelihoodMachines(unittest.TestCase):
         ret = self.L2.log_likelihood([self.truth_vector, self.truth_vector], systematics=(1,))
         self.assertAlmostEqual(ret[0], -6.52011704)
         self.assertAlmostEqual(ret[1], -6.52011704)
+        ret = self.L2.log_likelihood([self.truth_vector, self.truth_vector, self.truth_vector], systematics=np.array([[0],[1],[0]]))
+        self.assertAlmostEqual(ret[0], -5.1096282421)
+        self.assertAlmostEqual(ret[1], -6.52011704)
+        self.assertAlmostEqual(ret[2], -5.1096282421)
         self.truth_vector[0] += 1
         self.assertAlmostEqual(self.L.log_likelihood(self.truth_vector), -5.2465820247)
 

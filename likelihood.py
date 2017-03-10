@@ -303,6 +303,14 @@ class LikelihoodMachine(object):
             # Return specific result
             index = tuple([ slice(None) ] * min(systaxis) + list(systematics) + [Ellipsis])
             ll = ll[index]
+        elif isinstance(systematics, np.ndarray):
+            # Return specific result for each non-systematics index
+            # The shape of `systematics` must match the shape of the non-systemtic axes:
+            #
+            #     systematics.shape = (a,b,c,...,len(systaxis))
+            oi = np.indices(systematics.shape[:-1])
+            index = tuple([ i for i in oi[:min(systaxis)] ] + [ systematics[...,i] for i in range(len(systaxis)) ] + [ i for i in oi[min(systaxis):] ])
+            ll = ll[index]
         else:
             raise ValueError("Unknown systematics method!")
 
@@ -346,6 +354,8 @@ class LikelihoodMachine(object):
                       'profile', 'maximum': Choose the response matrix that yields the highest probability.
                       'marginal', 'average': Sum the probabilites yielded by the matrices.
                       `tuple(index)`: Select one specific matrix.
+                      `array(indices)`: Select a specific matrix for each truth vector.
+                                        Must have shape `(a, b, c, ..., len(index))`.
                       `None` : Do nothing, return multiple likelihoods.
                       Defaults to `profile`.
         """
