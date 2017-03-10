@@ -293,13 +293,7 @@ class LikelihoodMachine(object):
     def _collapse_systematics_axes(ll, systaxis, systematics):
         """Collapse the given axes according to the systematics mode."""
 
-        if systematics == 'profile' or systematics == 'maximum':
-            # Return maximum
-            ll = np.max(ll, axis=systaxis)
-        elif systematics == 'marginal' or systematics == 'average':
-            # Return average
-            ll = np.log(np.average(np.exp(ll), axis=systaxis))
-        elif type(systematics) is tuple:
+        if type(systematics) is tuple:
             # Return specific result
             index = tuple([ slice(None) ] * min(systaxis) + list(systematics) + [Ellipsis])
             ll = ll[index]
@@ -311,6 +305,12 @@ class LikelihoodMachine(object):
             oi = np.indices(systematics.shape[:-1])
             index = tuple([ i for i in oi[:min(systaxis)] ] + [ systematics[...,i] for i in range(len(systaxis)) ] + [ i for i in oi[min(systaxis):] ])
             ll = ll[index]
+        elif systematics == 'profile' or systematics == 'maximum':
+            # Return maximum
+            ll = np.max(ll, axis=systaxis)
+        elif systematics == 'marginal' or systematics == 'average':
+            # Return average
+            ll = np.log(np.average(np.exp(ll), axis=systaxis))
         else:
             raise ValueError("Unknown systematics method!")
 
