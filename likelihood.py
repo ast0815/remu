@@ -872,17 +872,18 @@ class LikelihoodMachine(object):
         PLR, model_preference : A sample from the PLR as calculated from the parameter sets
                                 and the resulting model preference.
 
-        The model preference is calculated as the fraction of ratios in the PLR that
-        prefer H1 over H0:
+        The model preference is calculated as the fraction of likelihood ratios
+        in the PLR that prefer H1 over H0:
 
             model_preference = N(PLR > 0) / N(PLR)
 
-        It can be interpreted as the posterior probability for the data prefering H1 over H0.
+        It can be interpreted as the posterior probability for the data
+        prefering H1 over H0.
 
         The PLR is symmetric:
 
             PLR(H0, H1) = -PLR(H1, H0)
-            preference(H0, H1) = 1. - preference(H1, H0)
+            preference(H0, H1) = 1. - preference(H1, H0) # modulo the cases of PLR = 0.
 
         """
 
