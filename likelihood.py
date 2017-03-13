@@ -841,6 +841,59 @@ class LikelihoodMachine(object):
 
         return M
 
+    def PLR(self, H0, parameters0, toy_indices0, H1, parameters1, toy_indices1):
+        """Calculate the Posterior distribution of the log Likelihood Ratio.
+
+        Arguments
+        ---------
+
+        H0/1 : Composite Hypotheses to be compared.
+
+        parameters0/1 : Arrays of parameter vectors, drawn from the posterior
+                        distribution of the hypotheses, e.g. with the MCMC objects.
+
+                            parameters0 = [ [1.0, 2.0, 3.0],
+                                            [1.1, 1.9, 2.8],
+                                            ...
+                                          ]
+
+        toy_indices0/1 : The corresponding systematic toy indices, in an
+                         array of equal dimensionality.  That means, even if the toy index is
+                         just a single integer, it must be provided as arrays of length 1.
+
+                             toy_indices0 = [ [0],
+                                              [3],
+                                              ...
+                                            ]
+
+        Returns
+        -------
+
+        PLR, model_preference : A sample from the PLR as calculated from the parameter sets
+                                and the resulting model preference.
+
+        The model preference is calculated as the fraction of ratios in the PLR that
+        prefer H1 over H0:
+
+            model_preference = N(PLR > 0) / N(PLR)
+
+        It can be interpreted as the posterior probability for the data prefering H1 over H0.
+
+        The PLR is symmetric:
+
+            PLR(H0, H1) = -PLR(H1, H0)
+            preference(H0, H1) = 1. - preference(H1, H0)
+
+        """
+
+        L0 = self.log_likelihood(H0.translate(parameters0), systematics=toy_indices0)
+        L1 = self.log_likelihood(H1.translate(parameters1), systematics=toy_indices1)
+        # Build all possible combinations
+        # Assumes posteriors are independent, I guess
+        PLR = np.array(np.meshgrid(L1, -L0)).T.sum(axis=-1).flatten()
+        preference = float(np.sum(PLR > 0)) / PLR.size
+        return PLR, preference
+
     def plot_bin_efficiencies(self, filename):
         """Plot bin by bin efficiencies."""
 
