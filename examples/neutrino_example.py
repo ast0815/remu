@@ -39,7 +39,7 @@ if __name__ == '__main__':
     if args.quicktest:
         N_toy = 2
     elif args.test:
-        N_toy = 20
+        N_toy = 10
     else:
         N_toy = 50
     toy_div = 100
@@ -101,15 +101,29 @@ if __name__ == '__main__':
     def alt_trans(par):
         """Fixed shape with free scale parameter."""
         par = np.asarray(par)
-        shape = tuple(list(par.shape[:-1]) + list(np.asarray(truth).shape))
+        shape = np.concatenate((par.shape[:-1], np.asarray(truth).shape))
         ret = np.broadcast_to(truth, shape)
         ret = (par[...,0] * ret.T).T
         return ret
     alt_prior = likelihood.JeffreysPrior(resp, alt_trans, [(0,None)], [1.], total_truth_limit=6000)
     H1 = likelihood.CompositeHypothesis(alt_trans, parameter_priors=[alt_prior])
 
+    # Yet another alternative hypothesis
+    def alt_trans2(par):
+        """Fixed shape with free scale parameter."""
+        par = np.asarray(par)
+        shape = tuple(list(par.shape[:-1]) + list(np.asarray(truth).shape))
+        ret = np.broadcast_to(truth, shape)
+        ret = (par[...,0] * ret.T).T
+        ret[...,7] *= 0.5
+        ret[...,8] *= 0.5
+        return ret
+    alt_prior2 = likelihood.JeffreysPrior(resp, alt_trans2, [(0,None)], [1.], total_truth_limit=6000)
+    H2 = likelihood.CompositeHypothesis(alt_trans2, parameter_priors=[alt_prior2])
+
     M = [ lm[i].MCMC(H0) for i in range(N_toy) ] # Super hypothesis
     M += [ lm[i].MCMC(H1) for i in range(N_toy) ] # Alternative hypothesis
+    M += [ lm[i].MCMC(H2) for i in range(N_toy) ] # Alternative hypothesis
     M.insert(0, lm[0].MCMC(H0, prior_only=True)) # Add MCMC to sample prior
     def f_MCMC(i):
         # Do the actual MCMC sampling
@@ -118,7 +132,7 @@ if __name__ == '__main__':
         elif args.test:
             M[i].sample(200*1000, burn=10*1000, thin=1000, tune_interval=1000, tune_throughout=True, progress_bar=True)
         else:
-            M[i].sample(2000*1000, burn=100*1000, thin=10*1000, tune_interval=1000, tune_throughout=True, progress_bar=False)
+            M[i].sample(400*1000, burn=10*1000, thin=1000, tune_interval=1000, tune_throughout=True, progress_bar=False)
         # Get all traces and save them in an array
         # Must be done here, because MCMC object are not pickleable
         ret = {}
@@ -129,15 +143,17 @@ if __name__ == '__main__':
         toy_trace = np.array(ret['toy_index'])
         return arr, toy_trace
     pool = Pool()
-    all_trace, all_toy_index = zip(*pool.map(f_MCMC, range(2*N_toy+1)))
+    all_trace, all_toy_index = zip(*pool.map(f_MCMC, range(3*N_toy+1)))
     del pool
     #trace, toy_index = zip(*map(f_MCMC, range(N_toy)))
     prior_trace = np.array(all_trace[0])
     trace = np.array(all_trace[1:N_toy+1])
-    alt_trace = np.array(all_trace[N_toy+1:])
+    alt_trace = np.array(all_trace[N_toy+1:2*N_toy+1])
+    alt_trace2 = np.array(all_trace[2*N_toy+1:])
     prior_toy_index = np.array(all_toy_index[0])
     toy_index = np.array(all_toy_index[1:N_toy+1])
-    alt_toy_index = np.array(all_toy_index[N_toy+1:])
+    alt_toy_index = np.array(all_toy_index[N_toy+1:2*N_toy+1])
+    alt_toy_index2 = np.array(all_toy_index[2*N_toy+1:])
     median = np.median(trace, axis=-1)
     mean = np.mean(trace, axis=-1)
     total = np.sum(trace, axis=-2)
@@ -145,18 +161,15 @@ if __name__ == '__main__':
 
     print("Calculating Posterior distribution of Likelihood Ratio...")
     def f_PLR(i):
-        L0 = lm[i].log_likelihood(H0.translate(trace[i].T), systematics=toy_index[i,...,np.newaxis])
-        L1 = lm[i].log_likelihood(H1.translate(alt_trace[i].T), systematics=alt_toy_index[i,...,np.newaxis])
-        # Build all possible combinations
-        # Assumes posteriors are independent, I guess
-        mg = np.array(np.meshgrid(L1, -L0)).T.sum(axis=-1).flatten()
-        return mg
-    #pool = Pool()
-    #PLR = np.array(pool.map(f_PLR, range(N_toy)))
-    #del pool
-    PLR = map(f_PLR, range(N_toy))
+        return lm[i].PLR(H0, trace[i].T, toy_index[i,...,np.newaxis], H1, alt_trace[i].T, alt_toy_index[i,...,np.newaxis])
+    def f_PLR2(i):
+        return lm[i].PLR(H0, trace[i].T, toy_index[i,...,np.newaxis], H2, alt_trace2[i].T, alt_toy_index2[i,...,np.newaxis])
+    pool = Pool()
+    PLR, pref = zip(*pool.map(f_PLR, range(N_toy)))
+    PLR2, pref2 = zip(*pool.map(f_PLR2, range(N_toy)))
+    del pool
     PLR = np.array(PLR)
-    print(PLR)
+    PLR2 = np.array(PLR2)
 
     print("Plotting results...")
     print("- response")
@@ -190,6 +203,12 @@ if __name__ == '__main__':
         ax = fig.axes[-1]
         fig.savefig('alt_par_%d.png'%(i,))
     mcplot(alt_toy_index[0], 'alt_toy_index')
+    for i, t in enumerate(alt_trace2[0]):
+        mcplot(t, 'alt_par2_%d'%(i,), last=False)
+        fig = plt.gcf()
+        ax = fig.axes[-1]
+        fig.savefig('alt_par2_%d.png'%(i,))
+    mcplot(alt_toy_index2[0], 'alt_toy_index2')
 
     percentiles = [0.5, 2.5, 16., 50., 84., 97.5, 99.5]
     col = ['red', 'orange', 'green', 'black', 'green', 'orange', 'red']
@@ -241,6 +260,21 @@ if __name__ == '__main__':
     ax.boxplot(PLR.T, whis=[5., 95.], showmeans=True, whiskerprops={'linestyle': 'solid'})
     fig.tight_layout()
     fig.savefig('PLR.png')
+    fig, ax = plt.subplots(1)
+    ax.set_xlabel("Fake data throw")
+    ax.set_ylabel("PLR")
+    ax.boxplot(PLR2.T, whis=[5., 95.], showmeans=True, whiskerprops={'linestyle': 'solid'})
+    fig.tight_layout()
+    fig.savefig('PLR2.png')
+
+    print("- model preferences")
+    fig, ax = plt.subplots(1)
+    ax.set_xlabel("model preference")
+    ax.hist(pref, 20, (0.0, 1.0), histtype='step', hatch='/', label='Scaled truth')
+    ax.hist(pref2, 20, (0.0, 1.0), histtype='step', hatch='\\', label='Scaled other')
+    ax.legend(loc='best')
+    fig.tight_layout()
+    fig.savefig('model_preference.png')
 
     print("- max likelihood")
     figax = None
