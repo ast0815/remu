@@ -841,7 +841,7 @@ class LikelihoodMachine(object):
 
         return M
 
-    def PLR(self, H0, parameters0, toy_indices0, H1, parameters1, toy_indices1):
+    def plr(self, H0, parameters0, toy_indices0, H1, parameters1, toy_indices1):
         """Calculate the Posterior distribution of the log Likelihood Ratio.
 
         Arguments

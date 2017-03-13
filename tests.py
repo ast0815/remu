@@ -731,14 +731,14 @@ class TestLikelihoodMachines(unittest.TestCase):
         M = self.L.MCMC(H)
         M.sample(1000, burn=50, thin=10, tune_interval=10, progress_bar=False)
 
-    def test_PLR(self):
+    def test_plr(self):
         fun = lambda x: np.repeat(x, 2, axis=-1)
         pri = JeffreysPrior(self.L.response_matrix, fun, [(0,100), (0,100)], (50,50))
         H0 = CompositeHypothesis(fun, parameter_priors=[pri], parameter_names=['x'])
         fun = lambda x: np.repeat(x, 4, axis=-1)
         pri = JeffreysPrior(self.L.response_matrix, fun, [(0,100),], (50,))
         H1 = CompositeHypothesis(fun, parameter_priors=[pri], parameter_names=['x'])
-        PLR, pref = self.L.PLR(H0, [[50,50], [51,49]], [[0], [0]], H1, [[50,], [51,]], [[0], [0]])
+        PLR, pref = self.L.plr(H0, [[50,50], [51,49]], [[0], [0]], H1, [[50,], [51,]], [[0], [0]])
         self.assertEqual(PLR.size, 4)
 
     def test_plots(self):

@@ -161,9 +161,9 @@ if __name__ == '__main__':
 
     print("Calculating Posterior distribution of Likelihood Ratio...")
     def f_PLR(i):
-        return lm[i].PLR(H0, trace[i].T, toy_index[i,...,np.newaxis], H1, alt_trace[i].T, alt_toy_index[i,...,np.newaxis])
+        return lm[i].plr(H0, trace[i].T, toy_index[i,...,np.newaxis], H1, alt_trace[i].T, alt_toy_index[i,...,np.newaxis])
     def f_PLR2(i):
-        return lm[i].PLR(H0, trace[i].T, toy_index[i,...,np.newaxis], H2, alt_trace2[i].T, alt_toy_index2[i,...,np.newaxis])
+        return lm[i].plr(H0, trace[i].T, toy_index[i,...,np.newaxis], H2, alt_trace2[i].T, alt_toy_index2[i,...,np.newaxis])
     pool = Pool()
     PLR, pref = zip(*pool.map(f_PLR, range(N_toy)))
     PLR2, pref2 = zip(*pool.map(f_PLR2, range(N_toy)))
