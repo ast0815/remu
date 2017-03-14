@@ -907,5 +907,5 @@ class LikelihoodMachine(object):
         fig, ax = plt.subplots(1)
         ax.set_xlabel("Truth bin #")
         ax.set_ylabel("Efficiency")
-        ax.boxplot(eff, whis=[5., 95.], showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(eff.shape[1]))
+        ax.boxplot(eff, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(eff.shape[1]))
         fig.savefig(filename)
