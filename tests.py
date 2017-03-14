@@ -723,13 +723,13 @@ class TestLikelihoodMachines(unittest.TestCase):
         p = self.L.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2})
         self.assertTrue(0.8 < p and p <= 1.0)
 
-    def test_MCMC(self):
+    def test_mcmc(self):
         """Test Marcov Chain Monte Carlo."""
         fun = lambda x: np.repeat(x, 2, axis=-1)
         pri = JeffreysPrior(self.L.response_matrix, fun, [(0,100), (0,100)], (50,50))
         H = CompositeHypothesis(fun, parameter_priors=[pri], parameter_names=['x'])
-        M = self.L.MCMC(H)
-        M.sample(1000, burn=50, thin=10, tune_interval=10, progress_bar=False)
+        M = self.L.mcmc(H)
+        M.sample(100, burn=50, thin=10, tune_interval=10, progress_bar=False)
 
     def test_plr(self):
         fun = lambda x: np.repeat(x, 2, axis=-1)

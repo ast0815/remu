@@ -121,10 +121,10 @@ if __name__ == '__main__':
     alt_prior2 = likelihood.JeffreysPrior(resp, alt_trans2, [(0,None)], [1.], total_truth_limit=6000)
     H2 = likelihood.CompositeHypothesis(alt_trans2, parameter_priors=[alt_prior2])
 
-    M = [ lm[i].MCMC(H0) for i in range(N_toy) ] # Super hypothesis
-    M += [ lm[i].MCMC(H1) for i in range(N_toy) ] # Alternative hypothesis
-    M += [ lm[i].MCMC(H2) for i in range(N_toy) ] # Alternative hypothesis
-    M.insert(0, lm[0].MCMC(H0, prior_only=True)) # Add MCMC to sample prior
+    M = [ lm[i].mcmc(H0) for i in range(N_toy) ] # Super hypothesis
+    M += [ lm[i].mcmc(H1) for i in range(N_toy) ] # Alternative hypothesis
+    M += [ lm[i].mcmc(H2) for i in range(N_toy) ] # Alternative hypothesis
+    M.insert(0, lm[0].mcmc(H0, prior_only=True)) # Add MCMC to sample prior
     def f_MCMC(i):
         # Do the actual MCMC sampling
         if args.quicktest:

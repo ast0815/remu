@@ -778,7 +778,7 @@ class LikelihoodMachine(object):
         # Return the quotient
         return float(n) / N
 
-    def MCMC(self, composite_hypothesis, prior_only=False):
+    def mcmc(self, composite_hypothesis, prior_only=False):
         """Return a Marcov Chain Monte Carlo object for the hypothesis.
 
         The hypothesis must define priors for its parameters.
