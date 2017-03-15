@@ -1,3 +1,4 @@
+from __future__ import division
 import unittest
 import ruamel.yaml as yaml
 from binning import *
@@ -431,10 +432,10 @@ class TestRectangularBinnings(unittest.TestCase):
 
     def test_plots(self):
         """Test plots."""
-        f = open('/dev/null', 'w')
-        figax = self.bl.plot_entries(f, kwargs1d={'label': 'entries'})
-        self.bl.plot_values(f, figax=figax)
-        self.bl.plot_values(f, variables=(None,None), kwargs2d={'label': 'values'})
+        with open('/dev/null', 'wb') as f:
+            figax = self.bl.plot_entries(f, kwargs1d={'label': 'entries'})
+            self.bl.plot_values(f, figax=figax)
+            self.bl.plot_values(f, variables=(None,None), kwargs2d={'label': 'values'})
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
@@ -452,9 +453,9 @@ class TestResponseMatrices(unittest.TestCase):
 
     def test_plots(self):
         """Test plots."""
-        f = open('/dev/null', 'w')
-        self.rm.plot_entries(f)
-        self.rm.plot_values(f)
+        with open('/dev/null', 'wb') as f:
+            self.rm.plot_entries(f)
+            self.rm.plot_values(f)
 
     def test_fill(self):
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
@@ -743,8 +744,8 @@ class TestLikelihoodMachines(unittest.TestCase):
 
     def test_plots(self):
         """Test plots."""
-        f = open('/dev/null', 'w')
-        self.L.plot_bin_efficiencies(f)
+        with open('/dev/null', 'wb') as f:
+            self.L.plot_bin_efficiencies(f)
 
 if __name__ == '__main__':
     unittest.main()

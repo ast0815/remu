@@ -1,3 +1,5 @@
+from __future__ import division
+from six.moves import map, zip
 import numpy as np
 from scipy.stats import poisson
 from scipy import optimize
@@ -106,7 +108,7 @@ class JeffreysPrior(object):
 
         self.translate = translation_function
 
-        limits = zip(*parameter_limits)
+        limits = list(zip(*parameter_limits))
         self.lower_limits = np.array([ x if x is not None else -np.inf for x in limits[0] ])
         self.upper_limits = np.array([ x if x is not None else np.inf for x in limits[1] ])
 
@@ -421,7 +423,7 @@ class LikelihoodMachine(object):
 
             return l
 
-        limits = np.array(map(limit, bounds), dtype=float).transpose()
+        limits = np.array(list(map(limit, bounds)), dtype=float).transpose()
         ranges = limits[1]-limits[0]
 
         if method == 'differential_evolution':
@@ -449,7 +451,7 @@ class LikelihoodMachine(object):
                     # Start at halfway point between limits
                     return (limits[1]+limits[0]) / 2.
 
-            x0 = np.array(map(start_value, bounds))
+            x0 = np.array(list(map(start_value, bounds)))
 
             # Step length for basin hopping
             def step_value(limits):
@@ -458,7 +460,7 @@ class LikelihoodMachine(object):
                 else:
                     # Step size in the order of the parameter range
                     return (limits[1]-limits[0]) / 2.
-            step = np.array(map(step_value, bounds))
+            step = np.array(list(map(step_value, bounds)))
 
             # Number of parameters
             n = len(bounds)
@@ -700,7 +702,7 @@ class LikelihoodMachine(object):
         # Calculate the maximum probabilities
         def prob_fun(data):
             return LikelihoodMachine.max_log_probability(data, self.response_matrix, composite_hypothesis, systematics=systematics, **kwargs).P
-        prob = map(prob_fun, fake_data)
+        prob = np.array(list(map(prob_fun, fake_data)))
 
         # Get likelihood of actual data
         p0 = self.log_likelihood(truth_vector, systematics=systematics)
@@ -765,7 +767,7 @@ class LikelihoodMachine(object):
              p0 = LikelihoodMachine.max_log_probability(data, self.response_matrix, H0, systematics=systematics, **kwargs).P
              p1 = LikelihoodMachine.max_log_probability(data, self.response_matrix, H1, systematics=systematics, **kwargs).P
              return p0-p1 # difference because log
-        ratio = map(ratio_fun, fake_data)
+        ratio = np.array(list(map(ratio_fun, fake_data)))
 
         # Get likelihood of actual data
         p0 = self.log_likelihood(truth_vector, systematics=systematics)
@@ -798,7 +800,7 @@ class LikelihoodMachine(object):
 
         # The parameter pymc stochastics
         parameters = []
-        names_priors = zip(names, priors)
+        names_priors = list(zip(names, priors))
         for n,p in names_priors:
             # Get default value of prior
             if isinstance(p, JeffreysPrior):

@@ -7,6 +7,8 @@ values of all simulated events.
 """
 
 from __future__ import print_function
+from __future__ import division
+from six.moves import map, zip
 
 import numpy as np
 from matplotlib import pyplot as plt

@@ -1,4 +1,6 @@
 from __future__ import print_function
+from __future__ import division
+from six.moves import map, zip
 
 import numpy as np
 from matplotlib import pyplot as plt
@@ -112,7 +114,7 @@ if __name__ == '__main__':
         return likelihood.CompositeHypothesis(TransFun(total), [(0.,None)]*(n_eff-1))
 
     test_total = np.linspace(950, 1050, 11)
-    test_hyp = map(hyp_factory, test_total)
+    test_hyp = list(map(hyp_factory, test_total))
 
     start_time = timeit.default_timer()
     def pair_maxlog(pair):

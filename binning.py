@@ -1,3 +1,5 @@
+from __future__ import division
+from six.moves import map, zip
 from copy import copy, deepcopy
 import ruamel.yaml as yaml
 import re
@@ -89,6 +91,10 @@ class PhaseSpace(object):
 
     def __div__(self, phasespace):
         return PhaseSpace(variables = (self.variables - phasespace.variables))
+
+    def __truediv__(self, phasespace):
+        # Python 3 div operator
+        return self.__div__(phasespace)
 
     def __str__(self):
         return "('" + "' X '".join(self.variables) + "')"
@@ -207,6 +213,10 @@ class Bin(object):
         ret = deepcopy(self)
         ret.value = self.value / other.value
         return ret
+
+    def __truediv__(self, other):
+        # Python 3 div operator
+        return self.__div__(other)
 
     def __str__(self):
         return "Bin on %s: %s"%(self.phasespace, self.value)
@@ -427,7 +437,7 @@ class Binning(object):
 
         try:
             # Try to get bin numbers from list of events
-            ibins = map(self.get_event_bin_number, event)
+            ibins = list(map(self.get_event_bin_number, event))
         except TypeError:
             # We probably only have a single event
             ibins = [self.get_event_bin_number(event)]
@@ -772,9 +782,9 @@ class RectangularBinning(Binning):
 
         # Create new binning
         new_variables = list(self.variables)
-        map(new_variables.remove, variables)
+        list(map(new_variables.remove, variables))
         new_binedges = deepcopy(self.binedges)
-        map(new_binedges.pop, variables)
+        list(map(new_binedges.pop, variables))
         new_includeupper = self._include_upper
 
         new_binning = RectangularBinning(variables=new_variables, binedges=new_binedges, include_upper=new_includeupper)
@@ -807,7 +817,7 @@ class RectangularBinning(Binning):
 
         # Which variables to remove
         rm_variables = list(self.variables)
-        map(rm_variables.remove, variables)
+        list(map(rm_variables.remove, variables))
 
         return self.marginalize(rm_variables)
 
