@@ -1,6 +1,6 @@
 """Example analysis using somewhat realistic data.
 
-This exampla analysis shows how to do a Bayesian analysis of (somewhat)
+This example analysis shows how to do a Bayesian analysis of (somewhat)
 realistic neutrino interaction data. The data consists of the true and
 reconstructed muon momentum and angle in a given selection and the true
 values of all simulated events.
@@ -43,7 +43,7 @@ if __name__ == '__main__':
     elif args.test:
         N_toy = 10
     else:
-        N_toy = 50
+        N_toy = 100
     toy_div = 100
 
     print("Loading the truth and reco binnings...")
@@ -82,7 +82,7 @@ if __name__ == '__main__':
 
     print("Calculating absolute maximum likelihood...")
     def lm_maxlog(x):
-        return x.absolute_max_log_likelihood(kwargs={'niter':20})
+        return x.absolute_max_log_likelihood(kwargs={'niter':20}) # 'niter' should be increased for higher chance of finding true maximum
     pool = Pool()
     ret = pool.map(lm_maxlog, lm)
     del pool
@@ -130,11 +130,11 @@ if __name__ == '__main__':
     def f_MCMC(i):
         # Do the actual MCMC sampling
         if args.quicktest:
-            M[i].sample(100*1000, burn=10*1000, thin=1000, tune_interval=1000, tune_throughout=True, progress_bar=True)
+            M[i].sample(200*100, burn=100*100, thin=100, tune_interval=1000, tune_throughout=True, progress_bar=True)
         elif args.test:
-            M[i].sample(200*1000, burn=10*1000, thin=1000, tune_interval=1000, tune_throughout=True, progress_bar=True)
+            M[i].sample(400*100, burn=100*100, thin=100, tune_interval=1000, tune_throughout=True, progress_bar=True)
         else:
-            M[i].sample(400*1000, burn=10*1000, thin=1000, tune_interval=1000, tune_throughout=True, progress_bar=False)
+            M[i].sample(1000*100, burn=100*100, thin=100, tune_interval=1000, tune_throughout=True, progress_bar=False)
         # Get all traces and save them in an array
         # Must be done here, because MCMC object are not pickleable
         ret = {}

@@ -71,7 +71,7 @@ if __name__ == '__main__':
     print("Calculating absolute maximum likelihood...")
     start_time = timeit.default_timer()
     def lm_maxlog(lm):
-        return lm.absolute_max_log_likelihood(kwargs={'niter':10})
+        return lm.absolute_max_log_likelihood(kwargs={'niter':10}) # 'niter' should be increased for higher chance of finding true maximum
     pool = Pool()
     ret1, ret2 = pool.map(lm_maxlog, [lm1, lm2])
     del pool
@@ -118,7 +118,7 @@ if __name__ == '__main__':
 
     start_time = timeit.default_timer()
     def pair_maxlog(pair):
-        return pair[0].max_log_likelihood(pair[1], kwargs={'niter':20})
+        return pair[0].max_log_likelihood(pair[1], kwargs={'niter':10}) # 'niter' should be increased for higher chance of finding true maximum
     pool = Pool()
     test_ret = pool.map(pair_maxlog, [(lm1,h) for h in test_hyp])
     del pool
