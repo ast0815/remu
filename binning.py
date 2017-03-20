@@ -1044,7 +1044,6 @@ class RectangularBinning(Binning):
         dic = {}
         dic['include_upper'] = obj._include_upper
         dic['binedges'] = [ [var, list(edg)] for var, edg in zip(obj.variables, obj._edges) ]
-        dic['phasespace'] = obj.phasespace
         return dumper.represent_mapping('!RecBinning', dic)
 
     @staticmethod
@@ -1053,8 +1052,7 @@ class RectangularBinning(Binning):
         dic = loader.construct_mapping(node, deep=True)
         binedges = dict(dic['binedges'])
         variables = [varedg[0] for varedg in dic['binedges']]
-        return RectangularBinning(phasespace=dic['phasespace'],
-                                  variables=variables,
+        return RectangularBinning(variables=variables,
                                   binedges=binedges,
                                   include_upper=dic['include_upper'])
 
