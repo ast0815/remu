@@ -179,11 +179,27 @@ class JeffreysPrior(object):
 class LikelihoodMachine(object):
     """Class that calculates likelihoods for truth vectors."""
 
-    def __init__(self, data_vector, response_matrix):
-        """Initialize the LikelihoodMachine with the given data and response matrix."""
+    def __init__(self, data_vector, response_matrix, truth_limits=None):
+        """Initialize the LikelihoodMachine with the given data and response matrix.
+
+        The optional `truth_limits` tells the LikelihoodMachine up to which
+        truth bin value the response matrix stays valid. If the machine is
+        asked to calculate the likelihood of an out-of-bounds truth vector, an
+        exception is raised.  This can be used to constrain the testable
+        theories to events that have been simulated enough times in the
+        detector Monte Carlo data. I.e. if one wants demands a 10x higher MC
+        statistic:
+
+            truth_limits = generator_truth_vector / 10.
+
+        """
 
         self.data_vector = np.array(data_vector)
         self.response_matrix = np.array(response_matrix)
+        if truth_limits is None:
+            self.truth_limits = np.full(self.response_matrix.shape[-1], np.inf)
+        else:
+            self.truth_limits = np.array(truth_limits)
 
         # Calculte the reduced response matrix for speedier calculations
         self._reduced_response_matrix, self._eff = LikelihoodMachine._reduce_response_matrix(self.response_matrix)
@@ -373,6 +389,9 @@ class LikelihoodMachine(object):
                       `None` : Do nothing, return multiple likelihoods.
                       Defaults to `profile`.
         """
+
+        if np.any(truth_vector > self.truth_limits):
+            raise RuntimeError("Truth value is above allowed limits!")
 
         # Use reduced truth values for efficient calculations.
         reduced_truth_vector = self._reduce_truth_vector(truth_vector)
