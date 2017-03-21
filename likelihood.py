@@ -100,6 +100,15 @@ class JeffreysPrior(object):
                             since the limit is defined in the truth space, rather than
                             the prior parameter space.
 
+        Pitfalls
+        --------
+
+        By construction, the JeffreysPrior will return the log probability
+        `-inf`, a probability of 0, when the expected *reco* values do not
+        depend on one of the parameters. In this case the "useless" parameter
+        should be removed. It simply cannot be constrained with the given
+        detector response.
+
         """
 
         old_shape = response_matrix.shape
@@ -146,7 +155,9 @@ class JeffreysPrior(object):
         diff_i = np.broadcast_to(diff, (self._npar, self._npar, self._nreco))
         diff_j = np.swapaxes(diff_i, 0, 1)
 
-        fish = (diff_i * diff_j / expect).sum(-1)
+        # Nansum to ignore 0. * 0. / 0.
+        # Equivalent to ignoring those reco bins
+        fish = np.nansum(diff_i * diff_j / expect, axis=-1)
         return fish
 
     def __call__(self, value, toy_index=0):
@@ -160,7 +171,8 @@ class JeffreysPrior(object):
         if np.sum(self.translate(value)) > self.total_truth_limit:
             return -np.inf
 
-        sign, log_det = np.linalg.slogdet(self.fisher_matrix(value, toy_index))
+        fish = self.fisher_matrix(value, toy_index)
+        sign, log_det = np.linalg.slogdet(fish)
 
         return 0.5*log_det
 
