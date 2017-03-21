@@ -932,7 +932,7 @@ class LikelihoodMachine(object):
         """Plot bin by bin efficiencies."""
 
         eff = self.response_matrix.sum(axis=-2)
-        eff.shape = (np.prod(eff.shape[:-1]), eff.shape[-1])
+        eff.shape = (np.prod(eff.shape[:-1], dtype=int), eff.shape[-1])
         if eff.shape[0] == 1:
             # Trick boxplot into working even if there is only one efficiency per bin
             eff = np.broadcast_to(eff, (2, eff.shape[1]))
