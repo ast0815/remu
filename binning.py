@@ -821,6 +821,51 @@ class RectangularBinning(Binning):
 
         return self.marginalize(rm_variables)
 
+    def slice(self, variable_slices):
+        """Return a new RectangularBinning containing the given variable slices
+
+        Arguments
+        ---------
+
+        variable_slices :
+
+                          A dictionary specifying the bin slices of each
+                          variable. Binning variables that are not part of the
+                          dictionary are kept as is.  E.g. if you want the
+                          slice of bin 2 in `var_A` and bins 1 through to the
+                          last in `var_C`:
+
+                              variable_slices = { 'var_A': slice(2,3),
+                                                'var_B': slice(1,None) }
+
+                          Please note that strides other than 1 are *not*
+                          supported.
+
+        """
+
+        # Create new binning
+        new_binedges = deepcopy(self.binedges)
+        for var, sl in variable_slices.items():
+            lower = new_binedges[var][:-1][sl]
+            upper = new_binedges[var][1:][sl]
+            new_binedges[var] = list(lower) + [upper[-1]]
+
+        new_binning = RectangularBinning(variables=self.variables, binedges=new_binedges, include_upper=self._include_upper)
+
+        # Find the axis numbers of the variables
+        index = tuple( variable_slices[v] if v in variable_slices else slice(None) for v in self.variables )
+
+        # Copy and project values
+        new_values = self.get_values_as_ndarray(shape=self._nbins)[index]
+
+        # Copy and project values
+        new_entries = self.get_entries_as_ndarray(shape=self._nbins)[index]
+
+        new_binning.bins._value_array=new_values
+        new_binning.bins._entries_array=new_entries
+
+        return new_binning
+
     def get_values_as_ndarray(self, shape=None):
         """Return the bin values as ndarray.
 

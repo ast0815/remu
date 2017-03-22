@@ -430,6 +430,17 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertEqual(nb.bins[1].entries, 2)
         self.assertEqual(nb.bins[1].value, 3.)
 
+    def test_slicing(self):
+        """Test slices of rectangular binnings."""
+        self.bxyz.fill({'x':0, 'y':10, 'z':0}, weight=2.)
+        self.bxyz.fill({'x':1, 'y':10, 'z':1})
+        self.bxyz.fill({'x':0, 'y':0, 'z':0}, weight=2.)
+        nb = self.bxyz.slice({'x': slice(0,1), 'y': slice(2,-1)})
+        val = nb.get_values_as_ndarray()
+        ent = nb.get_entries_as_ndarray()
+        self.assertEqual(val.sum(), 2)
+        self.assertEqual(ent.sum(), 1)
+
     def test_plots(self):
         """Test plots."""
         with open('/dev/null', 'wb') as f:
