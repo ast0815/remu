@@ -394,7 +394,8 @@ class LikelihoodMachine(object):
         """
 
         if np.any(truth_vector > self.truth_limits):
-            raise RuntimeError("Truth value is above allowed limits!")
+            i = np.argwhere(truth_vector > self.truth_limits)[0,-1]
+            raise RuntimeError("Truth value %d is above allowed limits!"%(i,))
 
         # Use reduced truth values for efficient calculations.
         reduced_truth_vector = self._reduce_truth_vector(truth_vector)
