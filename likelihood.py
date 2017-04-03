@@ -127,14 +127,17 @@ class JeffreysPrior(object):
 
         self._npar = len(parameter_limits)
         self._nreco = response_matrix.shape[-2]
+        self._i_diag = np.diag_indices(self._npar)
         self.dx = dx or np.full(self._npar, 1e-3)
 
     def fisher_matrix(self, parameters, toy_index=0):
         """Calculate the Fisher information matrix for the given parameters."""
 
         resp = self.response_matrix[toy_index]
-        par_mat = np.array(np.broadcast_to(parameters, (self._npar, self._npar)))
-        i_diag = np.diag_indices(self._npar)
+        npar = self._npar
+        nreco = self._nreco
+        par_mat = np.array(np.broadcast_to(parameters, (npar, npar)))
+        i_diag = self._i_diag
 
         # list of parameter sets -> list of reco values
         def reco_expectation(theta):
@@ -142,7 +145,7 @@ class JeffreysPrior(object):
             return ret
 
         # npar by npar matrix of reco values
-        expect = np.broadcast_to(reco_expectation(par_mat), (self._npar, self._npar, self._nreco))
+        expect = np.broadcast_to(reco_expectation(par_mat), (npar, npar, nreco))
 
         # Diff expects the last axis to be the parameters, not the reco values!
         # varied parameter set -> transposed list of reco values
@@ -152,7 +155,7 @@ class JeffreysPrior(object):
 
         diff = derivative(curried, x0=parameters, dx=self.dx).T
 
-        diff_i = np.broadcast_to(diff, (self._npar, self._npar, self._nreco))
+        diff_i = np.broadcast_to(diff, (npar, npar, nreco))
         diff_j = np.swapaxes(diff_i, 0, 1)
 
         # Nansum to ignore 0. * 0. / 0.
