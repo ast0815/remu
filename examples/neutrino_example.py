@@ -67,13 +67,11 @@ if __name__ == '__main__':
     # Fake a 10% efficiency uncertainty
     resp = np.array([true_resp * x for x in np.linspace(0.9, 1.1, 10)])
     eff = resp.sum(axis=1)
-    min_eff = eff.min(axis=0)
-    max_eff = eff.max(axis=0)
-    i_eff = (max_eff > 0.15)
+    i_signal = [4, 5, 7, 8, 10, 11]
 
     print("Creating test data...")
     truth = response.get_truth_values_as_ndarray() / toy_div
-    eff_truth = truth[i_eff]
+    signal_truth = truth[i_signal]
     data = likelihood.LikelihoodMachine.generate_random_data_sample(true_resp, truth, N_toy)
 
     print("Creating likelihood machines...")
@@ -158,7 +156,7 @@ if __name__ == '__main__':
     median = np.median(trace, axis=-1)
     mean = np.mean(trace, axis=-1)
     total = np.sum(trace, axis=-2)
-    eff_total = np.sum(trace[:,i_eff,:], axis=-2)
+    signal_total = np.sum(trace[:,i_signal,:], axis=-2)
 
     print("Calculating Posterior distribution of Likelihood Ratio...")
     def f_PLR(i):
@@ -243,16 +241,16 @@ if __name__ == '__main__':
     fig.tight_layout()
     fig.savefig('total.png')
 
-    print("- eff total")
+    print("- signal total")
     fig, ax = plt.subplots()
     ax.set_xlabel("Fake data throw")
-    ax.set_ylabel("Total true efficient events")
-    #ax.hist2d(np.indices(eff_total.shape)[0].flatten(), eff_total.flatten(), [len(eff_total), 20])
-    ax.boxplot(eff_total.T, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'})
-    ax.axhline(np.sum(eff_truth), color='orange', linewidth=2., linestyle='dashed', label="Truth")
+    ax.set_ylabel("Total true signal events")
+    #ax.hist2d(np.indices(signal_total.shape)[0].flatten(), signal_total.flatten(), [len(signal_total), 20])
+    ax.boxplot(signal_total.T, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'})
+    ax.axhline(np.sum(signal_truth), color='orange', linewidth=2., linestyle='dashed', label="Truth")
     ax.legend(loc='best', framealpha=0.5)
     fig.tight_layout()
-    fig.savefig('eff_total.png')
+    fig.savefig('signal_total.png')
 
     print("- Posterior distribution of Likelihood Ratios")
     fig, ax = plt.subplots(1)
