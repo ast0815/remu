@@ -59,9 +59,8 @@ if __name__ == '__main__':
 
     print("Filling the response matrix...")
     response.fill_from_csv_file("neutrino_data/selectedEvents.csv")
-    # HACK: Re-fill the truth binning to simulate the detector efficiency
-    response._truth_binning.reset()
-    response._truth_binning.fill_from_csv_file("neutrino_data/trueEvents.csv")
+    #response.fill_up_truth_from_csv_file("neutrino_data/trueEvents.csv")
+    response.fill_up_truth_from_csv_file("neutrino_data/trueEvents_forward.csv")
 
     print("Getting normalised response matrix...")
     true_resp = response.get_response_matrix_as_ndarray()

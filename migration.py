@@ -1,4 +1,5 @@
 import numpy as np
+from copy import copy, deepcopy
 
 class ResponseMatrix(object):
     """Matrix that describes the detector response to true events."""
@@ -30,6 +31,52 @@ class ResponseMatrix(object):
         self._truth_binning.fill_from_csv_file(filename, weightfield)
         self._reco_binning.fill_from_csv_file(filename, weightfield)
         self._response_binning.fill_from_csv_file(filename, weightfield)
+
+    def fill_up_truth_from_csv_file(self, filename, weightfield=None):
+        """Re fill the truth bins with the given csv file.
+
+        This can be used to get proper efficiencies if the true signal events
+        are saved in a separate file from the reconstructed events.
+
+        A new truth binning is created and filled with the events from the
+        provided file. Each bin is compared to the corresponding bin in the
+        already present truth binning. The larger value of the two is taken as
+        the new truth. This way, event types that are not present in the pure
+        truth data, e.g. background, are not affected by this. It can only
+        *increase* the value of the truth bins, lowering their efficiency.
+
+        For each truth bin, one of the following *must* be true for this
+        operation to make sense:
+
+        * All events in the migration matrix are also present in the truth
+          file. In this case, the additional truth events lower the efficiency
+          of the truth bin. This is the case, for example, if not all true signal
+          events are reconstructed.
+
+        * All events in the truth file are also present in the migration
+          matrix. In this case, the events in the truth file have no influence
+          on the response matrix. This is the case, for example, if only a subset
+          of the reconstructed background is saved in the truth file.
+
+        If there are events in the response matrix that are not in the truth
+        tree *and* there are events in the truth tree that are not in the
+        response matrix, this method will lead to a *wrong* efficiency of the
+        affected truth bin.
+        """
+
+        new_truth_binning = deepcopy(self._truth_binning)
+        new_truth_binning.reset()
+        new_truth_binning.fill_from_csv_file(filename, weightfield=weightfield)
+        new_values = new_truth_binning.get_values_as_ndarray()
+        new_entries = new_truth_binning.get_entries_as_ndarray()
+
+        old_values = self._truth_binning.get_values_as_ndarray()
+        old_entries = self._truth_binning.get_entries_as_ndarray()
+
+        where = new_values > old_values
+
+        self._truth_binning.set_values_from_ndarray(np.where(where, new_values, old_values))
+        self._truth_binning.set_entries_from_ndarray(np.where(where, new_entries, old_entries))
 
     def reset(self):
         """Reset all binnings."""

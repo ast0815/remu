@@ -539,6 +539,7 @@ class TestResponseMatrices(unittest.TestCase):
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         reco = self.rm.get_reco_values_as_ndarray()
         truth = self.rm.get_truth_values_as_ndarray()
+        self.rm.fill_up_truth_from_csv_file('testdata/test-data.csv', weightfield='w') # This should do nothing
         resp = self.rm.get_response_matrix_as_ndarray()
         self.assertTrue(np.all(reco == resp.dot(truth)))
 
