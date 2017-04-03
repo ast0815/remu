@@ -474,12 +474,18 @@ class Binning(object):
             4.1,2.0,2.9
             3,2,1
 
-        All values are interpreted as floats.
+        All values are interpreted as floats. If `weightfield` is given, that
+        field will be used as weigts for the event. Other keyword arguments
+        are passed on to the Binning's `fill` method. If filename is a list,
+        all elemets are handled recursively.
 
-        If `weightfield` is given, that field will be used as weigts for the event.
-
-        Other keyword arguments are passed on to the Binning's `fill` method
         """
+
+        # Handle lists recursively
+        if isinstance(filename, list):
+            for item in filename:
+                self.fill_from_csv_file(item, weightfield=weightfield, **kwargs)
+            return
 
         data = np.genfromtxt(filename, delimiter=',', names=True)
         if weightfield is None:
