@@ -128,10 +128,13 @@ class Bin(object):
         phasespace : The phase space the Bin resides in.
         value : The initialization value of the bin. Default: 0.0
         entries : The initialization value of the number of entries. Default: 0
+        sumw2 : The initialization value of the sum of squared weights. Default: value**2
         value_array : A slice of a numpy array, where the value of the bin will be stored.
                       Default: None
         entries_array : A slice of a numpy array, where the number entries will be stored.
                         Default: None
+        sumw2_array : A slice of a numpy array, where the squared weights will be stored.
+                      Default: None
         """
 
         self.phasespace = kwargs.pop('phasespace', None)
@@ -145,6 +148,10 @@ class Bin(object):
         self._entries_array = kwargs.pop('entries_array', None)
         if self._entries_array is None:
             self._entries_array = np.array([kwargs.pop('entries', 0)])
+
+        self._sumw2_array = kwargs.pop('sumw2_array', None)
+        if self._sumw2_array is None:
+            self._sumw2_array = np.array([kwargs.pop('sumw2', self.value**2)])
 
         if len(kwargs) > 0:
             raise TypeError("Unknown kwargs: %s"%(kwargs,))
@@ -165,6 +172,14 @@ class Bin(object):
     def entries(self, v):
         self._entries_array[0] = v
 
+    @property
+    def sumw2(self):
+        return self._sumw2_array[0]
+
+    @sumw2.setter
+    def sumw2(self, v):
+        self._sumw2_array[0] = v
+
     def event_in_bin(self, event):
         """Return True if the variable combination falls within the bin."""
 
@@ -172,13 +187,11 @@ class Bin(object):
 
     def fill(self, weight=1.):
         """Add the weight(s) to the bin."""
+        weight = np.asarray(weight)
 
-        try:
-            self.value += sum(weight)
-            self.entries += len(weight)
-        except TypeError:
-            self.value += weight
-            self.entries += 1
+        self.value += np.sum(weight)
+        self.entries += weight.size
+        self.sumw2 += np.sum(weight**2)
 
     def __contains__(self, event):
         """Return True if the event falls within the bin."""
@@ -607,14 +620,16 @@ class _RecBinProxy(object):
         self.binning = binning
         self._value_array = np.zeros(binning._totbins, dtype=float)
         self._entries_array = np.zeros(binning._totbins, dtype=int)
+        self._sumw2_array = np.zeros(binning._totbins, dtype=float)
 
     def __getitem__(self, index):
         """Dynamically build a RectangularBin when requested."""
         val_slice = self._value_array.reshape(-1, order='C')[index:index+1]
         ent_slice = self._entries_array.reshape(-1, order='C')[index:index+1]
+        sumw2_slice = self._sumw2_array.reshape(-1, order='C')[index:index+1]
         tup = self.binning.get_bin_number_tuple(index)
         edges = dict( (v, (e[j], e[j+1])) for v,e,j in zip(self.binning.variables, self.binning._edges, tup) )
-        rbin = RectangularBin(edges=edges, include_lower=not self.binning._include_upper, include_upper=self.binning._include_upper, phasespace=self.binning.phasespace, value_array=val_slice, entries_array=ent_slice)
+        rbin = RectangularBin(edges=edges, include_lower=not self.binning._include_upper, include_upper=self.binning._include_upper, phasespace=self.binning.phasespace, value_array=val_slice, entries_array=ent_slice, sumw2_array=sumw2_slice)
         return rbin
 
     def __len__(self):
