@@ -647,36 +647,22 @@ class TestLikelihoodMachines(unittest.TestCase):
         """Test maximum likelihood calculation with CompositeHypotheses"""
         fun = lambda x: x
         H = CompositeHypothesis(fun, [(0,None)]*4)
-        ret = self.L.max_log_likelihood(H, method='basinhopping')
+        ret = self.L.max_log_likelihood(H, method='basinhopping', systematics='profile')
         ll, x = ret.L, ret.x
         self.assertAlmostEqual(ll, -5.110, places=3)
         self.assertAlmostEqual(x[0], 2, places=2)
         self.assertAlmostEqual(x[1], 4, places=2)
         self.assertAlmostEqual(x[2], 2, places=2)
         self.assertAlmostEqual(x[3], 2, places=2)
-        ret = self.L2.max_log_likelihood(H, systematics='profile')
-        ll, x = ret.L, ret.x
         self.assertAlmostEqual(ll, -5.110, places=3)
-        ret = self.L2.max_log_likelihood(H, systematics='marginal')
-        ll, x = ret.L, ret.x
-        self.assertAlmostEqual(ll, -5.518, places=3)
-        self.assertAlmostEqual(x[0], 2.217, places=2)
-        self.assertAlmostEqual(x[1], 5.410, places=2)
-        self.assertAlmostEqual(x[2], 2.507, places=2)
-        self.assertAlmostEqual(x[3], 2.181, places=2)
         fun = lambda x: np.repeat(x,2)
         H = CompositeHypothesis(fun, [(0,5),(0,5)])
-        ret = self.L.max_log_likelihood(H, method='differential_evolution')
+        ret = self.L2.max_log_likelihood(H, method='differential_evolution', systematics='marginal')
         ll, x, s = ret.L, ret.x, ret.success
         self.assertTrue(s)
-        self.assertAlmostEqual(ll, -5.145, places=3)
-        self.assertAlmostEqual(x[0], 2.49, places=2)
-        self.assertAlmostEqual(x[1], 2.13, places=2)
-        ret = self.L.max_log_likelihood(H, method='basinhopping')
-        ll, x = ret.L, ret.x
-        self.assertAlmostEqual(ll, -5.145, places=3)
-        self.assertAlmostEqual(x[0], 2.49, places=2)
-        self.assertAlmostEqual(x[1], 2.13, places=2)
+        self.assertAlmostEqual(ll, -5.565, places=3)
+        self.assertAlmostEqual(x[0], 2.99, places=2)
+        self.assertAlmostEqual(x[1], 2.55, places=2)
 
     def test_absolute_max_log_likelihood(self):
         """Test absolute likelihood maximisation."""
