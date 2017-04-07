@@ -278,6 +278,10 @@ class TestBinnings(unittest.TestCase):
         self.assertEqual(arr.shape, (2,))
         self.assertEqual(arr[0], 0)
         self.assertEqual(arr[1], 2)
+        arr = self.binning.get_sumw2_as_ndarray()
+        self.assertEqual(arr.shape, (2,))
+        self.assertEqual(arr[0], 0)
+        self.assertEqual(arr[1], 0.5)
         arr[0] = 5
         arr[1] = 10
         self.binning.set_values_from_ndarray(arr)
@@ -288,6 +292,11 @@ class TestBinnings(unittest.TestCase):
         self.binning.set_entries_from_ndarray(arr)
         self.assertEqual(self.b0.entries, 50)
         self.assertEqual(self.b1.entries, 100)
+        arr[0] = 500
+        arr[1] = 1000
+        self.binning.set_sumw2_from_ndarray(arr)
+        self.assertEqual(self.b0.sumw2, 500)
+        self.assertEqual(self.b1.sumw2, 1000)
         arr = self.binning.get_values_as_ndarray((1,2))
         self.assertEqual(arr.shape, (1,2))
         self.assertEqual(arr[0,0], 5)
@@ -298,6 +307,8 @@ class TestBinnings(unittest.TestCase):
         self.assertEqual(self.b0.value, 50)
         self.assertEqual(self.b1.value, 100)
         arr = self.binning.get_entries_as_ndarray((2,1))
+        self.assertEqual(arr.shape, (2,1))
+        arr = self.binning.get_sumw2_as_ndarray((2,1))
         self.assertEqual(arr.shape, (2,1))
 
     def test_inclusion(self):
@@ -380,6 +391,10 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertEqual(arr.shape, (8,))
         self.assertEqual(arr[0], 0)
         self.assertEqual(arr[5], 2)
+        arr = self.bl.get_sumw2_as_ndarray()
+        self.assertEqual(arr.shape, (8,))
+        self.assertEqual(arr[0], 0)
+        self.assertEqual(arr[5], 0.5)
         arr = self.bl.get_values_as_ndarray((2,4))
         self.assertEqual(arr.shape, (2,4))
         self.assertEqual(arr[0,0], 0)
@@ -388,6 +403,10 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertEqual(arr.shape, (2,4))
         self.assertEqual(arr[0,0], 0)
         self.assertEqual(arr[1,1], 2)
+        arr = self.bl.get_sumw2_as_ndarray((2,4))
+        self.assertEqual(arr.shape, (2,4))
+        self.assertEqual(arr[0,0], 0)
+        self.assertEqual(arr[1,1], 0.5)
         arr[0,0] = 7
         arr[1,1] = 11
         self.bl.set_entries_from_ndarray(arr)
@@ -398,6 +417,11 @@ class TestRectangularBinnings(unittest.TestCase):
         self.bl.set_values_from_ndarray(arr)
         self.assertEqual(self.bl.bins[0].value, 5)
         self.assertEqual(self.bl.bins[5].value, 6)
+        arr[0,0] = 9
+        arr[1,1] = 13
+        self.bl.set_sumw2_from_ndarray(arr)
+        self.assertEqual(self.bl.bins[0].sumw2, 9)
+        self.assertEqual(self.bl.bins[5].sumw2, 13)
 
     def test_inclusion(self):
         """Test checking whether an event is binned."""

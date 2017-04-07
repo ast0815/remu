@@ -561,6 +561,30 @@ class Binning(object):
 
         return arr
 
+    def get_sumw2_as_ndarray(self, shape=None):
+        """Return the sums of squared weights as nd array.
+
+        Arguments
+        ---------
+
+        shape: Shape of the resulting array.
+               Default: len(bins)
+        """
+
+        l = len(self.bins)
+
+        if shape is None:
+            shape = l
+
+        arr = np.ndarray(shape=l, order='C', dtype=float) # Row-major 'C-style' array. Last variable indices vary the fastest.
+
+        for i in range(l):
+            arr[i] = self.bins[i].sumw2
+
+        arr.shape = shape
+
+        return arr
+
     def set_values_from_ndarray(self, arr):
         """Set the bin values to the values of the ndarray."""
 
@@ -574,6 +598,13 @@ class Binning(object):
         l = len(self.bins)
         for i in range(l):
             self.bins[i].entries = arr.flat[i]
+
+    def set_sumw2_from_ndarray(self, arr):
+        """Set the sums of squared weights to the values of the ndarray."""
+
+        l = len(self.bins)
+        for i in range(l):
+            self.bins[i].sumw2 = arr.flat[i]
 
     def event_in_binning(self, event):
         """Check whether an event fits into any of the bins."""
@@ -940,6 +971,33 @@ class RectangularBinning(Binning):
         """
 
         self.bins._entries_array.flat[:] = arr.flat
+
+    def get_sumw2_as_ndarray(self, shape=None):
+        """Return the sums of squared weights as ndarray.
+
+        Arguments
+        ---------
+
+        shape: Shape of the resulting array.
+               Default: len(bins)
+        """
+
+        ret = np.copy(self.bins._sumw2_array)
+        if shape is not None:
+            ret = ret.reshape(shape, order='C')
+        return ret
+
+    def set_sumw2_from_ndarray(self, arr):
+        """Set the bin sums of squared weights from ndarray.
+
+        Arguments
+        ---------
+
+        arr: Numpy ndarray containing the values.
+
+        """
+
+        self.bins._sumw2_array.flat[:] = arr.flat
 
     def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
         """Plot a visual representation of an array containing the entries or values of the binning.
