@@ -579,6 +579,14 @@ class TestResponseMatrices(unittest.TestCase):
         resp = self.rm.get_response_matrix_as_ndarray()
         self.assertTrue(np.all(reco == resp.dot(truth)))
 
+    def test_variance(self):
+        """Test the variance calculation."""
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        var = self.rm.get_response_matrix_variance_as_ndarray()
+        self.assertAlmostEqual(var[1,1], 0.0546875)
+        self.assertAlmostEqual(var[3,3], 0.125)
+
+
 class TestLikelihoodMachines(unittest.TestCase):
     def setUp(self):
         with open('testdata/test-truth-binning.yml', 'r') as f:

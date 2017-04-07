@@ -135,6 +135,28 @@ class ResponseMatrix(object):
 
         return M
 
+    def get_response_matrix_variance_as_ndarray(self, shape=None):
+        """Return the statistical variance of the single ResponseMatrix bins as ndarray.
+
+        The variance is estimated from the actual bin contents, so bins with no
+        entries and bins with 100% of the corresponding truth values will both
+        have a variance of 0.
+
+        If no shape is specified, it will be set to `(N_reco, N_truth)`.
+        """
+
+        if shape is None:
+            shape = (len(self._reco_binning.bins), len(self._truth_binning.bins))
+
+        M = self.get_response_matrix_as_ndarray(shape)
+        resp_var = self.get_response_sumw2_as_ndarray(shape)
+        truth = self.get_truth_values_as_ndarray()
+        truth_var = self.get_truth_sumw2_as_ndarray()
+
+        MM = ((M**2 * truth_var) + ((1. - 2*M) * resp_var)) / np.where(truth > 0., truth**2, 1.)
+
+        return MM
+
     def plot_values(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
         """Plot the values of the response binning.
 
