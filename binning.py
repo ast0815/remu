@@ -528,7 +528,7 @@ class Binning(object):
         if shape is None:
             shape = l
 
-        arr = np.ndarray(shape=l, order='C') # Row-major 'C-style' array. Last variable indices vary the fastest.
+        arr = np.ndarray(shape=l, order='C', dtype=float) # Row-major 'C-style' array. Last variable indices vary the fastest.
 
         for i in range(l):
             arr[i] = self.bins[i].value
@@ -552,7 +552,7 @@ class Binning(object):
         if shape is None:
             shape = l
 
-        arr = np.ndarray(shape=l, order='C') # Row-major 'C-style' array. Last variable indices vary the fastest.
+        arr = np.ndarray(shape=l, order='C', dtype=int) # Row-major 'C-style' array. Last variable indices vary the fastest.
 
         for i in range(l):
             arr[i] = self.bins[i].entries
