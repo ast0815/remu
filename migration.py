@@ -124,10 +124,10 @@ class ResponseMatrix(object):
         original_shape = (len(self._reco_binning.bins), len(self._truth_binning.bins))
 
         # Get the bin response entries
-        M = self._response_binning.get_values_as_ndarray(original_shape)
+        M = self.get_response_values_as_ndarray(original_shape)
 
         # Normalize to number of simulated events
-        N_t = self._truth_binning.get_values_as_ndarray()
+        N_t = self.get_truth_values_as_ndarray()
         M /= np.where(N_t > 0., N_t, 1.)
 
         if shape is not None:
