@@ -90,17 +90,26 @@ class ResponseMatrix(object):
     def get_truth_entries_as_ndarray(self, shape=None):
         return self._truth_binning.get_entries_as_ndarray(shape)
 
+    def get_truth_sumw2_as_ndarray(self, shape=None):
+        return self._truth_binning.get_sumw2_as_ndarray(shape)
+
     def get_reco_values_as_ndarray(self, shape=None):
         return self._reco_binning.get_values_as_ndarray(shape)
 
     def get_reco_entries_as_ndarray(self, shape=None):
         return self._reco_binning.get_entries_as_ndarray(shape)
 
+    def get_reco_sumw2_as_ndarray(self, shape=None):
+        return self._reco_binning.get_sumw2_as_ndarray(shape)
+
     def get_response_values_as_ndarray(self, shape=None):
         return self._response_binning.get_values_as_ndarray(shape)
 
     def get_response_entries_as_ndarray(self, shape=None):
         return self._response_binning.get_entries_as_ndarray(shape)
+
+    def get_response_sumw2_as_ndarray(self, shape=None):
+        return self._response_binning.get_sumw2_as_ndarray(shape)
 
     def get_response_matrix_as_ndarray(self, shape=None):
         """Return the ResponseMatrix as a ndarray.
