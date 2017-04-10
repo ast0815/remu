@@ -135,25 +135,88 @@ class ResponseMatrix(object):
 
         return M
 
-    def get_response_matrix_variance_as_ndarray(self, shape=None):
+    def get_response_matrix_variance_as_ndarray(self, shape=None, expected_weight=1.):
         """Return the statistical variance of the single ResponseMatrix bins as ndarray.
 
-        The variance is estimated from the actual bin contents, so bins with no
-        entries and bins with 100% of the corresponding truth values will both
-        have a variance of 0.
+        The variance is estimated from the actual bin contents in a Bayesian
+        motivated way.
+
+        The response matrix creation is modeled as a two step process:
+
+        1.  Distribution of truth events among the reco bins according to a
+            multinomial distribution.
+        2.  Correction of the multinomial transisiton probabilities according
+            to the mean weights of the events in each bin.
+
+        So the response matrix element can be written like this:
+
+            R_ij = m_ij * p_ij = w_ij/w_j * p_ij,
+
+        where w_ij and w_j are the average weight in response bin ij and truth
+        bin j, and p_ij is the multinomial transistion probability. The
+        variance of R_ij is estimated by estimating the variances of these
+        values separately.
+
+        The variance of p_ij is estimated by using the Bayesian conjugate prior
+        for multinomial distributions: the Dirichlet distribution. We assume a
+        uniform prior for all transition probabilities and update it with the
+        simulated events. The variance of the posterior distribution is taken
+        as the variance of the transisiton probability.
+
+        The variances of w_ij and w_j are estimated as classical "standard
+        error of the mean". To avoid problems with bins with 0 or 1 entries, we
+        add a "prior expectation" point to the data. This ensures that all bins
+        have at least 1 entry (no divisions by zero) and that variances can be
+        estimated even for bins with only one (true) entry (from the difference
+        to the expected value). The correlation between w_ij and w_j is
+        ignored. This means the variance will be over-estimated.
 
         If no shape is specified, it will be set to `(N_reco, N_truth)`.
         """
 
-        if shape is None:
-            shape = (len(self._reco_binning.bins), len(self._truth_binning.bins))
+        N_reco = len(self._reco_binning.bins)
+        N_truth = len(self._truth_binning.bins)
+        orig_shape = (N_reco, N_truth)
 
-        M = self.get_response_matrix_as_ndarray(shape)
-        resp_var = self.get_response_sumw2_as_ndarray(shape)
-        truth = self.get_truth_values_as_ndarray()
-        truth_var = self.get_truth_sumw2_as_ndarray()
+        resp_entries = self.get_response_entries_as_ndarray(orig_shape)
+        truth_entries = self.get_truth_entries_as_ndarray()
+        alpha = resp_entries + 1
+        beta = truth_entries + N_reco
 
-        MM = ((M**2 * truth_var) + ((1. - 2*M) * resp_var)) / np.where(truth > 0., truth**2, 1.)
+        # Unweighted (multinomial) transistion probabilty
+        # Posterior mode estimate
+        mult_p = np.asfarray(resp_entries) / np.where(truth_entries > 0, truth_entries, 1)
+        # Posterior variance
+        mult_var = np.asfarray(beta - alpha)
+        mult_var *= alpha
+        mult_var /= (beta**2 * (beta+1))
+
+        resp1 = self.get_response_values_as_ndarray(orig_shape)
+        resp2 = self.get_response_sumw2_as_ndarray(orig_shape)
+        truth1 = self.get_truth_values_as_ndarray()
+        truth2 = self.get_truth_sumw2_as_ndarray()
+
+        # Weight correction
+        wij = np.where(resp_entries > 0, resp1/np.where(resp_entries > 0, resp_entries, 1), expected_weight)
+        wj = np.where(truth_entries > 0, truth1/np.where(truth_entries > 0, truth_entries, 1), expected_weight)
+        mij = wij / wj
+
+        # Variance estimation with added "prior expecatation" value of average weight
+        resp_entries += 1
+        resp1 += expected_weight
+        resp2 += expected_weight**2
+        truth_entries += 1
+        truth1 += expected_weight
+        truth2 += expected_weight**2
+
+        wij_var = ((resp2/resp_entries) - (resp1/resp_entries)**2) / resp_entries
+        wj_var = ((truth2/truth_entries) - (truth1/truth_entries)**2) / truth_entries
+        mij_var = wij_var/wj**2 + (mij/wj)**2 * wj_var
+
+        # Combine uncertainties
+        MM = mij**2 * mult_var + mult_p**2 * mij_var
+        if shape is not None:
+            MM.shape = shape
 
         return MM
 
