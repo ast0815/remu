@@ -220,6 +220,108 @@ class ResponseMatrix(object):
 
         return MM
 
+    def generate_random_response_matrices(self, size=None, shape=None, expected_weight=1.):
+        """Generate random response matrices according to the estimated variance.
+
+        This is a two step process:
+
+        1.  Draw the multinomial transition probabilities from a Dirichlet
+            distribution.
+        2.  Draw weight corrections from normal distributions.
+
+        If no shape is specified, it will be set to `(N_reco, N_truth)`.
+        """
+
+        N_reco = len(self._reco_binning.bins)
+        N_truth = len(self._truth_binning.bins)
+        orig_shape = (N_reco, N_truth)
+
+        resp_entries = self.get_response_entries_as_ndarray(orig_shape)
+        truth_entries = self.get_truth_entries_as_ndarray()
+        alpha = resp_entries + 1
+        # Add "waste bin" of not selected events
+        waste_entries = truth_entries - resp_entries.sum(axis=0)
+        resp_entries = np.append(resp_entries, waste_entries[np.newaxis,:], axis=0)
+
+        # Get Dirichlet parameters when assuming flat prior
+        alpha = resp_entries + 1
+        # Transpose so we have an array of dirichlet parameters
+        alpha = alpha.T
+
+        # Generate truth bin by truth bin
+        pij = []
+        for j in range(alpha.shape[0]):
+            pij.append(np.random.dirichlet(alpha[j], size=size))
+        pij = np.array(pij)
+
+        # Reorganise axes
+        if pij.ndim == 2:
+            pij = pij.T
+        elif pij.ndim == 3:
+            pij = np.einsum('abc->bca',  pij)
+        elif pij.ndim == 4:
+            pij = np.einsum('abcd->bcda',  pij)
+        elif pij.ndim >= 5:
+            pij = np.einsum('ab...cd->b...cda',  pij)
+
+        # Estimate mean weight
+        resp1 = self.get_response_values_as_ndarray(orig_shape)
+        resp2 = self.get_response_sumw2_as_ndarray(orig_shape)
+        truth1 = self.get_truth_values_as_ndarray()
+        truth2 = self.get_truth_sumw2_as_ndarray()
+        # Add "waste bin" of not selected events
+        waste1 = truth1 - resp1.sum(axis=0)
+        resp1 = np.append(resp1, waste1[np.newaxis,:], axis=0)
+        waste2 = truth2 - resp2.sum(axis=0)
+        resp2 = np.append(resp2, waste2[np.newaxis,:], axis=0)
+
+        mu = np.where(resp_entries > 0, resp1/np.where(resp_entries > 0, resp_entries, 1), expected_weight)
+
+        # Add pseudo observation for variance estimation
+        resp1_p = resp1 + expected_weight
+        resp2_p = resp2 + expected_weight**2
+        resp_entries_p = resp_entries + 1
+
+        sigma = np.sqrt(((resp2_p/resp_entries_p) - (resp1_p/resp_entries_p)**2) / resp_entries_p)
+        # Add an epsilon so sigma is always > 0
+        sigma += 1e-10
+
+        # Append original shape to requested size of data sets
+        if size is not None:
+            try:
+                size = list(size)
+            except TypeError:
+                size = [size]
+            size.extend(mu.shape)
+
+        # Generate random weights
+        wij = np.random.normal(mu, sigma, size=size)
+        wj = np.sum(wij * pij, axis=-2)
+
+        # Reorganise axes, so we can divide
+        if wij.ndim == 3:
+            wij = np.einsum('abc->bac',  wij)
+        elif wij.ndim == 4:
+            wij = np.einsum('abcd->cabd',  wij)
+        elif wij.ndim >= 5:
+            wij = np.einsum('a...bcd->ca...bd',  wij)
+
+        mij = (wij / wj)
+
+        # Reorganise axes
+        if mij.ndim == 3:
+            mij = np.einsum('bac->abc',  mij)
+        elif mij.ndim == 4:
+            mij = np.einsum('cabd->abcd',  mij)
+        elif mij.ndim >= 5:
+            mij = np.einsum('ca...bd>a...bcd',  mij)
+
+        response = mij * pij
+
+        # Remove "waste bin"
+        response = response[...,:-1,:]
+        return response
+
     def plot_values(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
         """Plot the values of the response binning.
 

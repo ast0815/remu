@@ -588,6 +588,16 @@ class TestResponseMatrices(unittest.TestCase):
         self.assertAlmostEqual(var[2,2], 0.03174603)
         self.assertAlmostEqual(var[3,3], 0.03174603)
 
+    def test_random_generation(self):
+        """Test generation of randomly varied matrices."""
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        ret = self.rm.generate_random_response_matrices()
+        self.assertEqual(ret.shape, (4,4))
+        ret = self.rm.generate_random_response_matrices(2)
+        self.assertEqual(ret.shape, (2,4,4))
+        ret = self.rm.generate_random_response_matrices((2,3))
+        self.assertEqual(ret.shape, (2,3,4,4))
+
 class TestLikelihoodMachines(unittest.TestCase):
     def setUp(self):
         with open('testdata/test-truth-binning.yml', 'r') as f:
