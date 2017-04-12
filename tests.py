@@ -600,8 +600,12 @@ class TestResponseMatrices(unittest.TestCase):
 
     def test_in_bin_variation(self):
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        ret = self.rm.get_in_bin_variation_as_ndarray()
+        ret = self.rm.get_in_bin_variation_as_ndarray(truth_only=False)
         self.assertEqual(ret.shape, (4,4))
+        ret_t = self.rm.get_in_bin_variation_as_ndarray(truth_only=True)
+        self.assertTrue(np.all(ret_t <= ret))
+        self.assertTrue(np.any(ret_t != ret))
+        self.assertTrue(np.any(ret_t > 0.))
 
 class TestLikelihoodMachines(unittest.TestCase):
     def setUp(self):

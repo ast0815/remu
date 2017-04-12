@@ -305,20 +305,29 @@ class ResponseMatrix(object):
         response = response[...,:-1,:]
         return response
 
-    def get_in_bin_variation_as_ndarray(self, shape=None):
+    def get_in_bin_variation_as_ndarray(self, shape=None, truth_only=True):
         """Returns an estimate for the variation of the response within a bin.
 
         The in-bin variation is estimated from the difference of the maximum
         and minimum values of the surrounding bins.
+
+        If `truth_only` is true, only the neighbouring bins along the
+        truth-axes will be considered.
         """
 
         nbins = self._response_binning.nbins
+        resp_vars = self._response_binning.variables
+        truth_vars = self._truth_binning.variables
         resp = [ self.get_response_matrix_as_ndarray(shape=nbins) ]
 
         # Generate the shifted matrices
         i0 = np.zeros(len(nbins), dtype=int)
         im1 = np.full(len(nbins), -1, dtype=int)
-        for i in range(len(nbins)):
+        for i, var in enumerate(resp_vars):
+            # Ignore non-truth variables if flag says so
+            if truth_only and var not in truth_vars:
+                continue
+
             # Roll the array
             shifted = np.roll(resp[0], 1, axis=i)
             # Set the 'rolled-in' elements to the values of their neighbours
