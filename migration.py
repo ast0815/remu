@@ -255,14 +255,7 @@ class ResponseMatrix(object):
         pij = np.array(pij)
 
         # Reorganise axes
-        if pij.ndim == 2:
-            pij = pij.T
-        elif pij.ndim == 3:
-            pij = np.einsum('abc->bca',  pij)
-        elif pij.ndim == 4:
-            pij = np.einsum('abcd->bcda',  pij)
-        elif pij.ndim >= 5:
-            pij = np.einsum('ab...cd->b...cda',  pij)
+        pij = np.moveaxis(pij, 0, -1)
 
         # Estimate mean weight
         resp1 = self.get_response_values_as_ndarray(orig_shape)
@@ -299,22 +292,12 @@ class ResponseMatrix(object):
         wj = np.sum(wij * pij, axis=-2)
 
         # Reorganise axes, so we can divide
-        if wij.ndim == 3:
-            wij = np.einsum('abc->bac',  wij)
-        elif wij.ndim == 4:
-            wij = np.einsum('abcd->cabd',  wij)
-        elif wij.ndim >= 5:
-            wij = np.einsum('a...bcd->ca...bd',  wij)
+        wij = np.moveaxis(wij, -2, 0)
 
         mij = (wij / wj)
 
-        # Reorganise axes
-        if mij.ndim == 3:
-            mij = np.einsum('bac->abc',  mij)
-        elif mij.ndim == 4:
-            mij = np.einsum('cabd->abcd',  mij)
-        elif mij.ndim >= 5:
-            mij = np.einsum('ca...bd>a...bcd',  mij)
+        # Un-reorganise axes
+        mij = np.moveaxis(mij, 0, -2)
 
         response = mij * pij
 
