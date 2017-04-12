@@ -598,6 +598,11 @@ class TestResponseMatrices(unittest.TestCase):
         ret = self.rm.generate_random_response_matrices((2,3))
         self.assertEqual(ret.shape, (2,3,4,4))
 
+    def test_in_bin_variation(self):
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        ret = self.rm.get_in_bin_variation_as_ndarray()
+        self.assertEqual(ret.shape, (4,4))
+
 class TestLikelihoodMachines(unittest.TestCase):
     def setUp(self):
         with open('testdata/test-truth-binning.yml', 'r') as f:
