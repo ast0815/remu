@@ -697,7 +697,7 @@ class RectangularBinning(Binning):
         if self.variables is None:
             self.variables = self.binedges.keys()
         self.variables = tuple(self.variables)
-        self._nbins = tuple(len(self.binedges[v])-1 for v in self.variables)
+        self.nbins = tuple(len(self.binedges[v])-1 for v in self.variables)
         self._stepsize = [1]
         # Calculate the step size (or stride) for each variable index.
         # We use a row-major ordering (C-style).
@@ -709,8 +709,8 @@ class RectangularBinning(Binning):
         #   (1,0) <-> 3
         #   ...
         #
-        # _stepsize is 1 longer than variables and _nbins!
-        for n in reversed(self._nbins):
+        # _stepsize is 1 longer than variables and nbins!
+        for n in reversed(self.nbins):
             self._stepsize.insert(0, self._stepsize[0] * n)
         self._stepsize = tuple(self._stepsize)
         self._totbins = self._stepsize[0]
@@ -845,10 +845,10 @@ class RectangularBinning(Binning):
         axes = tuple([self.variables.index(v) for v in variables])
 
         # Copy and project values
-        new_values = np.sum(self.get_values_as_ndarray(shape=self._nbins), axis=axes)
+        new_values = np.sum(self.get_values_as_ndarray(shape=self.nbins), axis=axes)
 
         # Copy and project values
-        new_entries = np.sum(self.get_entries_as_ndarray(shape=self._nbins), axis=axes)
+        new_entries = np.sum(self.get_entries_as_ndarray(shape=self.nbins), axis=axes)
 
         new_binning.bins._value_array=new_values
         new_binning.bins._entries_array=new_entries
@@ -908,10 +908,10 @@ class RectangularBinning(Binning):
         index = tuple( variable_slices[v] if v in variable_slices else slice(None) for v in self.variables )
 
         # Copy and project values
-        new_values = self.get_values_as_ndarray(shape=self._nbins)[index]
+        new_values = self.get_values_as_ndarray(shape=self.nbins)[index]
 
         # Copy and project values
-        new_entries = self.get_entries_as_ndarray(shape=self._nbins)[index]
+        new_entries = self.get_entries_as_ndarray(shape=self.nbins)[index]
 
         new_binning.bins._value_array=new_values
         new_binning.bins._entries_array=new_entries
@@ -1150,7 +1150,7 @@ class RectangularBinning(Binning):
             return (self.variables == other.variables
                     and self.binedges == other.binedges
                     and self._edges == other._edges
-                    and self._nbins == other._nbins
+                    and self.nbins == other.nbins
                     and self._stepsize == other._stepsize
                     and self._totbins == other._totbins
                     and self._include_upper == other._include_upper
