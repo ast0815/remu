@@ -135,6 +135,49 @@ class ResponseMatrix(object):
 
         return M
 
+    def _get_stat_error_parameters(self, expected_weight=1.):
+        """Return $\alpha^t_{ij}$, $\hat{m}^t_{ij}$ and $\sigma(m^t_{ij})$.
+
+        Used for calculations of statistical variance.
+        """
+
+        N_reco = len(self._reco_binning.bins)
+        N_truth = len(self._truth_binning.bins)
+        orig_shape = (N_reco, N_truth)
+
+        resp_entries = self.get_response_entries_as_ndarray(orig_shape)
+        truth_entries = self.get_truth_entries_as_ndarray()
+        # Add "waste bin" of not selected events
+        waste_entries = truth_entries - resp_entries.sum(axis=0)
+        resp_entries = np.append(resp_entries, waste_entries[np.newaxis,:], axis=0)
+
+        # Get Dirichlet parameters when assuming flat prior
+        alpha = resp_entries + 1
+
+        # Estimate mean weight
+        resp1 = self.get_response_values_as_ndarray(orig_shape)
+        resp2 = self.get_response_sumw2_as_ndarray(orig_shape)
+        truth1 = self.get_truth_values_as_ndarray()
+        truth2 = self.get_truth_sumw2_as_ndarray()
+        # Add "waste bin" of not selected events
+        waste1 = truth1 - resp1.sum(axis=0)
+        resp1 = np.append(resp1, waste1[np.newaxis,:], axis=0)
+        waste2 = truth2 - resp2.sum(axis=0)
+        resp2 = np.append(resp2, waste2[np.newaxis,:], axis=0)
+
+        mu = np.where(resp_entries > 0, resp1/np.where(resp_entries > 0, resp_entries, 1), expected_weight)
+
+        # Add pseudo observation for variance estimation
+        resp1_p = resp1 + expected_weight
+        resp2_p = resp2 + expected_weight**2
+        resp_entries_p = resp_entries + 1
+
+        sigma = np.sqrt(((resp2_p/resp_entries_p) - (resp1_p/resp_entries_p)**2) / resp_entries_p)
+        # Add an epsilon so sigma is always > 0
+        sigma += 1e-10
+
+        return alpha, mu, sigma
+
     def get_response_matrix_variance_as_ndarray(self, shape=None, expected_weight=1.):
         """Return the statistical variance of the single ResponseMatrix bins as ndarray.
 
@@ -232,19 +275,8 @@ class ResponseMatrix(object):
         If no shape is specified, it will be set to `(N_reco, N_truth)`.
         """
 
-        N_reco = len(self._reco_binning.bins)
-        N_truth = len(self._truth_binning.bins)
-        orig_shape = (N_reco, N_truth)
+        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight)
 
-        resp_entries = self.get_response_entries_as_ndarray(orig_shape)
-        truth_entries = self.get_truth_entries_as_ndarray()
-        alpha = resp_entries + 1
-        # Add "waste bin" of not selected events
-        waste_entries = truth_entries - resp_entries.sum(axis=0)
-        resp_entries = np.append(resp_entries, waste_entries[np.newaxis,:], axis=0)
-
-        # Get Dirichlet parameters when assuming flat prior
-        alpha = resp_entries + 1
         # Transpose so we have an array of dirichlet parameters
         alpha = alpha.T
 
@@ -256,28 +288,6 @@ class ResponseMatrix(object):
 
         # Reorganise axes
         pij = np.moveaxis(pij, 0, -1)
-
-        # Estimate mean weight
-        resp1 = self.get_response_values_as_ndarray(orig_shape)
-        resp2 = self.get_response_sumw2_as_ndarray(orig_shape)
-        truth1 = self.get_truth_values_as_ndarray()
-        truth2 = self.get_truth_sumw2_as_ndarray()
-        # Add "waste bin" of not selected events
-        waste1 = truth1 - resp1.sum(axis=0)
-        resp1 = np.append(resp1, waste1[np.newaxis,:], axis=0)
-        waste2 = truth2 - resp2.sum(axis=0)
-        resp2 = np.append(resp2, waste2[np.newaxis,:], axis=0)
-
-        mu = np.where(resp_entries > 0, resp1/np.where(resp_entries > 0, resp_entries, 1), expected_weight)
-
-        # Add pseudo observation for variance estimation
-        resp1_p = resp1 + expected_weight
-        resp2_p = resp2 + expected_weight**2
-        resp_entries_p = resp_entries + 1
-
-        sigma = np.sqrt(((resp2_p/resp_entries_p) - (resp1_p/resp_entries_p)**2) / resp_entries_p)
-        # Add an epsilon so sigma is always > 0
-        sigma += 1e-10
 
         # Append original shape to requested size of data sets
         if size is not None:
