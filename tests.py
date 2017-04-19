@@ -583,10 +583,10 @@ class TestResponseMatrices(unittest.TestCase):
         """Test the variance calculation."""
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         var = self.rm.get_response_matrix_variance_as_ndarray()
-        self.assertAlmostEqual(var[0,0], 0.03571429)
-        self.assertAlmostEqual(var[1,1], 0.01599744)
-        self.assertAlmostEqual(var[2,2], 0.03174603)
-        self.assertAlmostEqual(var[3,3], 0.03174603)
+        self.assertAlmostEqual(var[0,0], 0.03061224)
+        self.assertAlmostEqual(var[1,1], 0.01171875)
+        self.assertAlmostEqual(var[2,2], 0.0255102)
+        self.assertAlmostEqual(var[3,3], 0.0255102)
 
     def test_random_generation(self):
         """Test generation of randomly varied matrices."""
@@ -595,8 +595,8 @@ class TestResponseMatrices(unittest.TestCase):
         self.assertEqual(ret.shape, (4,4))
         ret = self.rm.generate_random_response_matrices(2)
         self.assertEqual(ret.shape, (2,4,4))
-        ret = self.rm.generate_random_response_matrices((2,3))
-        self.assertEqual(ret.shape, (2,3,4,4))
+        ret = self.rm.generate_random_response_matrices((2,3), shape=(2,8))
+        self.assertEqual(ret.shape, (2,3,2,8))
 
     def test_in_bin_variation(self):
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')

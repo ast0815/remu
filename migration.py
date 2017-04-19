@@ -174,7 +174,7 @@ class ResponseMatrix(object):
 
         sigma = np.sqrt(((resp2_p/resp_entries_p) - (resp1_p/resp_entries_p)**2) / resp_entries_p)
         # Add an epsilon so sigma is always > 0
-        sigma += 1e-10
+        sigma += 1e-12
 
         return alpha, mu, sigma
 
@@ -193,12 +193,11 @@ class ResponseMatrix(object):
 
         So the response matrix element can be written like this:
 
-            R_ij = m_ij * p_ij = w_ij/w_j * p_ij,
+            R_ij = m_ij * p_ij
 
-        where w_ij and w_j are the average weight in response bin ij and truth
-        bin j, and p_ij is the multinomial transistion probability. The
-        variance of R_ij is estimated by estimating the variances of these
-        values separately.
+        where p_ij is the unweighted multinomial transistion probability and
+        m_ij the weight correction. The variance of R_ij is estimated by
+        estimating the variances of these values separately.
 
         The variance of p_ij is estimated by using the Bayesian conjugate prior
         for multinomial distributions: the Dirichlet distribution. We assume a
@@ -206,58 +205,48 @@ class ResponseMatrix(object):
         simulated events. The variance of the posterior distribution is taken
         as the variance of the transisiton probability.
 
-        The variances of w_ij and w_j are estimated as classical "standard
-        error of the mean". To avoid problems with bins with 0 or 1 entries, we
-        add a "prior expectation" point to the data. This ensures that all bins
-        have at least 1 entry (no divisions by zero) and that variances can be
+        The variances of m_ij is estimated from the errors of the average
+        weights in the matrix elemets as classical "standard error of the
+        mean". To avoid problems with bins with 0 or 1 entries, we add a "prior
+        expectation" point to the data. This ensures that all bins have at
+        least 1 entry (no divisions by zero) and that variances can be
         estimated even for bins with only one (true) entry (from the difference
-        to the expected value). The correlation between w_ij and w_j is
-        ignored. This means the variance will be over-estimated.
+        to the expected value).
 
         If no shape is specified, it will be set to `(N_reco, N_truth)`.
         """
 
-        N_reco = len(self._reco_binning.bins)
-        N_truth = len(self._truth_binning.bins)
-        orig_shape = (N_reco, N_truth)
-
-        resp_entries = self.get_response_entries_as_ndarray(orig_shape)
-        truth_entries = self.get_truth_entries_as_ndarray()
-        alpha = resp_entries + 1
-        beta = truth_entries + N_reco
+        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight)
+        beta = np.sum(alpha, axis=0)
+        k = alpha.shape[0]
 
         # Unweighted (multinomial) transistion probabilty
-        # Posterior mode estimate
-        mult_p = np.asfarray(resp_entries) / np.where(truth_entries > 0, truth_entries, 1)
+        # Posterior mode estimate = Nij / Nj
+        pij = np.asfarray(alpha - 1) / np.where(beta-k > 0, beta-k, 1)
         # Posterior variance
-        mult_var = np.asfarray(beta - alpha)
-        mult_var *= alpha
-        mult_var /= (beta**2 * (beta+1))
-
-        resp1 = self.get_response_values_as_ndarray(orig_shape)
-        resp2 = self.get_response_sumw2_as_ndarray(orig_shape)
-        truth1 = self.get_truth_values_as_ndarray()
-        truth2 = self.get_truth_sumw2_as_ndarray()
+        pij_var = np.asfarray(beta - alpha)
+        pij_var *= alpha
+        pij_var /= (beta**2 * (beta+1))
 
         # Weight correction
-        wij = np.where(resp_entries > 0, resp1/np.where(resp_entries > 0, resp_entries, 1), expected_weight)
-        wj = np.where(truth_entries > 0, truth1/np.where(truth_entries > 0, truth_entries, 1), expected_weight)
+        wij = mu
+        wj = np.sum(mu * pij, axis=-2)
         mij = wij / wj
 
-        # Variance estimation with added "prior expecatation" value of average weight
-        resp_entries += 1
-        resp1 += expected_weight
-        resp2 += expected_weight**2
-        truth_entries += 1
-        truth1 += expected_weight
-        truth2 += expected_weight**2
-
-        wij_var = ((resp2/resp_entries) - (resp1/resp_entries)**2) / resp_entries
-        wj_var = ((truth2/truth_entries) - (truth1/truth_entries)**2) / truth_entries
-        mij_var = wij_var/wj**2 + (mij/wj)**2 * wj_var
+        # Standard error propagation
+        # Variances of input variables
+        wij_var = sigma**2
+        # derivatives of input variables (adds a dimension to the matrix)
+        wij_diff = (np.eye(wij.shape[0])[...,np.newaxis]*wj  - pij[:,np.newaxis,:]*wij)
+        wij_diff /= wj**2
+        # Putting things together
+        mij_var = np.sum( wij_var * wij_diff**2, axis=0)
 
         # Combine uncertainties
-        MM = mij**2 * mult_var + mult_p**2 * mij_var
+        MM = mij**2 * pij_var + pij**2 * mij_var
+        # Remove "waste bin"
+        MM = MM[:-1,:]
+
         if shape is not None:
             MM.shape = shape
 
@@ -298,21 +287,20 @@ class ResponseMatrix(object):
             size.extend(mu.shape)
 
         # Generate random weights
-        wij = np.random.normal(mu, sigma, size=size)
+        wij = np.abs(np.random.normal(mu, sigma, size=size))
         wj = np.sum(wij * pij, axis=-2)
-
-        # Reorganise axes, so we can divide
-        wij = np.moveaxis(wij, -2, 0)
-
-        mij = (wij / wj)
-
-        # Un-reorganise axes
-        mij = np.moveaxis(mij, 0, -2)
+        mij = (wij / wj[...,np.newaxis,:])
 
         response = mij * pij
 
         # Remove "waste bin"
         response = response[...,:-1,:]
+
+        # Adjust shape
+        if shape is None:
+            shape = (len(self._reco_binning.bins), len(self._truth_binning.bins))
+        response = response.reshape(list(response.shape[:-2]) + list(shape))
+
         return response
 
     def get_in_bin_variation_as_ndarray(self, shape=None, truth_only=True):
