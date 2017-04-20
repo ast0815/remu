@@ -69,14 +69,17 @@ class ResponseMatrix(object):
         new_truth_binning.fill_from_csv_file(filename, weightfield=weightfield)
         new_values = new_truth_binning.get_values_as_ndarray()
         new_entries = new_truth_binning.get_entries_as_ndarray()
+        new_sumw2 = new_truth_binning.get_sumw2_as_ndarray()
 
         old_values = self._truth_binning.get_values_as_ndarray()
         old_entries = self._truth_binning.get_entries_as_ndarray()
+        old_sumw2 = self._truth_binning.get_sumw2_as_ndarray()
 
         where = new_values > old_values
 
         self._truth_binning.set_values_from_ndarray(np.where(where, new_values, old_values))
         self._truth_binning.set_entries_from_ndarray(np.where(where, new_entries, old_entries))
+        self._truth_binning.set_sumw2_from_ndarray(np.where(where, new_sumw2, old_sumw2))
 
     def reset(self):
         """Reset all binnings."""
