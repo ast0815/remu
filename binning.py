@@ -143,15 +143,15 @@ class Bin(object):
 
         self._value_array = kwargs.pop('value_array', None)
         if self._value_array is None:
-            self._value_array = np.array([kwargs.pop('value', 0.)])
+            self._value_array = np.array([kwargs.pop('value', 0.)], dtype=float)
 
         self._entries_array = kwargs.pop('entries_array', None)
         if self._entries_array is None:
-            self._entries_array = np.array([kwargs.pop('entries', 0)])
+            self._entries_array = np.array([kwargs.pop('entries', 0)], dtype=int)
 
         self._sumw2_array = kwargs.pop('sumw2_array', None)
         if self._sumw2_array is None:
-            self._sumw2_array = np.array([kwargs.pop('sumw2', self.value**2)])
+            self._sumw2_array = np.array([kwargs.pop('sumw2', self.value**2)], dtype=float)
 
         if len(kwargs) > 0:
             raise TypeError("Unknown kwargs: %s"%(kwargs,))
