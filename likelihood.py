@@ -629,8 +629,9 @@ class LikelihoodMachine(object):
         truth_vector : The evaluated theory.
         N : The number of MC evaluations of the theory.
         generator_matrix_index : The index of the response matrix to be used to generate
-                                 the fake data. This needs to be specified only if the LikelihoodMachine
-                                 contains more than one response matrix.
+                                 the fake data. This needs to be specified only if the
+                                 LikelihoodMachine contains more than one response matrix.
+                                 If it is `None`, N data sets are thrown for *each* matrix.
         systematics : How to deal with detector systematics, i.e. multiple response matrices.
                       'profile', 'maximum': Choose the response matrix that yields the highest likelihood.
                       'marginal', 'average': Sum the probabilites yielded by the matrices.
@@ -666,13 +667,15 @@ class LikelihoodMachine(object):
         p0 = self._reduced_log_likelihood(reduced_truth_vector, systematics=systematics)
 
         # Decide which matrix to use for data generation
-        if self._reduced_response_matrix.ndim > 2:
+        if self._reduced_response_matrix.ndim > 2 and generator_matrix_index is not None:
             resp = self._reduced_response_matrix[generator_matrix_index]
         else:
             resp = self._reduced_response_matrix
 
         # Draw N fake data distributions
         fake_data = LikelihoodMachine.generate_random_data_sample(resp, reduced_truth_vector, N)
+        # Flatten the fake data sets from possibly multiple response matrices
+        fake_data.shape = (np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
 
         # Calculate probabilities of each generated sample
         prob = LikelihoodMachine.log_probability(fake_data, self._reduced_response_matrix, reduced_truth_vector)
@@ -688,7 +691,7 @@ class LikelihoodMachine(object):
         # Return the quotient
         return float(n) / N
 
-    def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, systematics='profile', **kwargs):
+    def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, generator_matrix_index=None, systematics='profile', **kwargs):
         """Calculate the maximum likelihood p-value of a composite hypothesis given the measured data.
 
         Arguments
@@ -699,6 +702,10 @@ class LikelihoodMachine(object):
                      If no parameters are given, they will be calculated with
                      the maximum likelihood method.
         N : The number of MC evaluations of the theory.
+        generator_matrix_index : The index of the response matrix to be used to generate
+                                 the fake data. This needs to be specified only if the
+                                 LikelihoodMachine contains more than one response matrix.
+                                 If it is `None`, N data sets are thrown for *each* matrix.
 
         Additional keyword arguments will be passed to the likelihood maximizer.
 
@@ -731,8 +738,16 @@ class LikelihoodMachine(object):
 
         truth_vector = composite_hypothesis.translate(parameters)
 
-        # Draw N fake data distributions
-        fake_data = LikelihoodMachine.generate_random_data_sample(self.response_matrix, truth_vector, N)
+        # Decide which matrix to use for data generation
+        if self._reduced_response_matrix.ndim > 2 and generator_matrix_index is not None:
+            resp = self._reduced_response_matrix[generator_matrix_index]
+        else:
+            resp = self._reduced_response_matrix
+
+        # Draw N fake data distributioxxns
+        fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N)
+        # Flatten the fake data sets from possibly multiple response matrices
+        fake_data.shape = (np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
 
         # Calculate the maximum probabilities
         def prob_fun(data):
@@ -748,7 +763,7 @@ class LikelihoodMachine(object):
         # Return the quotient
         return float(n) / N
 
-    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, systematics='profile', **kwargs):
+    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='profile', **kwargs):
         """Calculate the maximum likelihood ratio p-value of a two composite hypotheses given the measured data.
 
         Arguments
@@ -759,6 +774,10 @@ class LikelihoodMachine(object):
         par0 : The assumed true parameters of the tested hypothesis.
         par1 : The maximum likelihood parameters of the alternative hypothesis.
         N : The number of MC evaluations of the theory.
+        generator_matrix_index : The index of the response matrix to be used to generate
+                                 the fake data. This needs to be specified only if the
+                                 LikelihoodMachine contains more than one response matrix.
+                                 If it is `None`, N data sets are thrown for *each* matrix.
 
         Additional keyword arguments will be passed to the likelihood maximizer.
 
@@ -794,8 +813,16 @@ class LikelihoodMachine(object):
         truth_vector = H0.translate(par0)
         alternative_truth = H1.translate(par1)
 
+        # Decide which matrix to use for data generation
+        if self._reduced_response_matrix.ndim > 2 and generator_matrix_index is not None:
+            resp = self._reduced_response_matrix[generator_matrix_index]
+        else:
+            resp = self._reduced_response_matrix
+
         # Draw N fake data distributions
-        fake_data = LikelihoodMachine.generate_random_data_sample(self.response_matrix, truth_vector, N)
+        fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N)
+        # Flatten the fake data sets from possibly multiple response matrices
+        fake_data.shape = (np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
 
         # Calculate the maximum probabilities
         def ratio_fun(data):
