@@ -263,6 +263,33 @@ class ResponseMatrix(object):
 
         return MM
 
+    @staticmethod
+    def _dirichlet(alpha, size=None):
+        """Reimplements np.random.dirichlet.
+
+        The original implementation is not suitable for very low alphas.
+        """
+
+        params = np.asfarray(alpha)
+
+        if size is None:
+            total_size = (len(alpha))
+        else:
+            try:
+                total_size = tuple(list(size) + [len(alpha)])
+            except TypeError:
+                total_size = tuple(list([size]) + [len(alpha)])
+
+        xs = np.zeros(total_size)
+
+        xs[...,0] = np.random.beta(params[0], np.sum(params[1:]), size=size)
+        for j in range(1,len(params)-1):
+            phi = np.random.beta(params[j], sum(params[j+1:]), size=size)
+            xs[...,j] = (1-np.sum(xs, axis=-1)) * phi
+        xs[...,-1] = (1-np.sum(xs, axis=-1))
+
+        return xs
+
     def generate_random_response_matrices(self, size=None, shape=None, expected_weight=1.):
         """Generate random response matrices according to the estimated variance.
 
@@ -283,7 +310,7 @@ class ResponseMatrix(object):
         # Generate truth bin by truth bin
         pij = []
         for j in range(alpha.shape[0]):
-            pij.append(np.random.dirichlet(alpha[j], size=size))
+            pij.append(self._dirichlet(alpha[j], size=size))
         pij = np.array(pij)
 
         # Reorganise axes
