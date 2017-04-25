@@ -138,15 +138,19 @@ class ResponseMatrix(object):
 
         return M
 
-    def _get_stat_error_parameters(self, expected_weight=1.):
+    def _get_stat_error_parameters(self, expected_weight=1., nuisance_indices=None):
         """Return $\alpha^t_{ij}$, $\hat{m}^t_{ij}$ and $\sigma(m^t_{ij})$.
 
         Used for calculations of statistical variance.
         """
 
+        if nuisance_indices is None:
+            nuisance_indices = np.ndarray(0, dtype=int)
+
         N_reco = len(self._reco_binning.bins)
         N_truth = len(self._truth_binning.bins)
         orig_shape = (N_reco, N_truth)
+        epsilon = 1e-12
 
         resp_entries = self.get_response_entries_as_ndarray(orig_shape)
         truth_entries = self.get_truth_entries_as_ndarray()
@@ -154,11 +158,16 @@ class ResponseMatrix(object):
         waste_entries = truth_entries - resp_entries.sum(axis=0)
         resp_entries = np.append(resp_entries, waste_entries[np.newaxis,:], axis=0)
 
-        # Get Dirichlet parameters when assuming prior flat in efficiency and ignorant about reconstruction
+        # Get Dirichlet parameters when assuming prior flat in efficiency and
+        # ignorant about reconstruction. This also means that the prior
+        # expects the recosntructed events to be clustered in a small number of
+        # reco bins.
         alpha = np.asfarray(resp_entries)
         prior = np.full(N_reco+1, 1./N_reco, dtype=float)
         prior[-1] = 1.
         alpha += prior[:,np.newaxis]
+        # Set loss probability for nuisance truth bins to (almost) 0
+        alpha[-1,nuisance_indices] = epsilon
 
         # Estimate mean weight
         resp1 = self.get_response_values_as_ndarray(orig_shape)
@@ -180,11 +189,11 @@ class ResponseMatrix(object):
 
         sigma = np.sqrt(((resp2_p/resp_entries_p) - (resp1_p/resp_entries_p)**2) / resp_entries_p)
         # Add an epsilon so sigma is always > 0
-        sigma += 1e-12
+        sigma += epsilon
 
         return alpha, mu, sigma
 
-    def get_response_matrix_variance_as_ndarray(self, shape=None, expected_weight=1.):
+    def get_response_matrix_variance_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None):
         """Return the statistical variance of the single ResponseMatrix elements as ndarray.
 
         The variance is estimated from the actual bin contents in a Bayesian
@@ -212,6 +221,11 @@ class ResponseMatrix(object):
         simulated events. The variance of the posterior distribution is taken
         as the variance of the transition probability.
 
+        If a list of `nuisance_indices` is provided, the probabilities of *not*
+        reconstructing events in the respective truth categories will be fixed
+        to 0. This is useful for background categories where one is not
+        interested in the true number of events.
+
         The variances of m_ij is estimated from the errors of the average
         weights in the matrix elements as classical "standard error of the
         mean". To avoid problems with bins with 0 or 1 entries, we add a "prior
@@ -227,9 +241,8 @@ class ResponseMatrix(object):
         If no shape is specified, it will be set to `(N_reco, N_truth)`.
         """
 
-        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight)
+        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices)
         beta = np.sum(alpha, axis=0)
-        k = alpha.shape[0]
 
         # Unweighted (multinomial) transistion probabilty
         # Posterior mean estimate = alpha / beta
@@ -290,7 +303,7 @@ class ResponseMatrix(object):
 
         return xs
 
-    def generate_random_response_matrices(self, size=None, shape=None, expected_weight=1.):
+    def generate_random_response_matrices(self, size=None, shape=None, expected_weight=1., nuisance_indices=None):
         """Generate random response matrices according to the estimated variance.
 
         This is a two step process:
@@ -302,7 +315,7 @@ class ResponseMatrix(object):
         If no shape is specified, it will be set to `(N_reco, N_truth)`.
         """
 
-        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight)
+        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices)
 
         # Transpose so we have an array of dirichlet parameters
         alpha = alpha.T
