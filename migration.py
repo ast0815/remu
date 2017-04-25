@@ -154,8 +154,11 @@ class ResponseMatrix(object):
         waste_entries = truth_entries - resp_entries.sum(axis=0)
         resp_entries = np.append(resp_entries, waste_entries[np.newaxis,:], axis=0)
 
-        # Get Dirichlet parameters when assuming flat prior
-        alpha = resp_entries + 1
+        # Get Dirichlet parameters when assuming prior flat in efficiency and ignorant about reconstruction
+        alpha = np.asfarray(resp_entries)
+        prior = np.full(N_reco+1, 1./N_reco, dtype=float)
+        prior[-1] = 1.
+        alpha += prior[:,np.newaxis]
 
         # Estimate mean weight
         resp1 = self.get_response_values_as_ndarray(orig_shape)
@@ -182,7 +185,7 @@ class ResponseMatrix(object):
         return alpha, mu, sigma
 
     def get_response_matrix_variance_as_ndarray(self, shape=None, expected_weight=1.):
-        """Return the statistical variance of the single ResponseMatrix bins as ndarray.
+        """Return the statistical variance of the single ResponseMatrix elements as ndarray.
 
         The variance is estimated from the actual bin contents in a Bayesian
         motivated way.
@@ -204,17 +207,22 @@ class ResponseMatrix(object):
 
         The variance of p_ij is estimated by using the Bayesian conjugate prior
         for multinomial distributions: the Dirichlet distribution. We assume a
-        uniform prior for all transition probabilities and update it with the
+        prior that is uniform in the reconstruction efficiency and completely
+        ignorant about reconstruction accuracies. We then update it with the
         simulated events. The variance of the posterior distribution is taken
-        as the variance of the transisiton probability.
+        as the variance of the transition probability.
 
         The variances of m_ij is estimated from the errors of the average
-        weights in the matrix elemets as classical "standard error of the
+        weights in the matrix elements as classical "standard error of the
         mean". To avoid problems with bins with 0 or 1 entries, we add a "prior
         expectation" point to the data. This ensures that all bins have at
         least 1 entry (no divisions by zero) and that variances can be
         estimated even for bins with only one (true) entry (from the difference
         to the expected value).
+
+        This is just an estimate! The true variance of the randomly generated
+        response matrices can deviate from the returned numbers. Also, these
+        variances ignore the correlations between matrix elements.
 
         If no shape is specified, it will be set to `(N_reco, N_truth)`.
         """
@@ -224,8 +232,8 @@ class ResponseMatrix(object):
         k = alpha.shape[0]
 
         # Unweighted (multinomial) transistion probabilty
-        # Posterior mode estimate = Nij / Nj
-        pij = np.asfarray(alpha - 1) / np.where(beta-k > 0, beta-k, 1)
+        # Posterior mean estimate = alpha / beta
+        pij = np.asfarray(alpha) / beta
         # Posterior variance
         pij_var = np.asfarray(beta - alpha)
         pij_var *= alpha

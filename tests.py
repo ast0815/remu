@@ -583,10 +583,10 @@ class TestResponseMatrices(unittest.TestCase):
         """Test the variance calculation."""
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         var = self.rm.get_response_matrix_variance_as_ndarray()
-        self.assertAlmostEqual(var[0,0], 0.03061224)
-        self.assertAlmostEqual(var[1,1], 0.01171875)
-        self.assertAlmostEqual(var[2,2], 0.0255102)
-        self.assertAlmostEqual(var[3,3], 0.0255102)
+        self.assertAlmostEqual(var[0,0], 0.04921875)
+        self.assertAlmostEqual(var[1,1], 0.01594388)
+        self.assertAlmostEqual(var[2,2], 0.04296875)
+        self.assertAlmostEqual(var[3,3], 0.04296875)
 
     def test_random_generation(self):
         """Test generation of randomly varied matrices."""
