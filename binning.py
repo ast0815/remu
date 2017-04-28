@@ -507,11 +507,12 @@ class Binning(object):
             weight = data[weightfield]
             self.fill(data, weight=weight, **kwargs)
 
-    def reset(self, value=0., entries=0):
+    def reset(self, value=0., entries=0, sumw2=0.):
         """Reset all bin values."""
         for b in self.bins:
             b.value=value
             b.entries=entries
+            b.sumw2=sumw2
 
     def get_values_as_ndarray(self, shape=None):
         """Return the bin values as nd array.
@@ -846,12 +847,12 @@ class RectangularBinning(Binning):
 
         # Copy and project values
         new_values = np.sum(self.get_values_as_ndarray(shape=self.nbins), axis=axes)
-
-        # Copy and project values
         new_entries = np.sum(self.get_entries_as_ndarray(shape=self.nbins), axis=axes)
+        new_sumw2 = np.sum(self.get_sumw2_as_ndarray(shape=self.nbins), axis=axes)
 
         new_binning.bins._value_array=new_values
         new_binning.bins._entries_array=new_entries
+        new_binning.bins._sumw2_array=new_sumw2
 
         return new_binning
 
@@ -909,12 +910,12 @@ class RectangularBinning(Binning):
 
         # Copy and project values
         new_values = self.get_values_as_ndarray(shape=self.nbins)[index]
-
-        # Copy and project values
         new_entries = self.get_entries_as_ndarray(shape=self.nbins)[index]
+        new_sumw2 = self.get_sumw2_as_ndarray(shape=self.nbins)[index]
 
         new_binning.bins._value_array=new_values
         new_binning.bins._entries_array=new_entries
+        new_binning.bins._sumw2_array=new_sumw2
 
         return new_binning
 
@@ -1143,6 +1144,9 @@ class RectangularBinning(Binning):
 
     def plot_entries(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
         return self.plot_ndarray(filename, self.bins._entries_array, variables, divide, kwargs1d, kwargs2d, figax)
+
+    def plot_sumw2(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
+        return self.plot_ndarray(filename, self.bins._sumw2_array, variables, divide, kwargs1d, kwargs2d, figax)
 
     def __eq__(self, other):
         """Rectangular binnings are equal if the variables and edges match."""
