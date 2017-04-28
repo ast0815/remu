@@ -193,6 +193,39 @@ class ResponseMatrix(object):
 
         return alpha, mu, sigma
 
+    def get_mean_response_matrix_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None):
+        """Return the means of the posterior distributions of the response matrix elements.
+
+        This is different from the "raw" matrix one gets from
+        `get_response_matrix_as_ndarray`. The latter simply divides the sum of
+        weights in the respective bins.
+
+        If no shape is specified, it will be set to `(N_reco, N_truth)`.
+        """
+
+        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices)
+        beta = np.sum(alpha, axis=0)
+
+        # Unweighted (multinomial) transistion probabilty
+        # Posterior mean estimate = alpha / beta
+        pij = np.asfarray(alpha) / beta
+
+        # Weight correction
+        wij = mu
+        wj = np.sum(mu * pij, axis=-2)
+        mij = wij / wj
+
+        # Combine the two
+        MM = mij*pij
+
+        # Remove "waste bin"
+        MM = MM[:-1,:]
+
+        if shape is not None:
+            MM.shape = shape
+
+        return MM
+
     def get_response_matrix_variance_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None):
         """Return the statistical variance of the single ResponseMatrix elements as ndarray.
 

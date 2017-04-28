@@ -588,6 +588,15 @@ class TestResponseMatrices(unittest.TestCase):
         self.assertAlmostEqual(var[2,2], 0.04296875)
         self.assertAlmostEqual(var[3,3], 0.04296875)
 
+    def test_mean(self):
+        """Test the mean calculation."""
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        mean = self.rm.get_mean_response_matrix_as_ndarray()
+        self.assertAlmostEqual(mean[0,0], 0.5625)
+        self.assertAlmostEqual(mean[1,1], 0.17857143)
+        self.assertAlmostEqual(mean[2,2], 0.3125)
+        self.assertAlmostEqual(mean[3,3], 0.3125)
+
     def test_random_generation(self):
         """Test generation of randomly varied matrices."""
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
