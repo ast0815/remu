@@ -874,15 +874,13 @@ class RectangularBinning(Binning):
 
         return self.marginalize(rm_variables)
 
-    def slice(self, variable_slices):
+    def slice(self, variable_slices, return_indices=False):
         """Return a new RectangularBinning containing the given variable slices
 
         Arguments
         ---------
 
-        variable_slices :
-
-                          A dictionary specifying the bin slices of each
+        variable_slices : A dictionary specifying the bin slices of each
                           variable. Binning variables that are not part of the
                           dictionary are kept as is.  E.g. if you want the
                           slice of bin 2 in `var_A` and bins 1 through to the
@@ -894,6 +892,10 @@ class RectangularBinning(Binning):
                           Please note that strides other than 1 are *not*
                           supported.
 
+        return_indices : If `True`, also return the indices of the new binning:
+
+                             new_values = binning.get_values_as_ndarray(
+                                            shape=binning.nbins)[indices]
         """
 
         # Create new binning
@@ -917,7 +919,10 @@ class RectangularBinning(Binning):
         new_binning.bins._entries_array=new_entries
         new_binning.bins._sumw2_array=new_sumw2
 
-        return new_binning
+        if return_indices:
+            return new_binning, index
+        else:
+            return new_binning
 
     def get_values_as_ndarray(self, shape=None):
         """Return the bin values as ndarray.
