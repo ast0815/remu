@@ -703,6 +703,12 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertAlmostEqual(ret[2], -5.1096282421)
         self.truth_vector[0] += 1
         self.assertAlmostEqual(self.L.log_likelihood(self.truth_vector), -5.2465820247)
+        self.L.truth_limits = np.ones_like(self.truth_vector)
+        self.assertRaises(RuntimeError, lambda: self.L.log_likelihood(self.truth_vector))
+        self.L.limit_method = 'prohibit'
+        self.assertEqual(self.L.log_likelihood(self.truth_vector), -np.inf)
+        self.L.limit_method = 'garbage'
+        self.assertRaises(ValueError, lambda: self.L.log_likelihood(self.truth_vector))
 
     def test_max_log_likelihood(self):
         """Test maximum likelihood calculation with CompositeHypotheses"""

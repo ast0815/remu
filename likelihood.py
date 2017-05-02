@@ -182,16 +182,20 @@ class JeffreysPrior(object):
 class LikelihoodMachine(object):
     """Class that calculates likelihoods for truth vectors."""
 
-    def __init__(self, data_vector, response_matrix, truth_limits=None):
+    def __init__(self, data_vector, response_matrix, truth_limits=None, limit_method='raise'):
         """Initialize the LikelihoodMachine with the given data and response matrix.
 
         The optional `truth_limits` tells the LikelihoodMachine up to which
         truth bin value the response matrix stays valid. If the machine is
-        asked to calculate the likelihood of an out-of-bounds truth vector, an
-        exception is raised.  This can be used to constrain the testable
-        theories to events that have been simulated enough times in the
-        detector Monte Carlo data. I.e. if one wants demands a 10x higher MC
-        statistic:
+        asked to calculate the likelihood of an out-of-bounds truth vector, it
+        is handled according to `limit_method`.
+
+            'raise' (default) : An exception is raised.
+            'prohibit' : A likelihood of 0 is returned.
+
+        This can be used to constrain the testable theories to events that have
+        been simulated enough times in the detector Monte Carlo data. I.e. if
+        one wants demands a 10x higher MC statistic:
 
             truth_limits = generator_truth_vector / 10.
 
@@ -203,6 +207,7 @@ class LikelihoodMachine(object):
             self.truth_limits = np.full(self.response_matrix.shape[-1], np.inf)
         else:
             self.truth_limits = np.array(truth_limits)
+        self.limit_method = limit_method
 
         # Calculte the reduced response matrix for speedier calculations
         self._reduced_response_matrix, self._eff = LikelihoodMachine._reduce_response_matrix(self.response_matrix)
@@ -394,8 +399,13 @@ class LikelihoodMachine(object):
         """
 
         if np.any(truth_vector > self.truth_limits):
-            i = np.argwhere(truth_vector > self.truth_limits)[0,-1]
-            raise RuntimeError("Truth value %d is above allowed limits!"%(i,))
+            if self.limit_method == 'raise':
+                i = np.argwhere(truth_vector > self.truth_limits)[0,-1]
+                raise RuntimeError("Truth value %d is above allowed limits!"%(i,))
+            elif self.limit_method == 'prohibit':
+                return -np.inf
+            else:
+                raise ValueError("Unknown limit method: '%s'"%(self.limit_method))
 
         # Use reduced truth values for efficient calculations.
         reduced_truth_vector = self._reduce_truth_vector(truth_vector)
