@@ -822,7 +822,9 @@ class TestLikelihoodMachines(unittest.TestCase):
     def test_plots(self):
         """Test plots."""
         with open('/dev/null', 'wb') as f:
-            self.L.plot_bin_efficiencies(f)
+            self.L.plot_bin_efficiencies(f, plot_limits=True)
+            self.L.plot_bin_traces(f, self.truth_vector, plot_limits=True)
+            self.L.plot_bin_traces(f, self.truth_vector, plot_limits='relative')
 
 if __name__ == '__main__':
     unittest.main()

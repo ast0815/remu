@@ -969,8 +969,11 @@ class LikelihoodMachine(object):
         preference = float(np.sum(PLR > 0)) / PLR.size
         return PLR, preference
 
-    def plot_bin_efficiencies(self, filename):
-        """Plot bin by bin efficiencies."""
+    def plot_bin_efficiencies(self, filename, plot_limits=False):
+        """Plot bin by bin efficiencies.
+
+        Also plots bin truth limits if `plot_limits` is `True`.
+        """
 
         eff = self.response_matrix.sum(axis=-2)
         eff.shape = (np.prod(eff.shape[:-1], dtype=int), eff.shape[-1])
@@ -982,4 +985,35 @@ class LikelihoodMachine(object):
         ax.set_xlabel("Truth bin #")
         ax.set_ylabel("Efficiency")
         ax.boxplot(eff, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(eff.shape[1]))
+        if plot_limits:
+            ax2 = ax.twinx()
+            ax2.plot(self.truth_limits, drawstyle='steps-mid', color='green')
+            ax2.set_ylabel("Truth limits")
+        fig.savefig(filename)
+
+    def plot_bin_traces(self, filename, trace, plot_limits=False):
+        """Plot bin by bin MCMC truth traces.
+
+        Also plots bin truth limits if `plot_limits` is `True`.  If it is set
+        to the string 'relative', the values are divided by the limit before
+        plotting.
+        """
+
+        trace = trace.reshape( (np.prod(trace.shape[:-1], dtype=int), trace.shape[-1]) )
+        if trace.shape[0] == 1:
+            # Trick boxplot into working even if there is only one trace entry per bin
+            trace = np.broadcast_to(trace, (2, trace.shape[1]))
+
+        fig, ax = plt.subplots(1)
+        ax.set_xlabel("Truth bin #")
+        if plot_limits == 'relative':
+            ax.set_ylabel("Value / Truth limit")
+            trace = trace / np.where(self.truth_limits > 0, self.truth_limits, 1.)
+            ax.boxplot(trace, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(trace.shape[1]))
+        else:
+            ax.set_ylabel("Value")
+            ax.boxplot(trace, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(trace.shape[1]))
+            if plot_limits:
+                ax.plot(self.truth_limits, drawstyle='steps-mid', color='green', label="Truth limit")
+                ax.legend(loc='best')
         fig.savefig(filename)
