@@ -4,6 +4,7 @@ from copy import copy, deepcopy
 import ruamel.yaml as yaml
 import re
 import numpy as np
+from numpy.lib.recfunctions import rename_fields
 import csv
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
@@ -431,7 +432,7 @@ class Binning(object):
         else:
             return None
 
-    def fill(self, event, weight=1, raise_error=False):
+    def fill(self, event, weight=1, raise_error=False, rename={}):
         """Fill the events into their respective bins.
 
         Arguments
@@ -446,7 +447,17 @@ class Binning(object):
         raise_error: Raise a ValueError if an event is not in the binning.
                      Otherwise ignore the event.
                      Default: False
+        rename: Dict for translating event variable names to binning variable names.
+                Default: `{}`, i.e. no translation
         """
+
+        try:
+            # Numpy array?
+            event = rename_fields(event, rename)
+        except AttributeError:
+            # Dict?
+            for name in rename:
+                event[rename[name]] = event[name]
 
         try:
             # Try to get bin numbers from list of events

@@ -26,13 +26,13 @@ class ResponseMatrix(object):
         self._reco_binning.fill(event, weight)
         self._response_binning.fill(event, weight)
 
-    def fill_from_csv_file(self, filename, weightfield=None):
+    def fill_from_csv_file(self, filename, **kwargs):
         """Fill binnings from csv file."""
-        self._truth_binning.fill_from_csv_file(filename, weightfield)
-        self._reco_binning.fill_from_csv_file(filename, weightfield)
-        self._response_binning.fill_from_csv_file(filename, weightfield)
+        self._truth_binning.fill_from_csv_file(filename, **kwargs)
+        self._reco_binning.fill_from_csv_file(filename, **kwargs)
+        self._response_binning.fill_from_csv_file(filename, **kwargs)
 
-    def fill_up_truth_from_csv_file(self, filename, weightfield=None):
+    def fill_up_truth_from_csv_file(self, filename, **kwargs):
         """Re fill the truth bins with the given csv file.
 
         This can be used to get proper efficiencies if the true signal events
@@ -66,7 +66,7 @@ class ResponseMatrix(object):
 
         new_truth_binning = deepcopy(self._truth_binning)
         new_truth_binning.reset()
-        new_truth_binning.fill_from_csv_file(filename, weightfield=weightfield)
+        new_truth_binning.fill_from_csv_file(filename, **kwargs)
         new_values = new_truth_binning.get_values_as_ndarray()
         new_entries = new_truth_binning.get_entries_as_ndarray()
         new_sumw2 = new_truth_binning.get_sumw2_as_ndarray()
