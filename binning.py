@@ -834,13 +834,17 @@ class RectangularBinning(Binning):
 
         return RectangularBinning(phasespace=phasespace, variables=variables, binedges=binedges, include_upper=self._include_upper)
 
-    def marginalize(self, variables):
+    def marginalize(self, variables, reduction_function=np.sum):
         """Marginalize out the given variables and return a new RectangularBinning.
 
         Arguments
         ---------
 
         variables : Iterable of variable names to be marginalized out.
+        reduction_function : Use this function to marginalize out the entries
+                             over the specified variables. Must support the
+                             `axis` keyword argument.
+                             Default: numpy.sum
 
         """
 
@@ -857,9 +861,9 @@ class RectangularBinning(Binning):
         axes = tuple([self.variables.index(v) for v in variables])
 
         # Copy and project values
-        new_values = np.sum(self.get_values_as_ndarray(shape=self.nbins), axis=axes)
-        new_entries = np.sum(self.get_entries_as_ndarray(shape=self.nbins), axis=axes)
-        new_sumw2 = np.sum(self.get_sumw2_as_ndarray(shape=self.nbins), axis=axes)
+        new_values = reduction_function(self.get_values_as_ndarray(shape=self.nbins), axis=axes)
+        new_entries = reduction_function(self.get_entries_as_ndarray(shape=self.nbins), axis=axes)
+        new_sumw2 = reduction_function(self.get_sumw2_as_ndarray(shape=self.nbins), axis=axes)
 
         new_binning.bins._value_array=new_values
         new_binning.bins._entries_array=new_entries
@@ -867,7 +871,7 @@ class RectangularBinning(Binning):
 
         return new_binning
 
-    def project(self, variables):
+    def project(self, variables, **kwargs):
         """Project the binning onto the given variables and return a new RectangularBinning.
 
         The variable order of the original binning is preserved.
@@ -877,13 +881,15 @@ class RectangularBinning(Binning):
 
         variables : Iterable of variable names on which to project the binning.
 
+        Additional keyword arguments are passed on to `marginalize`.
+
         """
 
         # Which variables to remove
         rm_variables = list(self.variables)
         list(map(rm_variables.remove, variables))
 
-        return self.marginalize(rm_variables)
+        return self.marginalize(rm_variables, **kwargs)
 
     def slice(self, variable_slices, return_indices=False):
         """Return a new RectangularBinning containing the given variable slices
