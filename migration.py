@@ -387,20 +387,28 @@ class ResponseMatrix(object):
 
         return response
 
-    def get_in_bin_variation_as_ndarray(self, shape=None, truth_only=True):
+    def get_in_bin_variation_as_ndarray(self, shape=None, truth_only=True, ignore_variables=[]):
         """Returns an estimate for the variation of the response within a bin.
 
-        The in-bin variation is estimated from the difference of the maximum
-        and minimum values of the surrounding bins.
+        The in-bin variation is estimated from the maximum difference to the
+        surrounding bins. The differences are normalized to the estimated
+        statistical errors, so values close to one indicate a statistically
+        dominated variation.
 
         If `truth_only` is true, only the neighbouring bins along the
         truth-axes will be considered.
+
+        Variables specified in `ignore_variables` will not be considered.  This
+        is useful to exclude categotical variables, where the response is not
+        expected to vary smoothly.
         """
 
         nbins = self._response_binning.nbins
         resp_vars = self._response_binning.variables
         truth_vars = self._truth_binning.variables
-        resp = [ self.get_response_matrix_as_ndarray(shape=nbins) ]
+        resp = self.get_mean_response_matrix_as_ndarray(shape=nbins)
+        stat = self.get_response_matrix_variance_as_ndarray(shape=nbins)
+        ret = np.zeros_like(resp, dtype=float)
 
         # Generate the shifted matrices
         i0 = np.zeros(len(nbins), dtype=int)
@@ -410,34 +418,41 @@ class ResponseMatrix(object):
             if truth_only and var not in truth_vars:
                 continue
 
+            # Ignore other specified variables
+            if var in ignore_variables:
+                continue
+
             # Roll the array
-            shifted = np.roll(resp[0], 1, axis=i)
+            shifted_resp = np.roll(resp, 1, axis=i)
+            shifted_stat = np.roll(resp, 1, axis=i)
             # Set the 'rolled-in' elements to the values of their neighbours
             i1 = np.array(i0)
             i1[i] = 1
-            shifted[tuple(i0)] = shifted[tuple(i1)]
-            # Add to list of shifted arrays
-            resp.append( shifted )
+            shifted_resp[tuple(i0)] = shifted_resp[tuple(i1)]
+            shifted_stat[tuple(i0)] = shifted_stat[tuple(i1)]
+
+            # Get maximum difference
+            ret = np.maximum(ret, np.abs(resp - shifted_resp) / np.sqrt(stat + shifted_stat))
 
             # Same in other direction
             # Roll the array
-            shifted = np.roll(resp[0], -1, axis=i)
+            shifted_resp = np.roll(resp, -1, axis=i)
+            shifted_stat = np.roll(stat, -1, axis=i)
             # Set the 'rolled-in' elements to the values of their neighbours
             im2 = np.array(im1)
             im2[i] = -2
-            shifted[tuple(im1)] = shifted[tuple(im2)]
-            resp.append( shifted )
+            shifted_resp[tuple(im1)] = shifted_resp[tuple(im2)]
+            shifted_stat[tuple(im1)] = shifted_stat[tuple(im2)]
 
-        # Get the maximum and minimum of the shifted arrays
-        resp = np.array(resp)
-        resp = resp.max(axis=0) - resp.min(axis=0)
+            # Get maximum difference
+            ret = np.maximum(ret, np.abs(resp - shifted_resp) / np.sqrt(stat + shifted_stat))
 
         # Adjust shape
         if shape is None:
             shape = (len(self._reco_binning.bins), len(self._truth_binning.bins))
-        resp.shape = shape
+        ret.shape = shape
 
-        return resp
+        return ret
 
     def plot_values(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
         """Plot the values of the response binning.
