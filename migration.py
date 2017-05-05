@@ -469,3 +469,15 @@ class ResponseMatrix(object):
         """
 
         return self._response_binning.plot_entries(filename, variables, divide, kwargs1d, kwargs2d, figax)
+
+    def plot_in_bin_variation(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
+        """Plot the maximum in-bin variation for projections on all variables.
+
+        Additional `kwargs` will be passed on to `get_in_bin_variation_as_ndarray`.
+        """
+
+        truth_binning = deepcopy(self._truth_binning)
+        inbin = self.get_in_bin_variation_as_ndarray(**kwargs)
+        inbin = np.max(inbin, axis=0)
+
+        truth_binning.plot_ndarray(filename, inbin, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.max)
