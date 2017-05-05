@@ -481,3 +481,30 @@ class ResponseMatrix(object):
         inbin = np.max(inbin, axis=0)
 
         truth_binning.plot_ndarray(filename, inbin, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.max)
+
+    def plot_statistical_variation(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
+        """Plot the maximum statistical variation for projections on all truth variables.
+
+        Additional `kwargs` will be passed on to `get_statistical_variance_as_ndarray`.
+        """
+
+        truth_binning = self._truth_binning
+        stat = self.get_statistical_variance_as_ndarray(**kwargs)
+        stat = np.sqrt(np.max(stat, axis=0))
+
+        truth_binning.plot_ndarray(filename, stat, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.max)
+
+    def plot_min_efficiency(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
+        """Plot minimum efficiencies for projections on all truth variables.
+
+        This does *not* consider the statistical uncertainty of the matrix
+        elements.  It uses only the mean response matrix.
+
+        Additional `kwargs` will be passed on to `get_mean_response_matrix_as_ndarray`.
+        """
+
+        truth_binning = self._truth_binning
+        eff = self.get_mean_response_matrix_as_ndarray(**kwargs)
+        eff = np.sum(eff, axis=0)
+
+        truth_binning.plot_ndarray(filename, eff, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.min)
