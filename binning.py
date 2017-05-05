@@ -1022,7 +1022,7 @@ class RectangularBinning(Binning):
 
         self.bins._sumw2_array.flat[:] = arr.flat
 
-    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
+    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum):
         """Plot a visual representation of an array containing the entries or values of the binning.
 
         Arguments
@@ -1043,6 +1043,8 @@ class RectangularBinning(Binning):
         figax : Pair of figure and axes to be used for plotting.
                 Can be used to plot multiple binnings on top of one another.
                 Default: Create new figure and axes.
+        reduction_function : Use this function to marginalize out variables.
+                             Default: numpy.sum
 
         Returns
         -------
@@ -1100,7 +1102,7 @@ class RectangularBinning(Binning):
                 if y_var == x_var:
                     # 1D histogram
 
-                    nn = temp_binning.project([y_var]).get_values_as_ndarray()
+                    nn = temp_binning.project([y_var], reduction_function=reduction_function).get_values_as_ndarray()
                     if divide:
                         nn /= (y_edg[1:] - y_edg[:-1])
                     nn = np.append(nn, nn[-1])
@@ -1122,7 +1124,7 @@ class RectangularBinning(Binning):
                 else:
                     # 2D histogram
 
-                    tb = temp_binning.project([x_var, y_var])
+                    tb = temp_binning.project([x_var, y_var], reduction_function=reduction_function)
                     arr = tb.get_values_as_ndarray()
                     if tb.variables[0] != y_var:
                         arr = arr.transpose()
