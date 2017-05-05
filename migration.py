@@ -226,7 +226,7 @@ class ResponseMatrix(object):
 
         return MM
 
-    def get_response_matrix_variance_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None):
+    def get_statistical_variance_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None):
         """Return the statistical variance of the single ResponseMatrix elements as ndarray.
 
         The variance is estimated from the actual bin contents in a Bayesian
@@ -407,7 +407,7 @@ class ResponseMatrix(object):
         resp_vars = self._response_binning.variables
         truth_vars = self._truth_binning.variables
         resp = self.get_mean_response_matrix_as_ndarray(shape=nbins)
-        stat = self.get_response_matrix_variance_as_ndarray(shape=nbins)
+        stat = self.get_statistical_variance_as_ndarray(shape=nbins)
         ret = np.zeros_like(resp, dtype=float)
 
         # Generate the shifted matrices
