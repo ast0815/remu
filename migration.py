@@ -291,13 +291,8 @@ class ResponseMatrix(object):
         mij = wij / wj
 
         # Standard error propagation
-        # Variances of input variables
-        wij_var = sigma**2
-        # derivatives of input variables (adds a dimension to the matrix)
-        wij_diff = (np.eye(wij.shape[0])[...,np.newaxis]*wj  - pij[:,np.newaxis,:]*wij)
-        wij_diff /= wj**2
-        # Putting things together
-        mij_var = np.sum( wij_var * wij_diff**2, axis=0)
+        wj2 = wj**2
+        mij_var = (sigma / wj2 - wij * (np.sum(pij * sigma, axis=-2) / wj2))**2
 
         # Combine uncertainties
         MM = mij**2 * pij_var + pij**2 * mij_var
