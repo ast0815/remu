@@ -16,21 +16,21 @@ class ResponseMatrix(object):
         The binnings will be combined with `cartesian_product`.
         """
 
-        self._truth_binning = truth_binning
-        self._reco_binning = reco_binning
-        self._response_binning = reco_binning.cartesian_product(truth_binning)
+        self.truth_binning = truth_binning
+        self.reco_binning = reco_binning
+        self.response_binning = reco_binning.cartesian_product(truth_binning)
 
     def fill(self, event, weight=1.):
         """Fill events into the binnings."""
-        self._truth_binning.fill(event, weight)
-        self._reco_binning.fill(event, weight)
-        self._response_binning.fill(event, weight)
+        self.truth_binning.fill(event, weight)
+        self.reco_binning.fill(event, weight)
+        self.response_binning.fill(event, weight)
 
     def fill_from_csv_file(self, filename, **kwargs):
         """Fill binnings from csv file."""
-        self._truth_binning.fill_from_csv_file(filename, **kwargs)
-        self._reco_binning.fill_from_csv_file(filename, **kwargs)
-        self._response_binning.fill_from_csv_file(filename, **kwargs)
+        self.truth_binning.fill_from_csv_file(filename, **kwargs)
+        self.reco_binning.fill_from_csv_file(filename, **kwargs)
+        self.response_binning.fill_from_csv_file(filename, **kwargs)
 
     def fill_up_truth_from_csv_file(self, filename, **kwargs):
         """Re fill the truth bins with the given csv file.
@@ -64,55 +64,55 @@ class ResponseMatrix(object):
         affected truth bin.
         """
 
-        new_truth_binning = deepcopy(self._truth_binning)
+        new_truth_binning = deepcopy(self.truth_binning)
         new_truth_binning.reset()
         new_truth_binning.fill_from_csv_file(filename, **kwargs)
         new_values = new_truth_binning.get_values_as_ndarray()
         new_entries = new_truth_binning.get_entries_as_ndarray()
         new_sumw2 = new_truth_binning.get_sumw2_as_ndarray()
 
-        old_values = self._truth_binning.get_values_as_ndarray()
-        old_entries = self._truth_binning.get_entries_as_ndarray()
-        old_sumw2 = self._truth_binning.get_sumw2_as_ndarray()
+        old_values = self.truth_binning.get_values_as_ndarray()
+        old_entries = self.truth_binning.get_entries_as_ndarray()
+        old_sumw2 = self.truth_binning.get_sumw2_as_ndarray()
 
         where = new_values > old_values
 
-        self._truth_binning.set_values_from_ndarray(np.where(where, new_values, old_values))
-        self._truth_binning.set_entries_from_ndarray(np.where(where, new_entries, old_entries))
-        self._truth_binning.set_sumw2_from_ndarray(np.where(where, new_sumw2, old_sumw2))
+        self.truth_binning.set_values_from_ndarray(np.where(where, new_values, old_values))
+        self.truth_binning.set_entries_from_ndarray(np.where(where, new_entries, old_entries))
+        self.truth_binning.set_sumw2_from_ndarray(np.where(where, new_sumw2, old_sumw2))
 
     def reset(self):
         """Reset all binnings."""
-        self._truth_binning.reset()
-        self._reco_binning.reset()
-        self._response_binning.reset()
+        self.truth_binning.reset()
+        self.reco_binning.reset()
+        self.response_binning.reset()
 
     def get_truth_values_as_ndarray(self, shape=None):
-        return self._truth_binning.get_values_as_ndarray(shape)
+        return self.truth_binning.get_values_as_ndarray(shape)
 
     def get_truth_entries_as_ndarray(self, shape=None):
-        return self._truth_binning.get_entries_as_ndarray(shape)
+        return self.truth_binning.get_entries_as_ndarray(shape)
 
     def get_truth_sumw2_as_ndarray(self, shape=None):
-        return self._truth_binning.get_sumw2_as_ndarray(shape)
+        return self.truth_binning.get_sumw2_as_ndarray(shape)
 
     def get_reco_values_as_ndarray(self, shape=None):
-        return self._reco_binning.get_values_as_ndarray(shape)
+        return self.reco_binning.get_values_as_ndarray(shape)
 
     def get_reco_entries_as_ndarray(self, shape=None):
-        return self._reco_binning.get_entries_as_ndarray(shape)
+        return self.reco_binning.get_entries_as_ndarray(shape)
 
     def get_reco_sumw2_as_ndarray(self, shape=None):
-        return self._reco_binning.get_sumw2_as_ndarray(shape)
+        return self.reco_binning.get_sumw2_as_ndarray(shape)
 
     def get_response_values_as_ndarray(self, shape=None):
-        return self._response_binning.get_values_as_ndarray(shape)
+        return self.response_binning.get_values_as_ndarray(shape)
 
     def get_response_entries_as_ndarray(self, shape=None):
-        return self._response_binning.get_entries_as_ndarray(shape)
+        return self.response_binning.get_entries_as_ndarray(shape)
 
     def get_response_sumw2_as_ndarray(self, shape=None):
-        return self._response_binning.get_sumw2_as_ndarray(shape)
+        return self.response_binning.get_sumw2_as_ndarray(shape)
 
     def get_response_matrix_as_ndarray(self, shape=None):
         """Return the ResponseMatrix as a ndarray.
@@ -124,7 +124,7 @@ class ResponseMatrix(object):
 
         """
 
-        original_shape = (len(self._reco_binning.bins), len(self._truth_binning.bins))
+        original_shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
 
         # Get the bin response entries
         M = self.get_response_values_as_ndarray(original_shape)
@@ -147,8 +147,8 @@ class ResponseMatrix(object):
         if nuisance_indices is None:
             nuisance_indices = np.ndarray(0, dtype=int)
 
-        N_reco = len(self._reco_binning.bins)
-        N_truth = len(self._truth_binning.bins)
+        N_reco = len(self.reco_binning.bins)
+        N_truth = len(self.truth_binning.bins)
         orig_shape = (N_reco, N_truth)
         epsilon = 1e-12
 
@@ -377,7 +377,7 @@ class ResponseMatrix(object):
 
         # Adjust shape
         if shape is None:
-            shape = (len(self._reco_binning.bins), len(self._truth_binning.bins))
+            shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
         response = response.reshape(list(response.shape[:-2]) + list(shape))
 
         return response
@@ -398,9 +398,9 @@ class ResponseMatrix(object):
         expected to vary smoothly.
         """
 
-        nbins = self._response_binning.nbins
-        resp_vars = self._response_binning.variables
-        truth_vars = self._truth_binning.variables
+        nbins = self.response_binning.nbins
+        resp_vars = self.response_binning.variables
+        truth_vars = self.truth_binning.variables
         resp = self.get_mean_response_matrix_as_ndarray(shape=nbins)
         stat = self.get_statistical_variance_as_ndarray(shape=nbins)
         ret = np.zeros_like(resp, dtype=float)
@@ -444,7 +444,7 @@ class ResponseMatrix(object):
 
         # Adjust shape
         if shape is None:
-            shape = (len(self._reco_binning.bins), len(self._truth_binning.bins))
+            shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
         ret.shape = shape
 
         return ret
@@ -455,7 +455,7 @@ class ResponseMatrix(object):
         This plots the distribution of events that have *both* a truth and reco bin.
         """
 
-        return self._response_binning.plot_values(filename, variables, divide, kwargs1d, kwargs2d, figax)
+        return self.response_binning.plot_values(filename, variables, divide, kwargs1d, kwargs2d, figax)
 
     def plot_entries(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
         """Plot the entries of the response binning.
@@ -463,7 +463,7 @@ class ResponseMatrix(object):
         This plots the distribution of events that have *both* a truth and reco bin.
         """
 
-        return self._response_binning.plot_entries(filename, variables, divide, kwargs1d, kwargs2d, figax)
+        return self.response_binning.plot_entries(filename, variables, divide, kwargs1d, kwargs2d, figax)
 
     def plot_in_bin_variation(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
         """Plot the maximum in-bin variation for projections on all truth variables.
@@ -471,7 +471,7 @@ class ResponseMatrix(object):
         Additional `kwargs` will be passed on to `get_in_bin_variation_as_ndarray`.
         """
 
-        truth_binning = self._truth_binning
+        truth_binning = self.truth_binning
         inbin = self.get_in_bin_variation_as_ndarray(**kwargs)
         inbin = np.max(inbin, axis=0)
 
@@ -483,7 +483,7 @@ class ResponseMatrix(object):
         Additional `kwargs` will be passed on to `get_statistical_variance_as_ndarray`.
         """
 
-        truth_binning = self._truth_binning
+        truth_binning = self.truth_binning
         stat = self.get_statistical_variance_as_ndarray(**kwargs)
         stat = np.sqrt(np.max(stat, axis=0))
 
@@ -498,7 +498,7 @@ class ResponseMatrix(object):
         Additional `kwargs` will be passed on to `get_mean_response_matrix_as_ndarray`.
         """
 
-        truth_binning = self._truth_binning
+        truth_binning = self.truth_binning
         eff = self.get_mean_response_matrix_as_ndarray(**kwargs)
         eff = np.sum(eff, axis=0)
 

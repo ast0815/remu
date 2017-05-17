@@ -632,7 +632,7 @@ class TestLikelihoodMachines(unittest.TestCase):
         response_matrix = []
         response_matrix.append(rm.get_response_matrix_as_ndarray())
         # Create a second response matric for systematics stuff
-        rm._truth_binning.fill_from_csv_file('testdata/test-data.csv')
+        rm.truth_binning.fill_from_csv_file('testdata/test-data.csv')
         response_matrix.append(rm.get_response_matrix_as_ndarray())
         self.L = LikelihoodMachine(data_vector, response_matrix[0])
         self.L2 = LikelihoodMachine(data_vector, response_matrix)
