@@ -969,7 +969,7 @@ class LikelihoodMachine(object):
         preference = float(np.sum(PLR > 0)) / PLR.size
         return PLR, preference
 
-    def plot_bin_efficiencies(self, filename, plot_limits=False):
+    def plot_bin_efficiencies(self, filename, plot_limits=False, bins_per_plot=20):
         """Plot bin by bin efficiencies.
 
         Also plots bin truth limits if `plot_limits` is `True`.
@@ -981,17 +981,22 @@ class LikelihoodMachine(object):
             # Trick boxplot into working even if there is only one efficiency per bin
             eff = np.broadcast_to(eff, (2, eff.shape[1]))
 
-        fig, ax = plt.subplots(1)
-        ax.set_xlabel("Truth bin #")
-        ax.set_ylabel("Efficiency")
-        ax.boxplot(eff, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(eff.shape[1]))
-        if plot_limits:
-            ax2 = ax.twinx()
-            ax2.plot(self.truth_limits, drawstyle='steps-mid', color='green')
-            ax2.set_ylabel("Truth limits")
+        nplots = int(np.ceil(eff.shape[-1] / bins_per_plot))
+        fig, ax= plt.subplots(nplots, squeeze=False, figsize=(8,nplots*3), sharey=True)
+        ax = ax[:,0]
+        for i in range(nplots):
+            x = np.arange(i*bins_per_plot, min((i+1)*bins_per_plot, eff.shape[-1]), dtype=int)
+            ax[i].set_ylabel("Efficiency")
+            ax[i].boxplot(eff[:,i*bins_per_plot:(i+1)*bins_per_plot], whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=x)
+            if plot_limits:
+                ax2 = ax[i].twinx()
+                ax2.plot(x, self.truth_limits[i*bins_per_plot:(i+1)*bins_per_plot], drawstyle='steps-mid', color='green')
+                ax2.set_ylabel("Truth limits")
+        ax[-1].set_xlabel("Truth bin #")
+        fig.tight_layout()
         fig.savefig(filename)
 
-    def plot_truth_bin_traces(self, filename, trace, plot_limits=False):
+    def plot_truth_bin_traces(self, filename, trace, plot_limits=False, bins_per_plot=20):
         """Plot bin by bin MCMC truth traces.
 
         Also plots bin truth limits if `plot_limits` is `True`.  If it is set
@@ -1004,22 +1009,27 @@ class LikelihoodMachine(object):
             # Trick boxplot into working even if there is only one trace entry per bin
             trace = np.broadcast_to(trace, (2, trace.shape[1]))
 
-        fig, ax = plt.subplots(1)
-        ax.set_xlabel("Truth bin #")
         if plot_limits == 'relative':
-            ax.set_ylabel("Value / Truth limit")
             trace = trace / np.where(self.truth_limits > 0, self.truth_limits, 1.)
-            ax.boxplot(trace, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(trace.shape[1]))
-        else:
-            ax.set_ylabel("Value")
-            ax.set_yscale('log')
-            ax.boxplot(trace, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(trace.shape[1]))
-            if plot_limits:
-                ax.plot(self.truth_limits, drawstyle='steps-mid', color='green', label="Truth limit")
-                ax.legend(loc='best')
+
+        nplots = int(np.ceil(trace.shape[-1] / bins_per_plot))
+        fig, ax= plt.subplots(nplots, squeeze=False, figsize=(8,nplots*3), sharey=True)
+        ax = ax[:,0]
+        for i in range(nplots):
+            x = np.arange(i*bins_per_plot, min((i+1)*bins_per_plot, trace.shape[-1]), dtype=int)
+            ax[i].boxplot(trace[:,i*bins_per_plot:(i+1)*bins_per_plot], whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=x)
+            if plot_limits == 'relative':
+                ax[i].set_ylabel("Value / Truth limit")
+            else:
+                ax[i].set_ylabel("Value")
+                if plot_limits:
+                    ax[i].plot(x, self.truth_limits[i*bins_per_plot:(i+1)*bins_per_plot], drawstyle='steps-mid', color='green', label="Truth limit")
+                    ax[i].legend(loc='best')
+        ax[-1].set_xlabel("Truth bin #")
+        fig.tight_layout()
         fig.savefig(filename)
 
-    def plot_reco_bin_traces(self, filename, trace, toy_index=None, plot_data=False):
+    def plot_reco_bin_traces(self, filename, trace, toy_index=None, plot_data=False, bins_per_plot=20):
         """Plot bin by bin MCMC reco traces.
 
         Also plots bin data if `plot_data` is `True`.  If it is set to the
@@ -1040,18 +1050,22 @@ class LikelihoodMachine(object):
         if trace.shape[0] == 1:
             trace = np.broadcast_to(trace, (2,) + trace.shape[1:])
 
-        fig, ax = plt.subplots(1)
-        ax.set_xlabel("Reco bin #")
         if plot_data == 'relative':
             trace = trace / np.where(self.data_vector > 0, self.data_vector, 1.)
-            ax.boxplot(trace, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(trace.shape[1]))
-            ax.set_ylabel("Value / Data")
-        else:
-            ax.boxplot(trace, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(trace.shape[1]))
-            if plot_data:
-                ax.plot(self.data_vector, drawstyle='steps-mid', color='green', label="Data")
-                ax.legend(loc='best')
-            ax.set_ylabel("Value")
-            ax.set_yscale('log')
-            ax.set_ylim(bottom=1e-2)
+
+        nplots = int(np.ceil(trace.shape[-1] / bins_per_plot))
+        fig, ax= plt.subplots(nplots, squeeze=False, figsize=(8,nplots*3), sharey=True)
+        ax = ax[:,0]
+        for i in range(nplots):
+            x = np.arange(i*bins_per_plot, min((i+1)*bins_per_plot, trace.shape[-1]), dtype=int)
+            ax[i].boxplot(trace[:,i*bins_per_plot:(i+1)*bins_per_plot], whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=x)
+            if plot_data == 'relative':
+                ax[i].set_ylabel("Value / Data")
+            else:
+                ax[i].set_ylabel("Value")
+                if plot_data:
+                    ax[i].plot(x, self.data_vector[i*bins_per_plot:(i+1)*bins_per_plot], drawstyle='steps-mid', color='green', label="Data")
+                    ax[i].legend(loc='best')
+        ax[-1].set_xlabel("Reco bin #")
+        fig.tight_layout()
         fig.savefig(filename)
