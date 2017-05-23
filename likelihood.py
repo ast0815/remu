@@ -991,7 +991,7 @@ class LikelihoodMachine(object):
             ax2.set_ylabel("Truth limits")
         fig.savefig(filename)
 
-    def plot_bin_traces(self, filename, trace, plot_limits=False):
+    def plot_truth_bin_traces(self, filename, trace, plot_limits=False):
         """Plot bin by bin MCMC truth traces.
 
         Also plots bin truth limits if `plot_limits` is `True`.  If it is set
@@ -1012,8 +1012,46 @@ class LikelihoodMachine(object):
             ax.boxplot(trace, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(trace.shape[1]))
         else:
             ax.set_ylabel("Value")
+            ax.set_yscale('log')
             ax.boxplot(trace, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(trace.shape[1]))
             if plot_limits:
                 ax.plot(self.truth_limits, drawstyle='steps-mid', color='green', label="Truth limit")
                 ax.legend(loc='best')
+        fig.savefig(filename)
+
+    def plot_reco_bin_traces(self, filename, trace, toy_index=None, plot_data=False):
+        """Plot bin by bin MCMC reco traces.
+
+        Also plots bin data if `plot_data` is `True`.  If it is set to the
+        string 'relative', the values are divided by the data before plotting.
+        """
+
+        resp = self._reduced_response_matrix
+        if toy_index is not None:
+            resp = resp[toy_index,...]
+
+        trace = self._reduce_truth_vector(trace)[...,np.newaxis,:]
+        trace = np.einsum('...i,...i->...', resp, trace)
+
+        # Reshape for boxplotting
+        trace = trace.reshape( (np.prod(trace.shape[:-1], dtype=int), trace.shape[-1]) )
+
+        # Trick boxplot into working even if there is only one trace entry per bin
+        if trace.shape[0] == 1:
+            trace = np.broadcast_to(trace, (2,) + trace.shape[1:])
+
+        fig, ax = plt.subplots(1)
+        ax.set_xlabel("Reco bin #")
+        if plot_data == 'relative':
+            trace = trace / np.where(self.data_vector > 0, self.data_vector, 1.)
+            ax.boxplot(trace, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(trace.shape[1]))
+            ax.set_ylabel("Value / Data")
+        else:
+            ax.boxplot(trace, whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=range(trace.shape[1]))
+            if plot_data:
+                ax.plot(self.data_vector, drawstyle='steps-mid', color='green', label="Data")
+                ax.legend(loc='best')
+            ax.set_ylabel("Value")
+            ax.set_yscale('log')
+            ax.set_ylim(bottom=1e-2)
         fig.savefig(filename)
