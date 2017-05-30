@@ -1024,7 +1024,7 @@ class RectangularBinning(Binning):
 
         self.bins._sumw2_array.flat[:] = arr.flat
 
-    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum):
+    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, denominator=None):
         """Plot a visual representation of an array containing the entries or values of the binning.
 
         Arguments
@@ -1047,6 +1047,8 @@ class RectangularBinning(Binning):
                 Default: Create new figure and axes.
         reduction_function : Use this function to marginalize out variables.
                              Default: numpy.sum
+        denominator : A second array can be provided as a denominator.
+                      It is projected the same way `arr` is prior to dividing.
 
         Returns
         -------
@@ -1081,6 +1083,9 @@ class RectangularBinning(Binning):
 
         temp_binning = deepcopy(self)
         temp_binning.set_values_from_ndarray(arr)
+        if denominator is not None:
+            denominator_binning = deepcopy(self)
+            denominator_binning.set_values_from_ndarray(denominator)
 
         def make_finite(edges):
             ret = list(edges)
@@ -1105,6 +1110,9 @@ class RectangularBinning(Binning):
                     # 1D histogram
 
                     nn = temp_binning.project([y_var], reduction_function=reduction_function).get_values_as_ndarray()
+                    if denominator is not None:
+                        nn /= denominator_binning.project([y_var], reduction_function=reduction_function).get_values_as_ndarray()
+
                     if divide:
                         nn /= (y_edg[1:] - y_edg[:-1])
                     nn = np.append(nn, nn[-1])
@@ -1128,6 +1136,8 @@ class RectangularBinning(Binning):
 
                     tb = temp_binning.project([x_var, y_var], reduction_function=reduction_function)
                     arr = tb.get_values_as_ndarray()
+                    if denominator is not None:
+                        arr /= denominator_binning.project([x_var, y_var], reduction_function=reduction_function).get_values_as_ndarray()
                     if tb.variables[0] != y_var:
                         arr = arr.transpose()
                     arr = arr.flatten()
