@@ -505,7 +505,7 @@ class TestResponseMatrices(unittest.TestCase):
             self.rm.plot_values(f)
             self.rm.plot_in_bin_variation(f)
             self.rm.plot_statistical_variation(f)
-            self.rm.plot_min_efficiency(f)
+            self.rm.plot_expected_efficiency(f)
 
     def test_fill(self):
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')

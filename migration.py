@@ -489,17 +489,23 @@ class ResponseMatrix(object):
 
         truth_binning.plot_ndarray(filename, stat, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.max)
 
-    def plot_min_efficiency(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
-        """Plot minimum efficiencies for projections on all truth variables.
+    def plot_expected_efficiency(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, nuisance_indices=[], **kwargs):
+        """Plot expected efficiencies for projections on all truth variables.
 
+        This assumes the truth values are distributed like the generator data.
         This does *not* consider the statistical uncertainty of the matrix
-        elements.  It uses only the mean response matrix.
+        elements.
 
-        Additional `kwargs` will be passed on to `get_mean_response_matrix_as_ndarray`.
+        Additional `kwargs` will be passed on to `get_response/truth_values_as_ndarray`.
         """
 
         truth_binning = self.truth_binning
-        eff = self.get_mean_response_matrix_as_ndarray(**kwargs)
+        shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
+        eff = self.get_response_values_as_ndarray(shape=shape, **kwargs)
         eff = np.sum(eff, axis=0)
+        eff[nuisance_indices] = 0.
+        truth = self.get_truth_values_as_ndarray(**kwargs)
+        truth = np.where(truth > 0, truth, 1.)
+        truth[nuisance_indices] = 1e-12
 
-        truth_binning.plot_ndarray(filename, eff, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.min)
+        truth_binning.plot_ndarray(filename, eff, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.sum, denominator=truth)
