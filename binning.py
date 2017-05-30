@@ -480,7 +480,7 @@ class Binning(object):
             if i is not None:
                 self.bins[i].fill(w)
 
-    def fill_from_csv_file(self, filename, weightfield=None, **kwargs):
+    def fill_from_csv_file(self, filename, weightfield=None, rename={}, **kwargs):
         """Fill the binning with events from a CSV file.
 
         The file must be formated like this:
@@ -508,10 +508,12 @@ class Binning(object):
         # Handle lists recursively
         if isinstance(filename, list):
             for item in filename:
-                self.fill_from_csv_file(item, weightfield=weightfield, **kwargs)
+                self.fill_from_csv_file(item, weightfield=weightfield, rename=rename, **kwargs)
             return
 
         data = np.genfromtxt(filename, delimiter=',', names=True)
+        data = rename_fields(data, rename)
+
         if weightfield is None:
             self.fill(data, **kwargs)
         else:
