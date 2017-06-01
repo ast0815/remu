@@ -75,7 +75,7 @@ class ResponseMatrix(object):
         old_entries = self.truth_binning.get_entries_as_ndarray()
         old_sumw2 = self.truth_binning.get_sumw2_as_ndarray()
 
-        where = new_values > old_values
+        where = (new_values >= old_values)
 
         self.truth_binning.set_values_from_ndarray(np.where(where, new_values, old_values))
         self.truth_binning.set_entries_from_ndarray(np.where(where, new_entries, old_entries))
@@ -150,7 +150,7 @@ class ResponseMatrix(object):
         N_reco = len(self.reco_binning.bins)
         N_truth = len(self.truth_binning.bins)
         orig_shape = (N_reco, N_truth)
-        epsilon = 1e-12
+        epsilon = 1e-50
 
         resp_entries = self.get_response_entries_as_ndarray(orig_shape)
         truth_entries = self.get_truth_entries_as_ndarray()
@@ -187,9 +187,11 @@ class ResponseMatrix(object):
         resp2_p = resp2 + expected_weight**2
         resp_entries_p = resp_entries + 1
 
-        sigma = np.sqrt(((resp2_p/resp_entries_p) - (resp1_p/resp_entries_p)**2) / resp_entries_p)
+        sigma = ((resp2_p/resp_entries_p) - (resp1_p/resp_entries_p)**2) / resp_entries_p
         # Add an epsilon so sigma is always > 0
+        # Deals with bins where all entries are exactly the same and rounding errors
         sigma += epsilon
+        sigma = np.sqrt(sigma)
 
         return alpha, mu, sigma
 
@@ -505,7 +507,7 @@ class ResponseMatrix(object):
         eff = np.sum(eff, axis=0)
         eff[nuisance_indices] = 0.
         truth = self.get_truth_values_as_ndarray(**kwargs)
-        truth = np.where(truth > 0, truth, 1.)
-        truth[nuisance_indices] = 1e-12
+        truth = np.where(truth > 0, truth, 1e-50)
+        truth[nuisance_indices] = 1e-50
 
         truth_binning.plot_ndarray(filename, eff, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.sum, denominator=truth)
