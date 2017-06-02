@@ -587,7 +587,7 @@ class TestResponseMatrices(unittest.TestCase):
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         var = self.rm.get_statistical_variance_as_ndarray()
         self.assertAlmostEqual(var[0,0], 0.04921875)
-        self.assertAlmostEqual(var[1,1], 0.01626926)
+        self.assertAlmostEqual(var[1,1], 0.01594388)
         self.assertAlmostEqual(var[2,2], 0.04296875)
         self.assertAlmostEqual(var[3,3], 0.04296875)
 
