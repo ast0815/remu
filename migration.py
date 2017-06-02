@@ -188,10 +188,12 @@ class ResponseMatrix(object):
         resp_entries_p = resp_entries + 1
 
         sigma = ((resp2_p/resp_entries_p) - (resp1_p/resp_entries_p)**2) / resp_entries_p
-        # Add an epsilon so sigma is always > 0
-        # Deals with bins where all entries are exactly the same and rounding errors
-        sigma += epsilon
+        # Since we re-filled the truth bins with possibly different weights,
+        # we need to calculate the mean weight error of the waste bins differently
+        sigma[-1] = np.sum(sigma[:-1]*resp_entries_p[:-1]**2, axis=0) / resp_entries_p[-1]**2
         sigma = np.sqrt(sigma)
+        # Add an epsilon so sigma is always > 0
+        sigma += epsilon
 
         return alpha, mu, sigma
 
