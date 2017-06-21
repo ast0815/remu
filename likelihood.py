@@ -270,6 +270,34 @@ class LikelihoodMachine(object):
         return arr
 
     @staticmethod
+    def _translate(response_matrix, truth_vector):
+        """Use the response matrix to translate the truth values into reco values."""
+
+        # We need to set the terms of the einstein sum according to the number of axes.
+        # N-dimensional case: 'a...dkl,e...fl->a...de...fk'
+        ax_resp = response_matrix.ndim
+        if ax_resp == 2:
+            ein_resp = ''
+        elif ax_resp == 3:
+            ein_resp = 'd'
+        elif ax_resp == 4:
+            ein_resp = 'ad'
+        elif ax_resp > 4:
+            ein_resp = 'a...d'
+        ax_truth = truth_vector.ndim
+        if ax_truth == 1:
+            ein_truth = ''
+        elif ax_truth == 2:
+            ein_truth = 'f'
+        elif ax_truth == 3:
+            ein_truth = 'ef'
+        elif ax_truth > 3:
+            ein_truth = 'e...f'
+        reco = np.einsum(ein_resp+'kl,'+ein_truth+'l->'+ein_resp+ein_truth+'k', response_matrix, truth_vector)
+
+        return reco
+
+    @staticmethod
     def log_probability(data_vector, response_matrix, truth_vector):
         """Calculate the log probabilty of measuring `data_vector`, given `response_matrix` and `truth_vector`.
 
@@ -293,27 +321,7 @@ class LikelihoodMachine(object):
         resp = LikelihoodMachine._create_vector_array(response_matrix, data_shape[:-1])
 
         # Reco expectation values of shape (a,b,...,c,d,...,e,f,...,n_data)
-        # We need to set the terms of the einstein sum according to the number of axes.
-        # N-dimensional case: 'a...dkl,e...fl->a...de...fk'
-        ax_resp = resp.ndim
-        if ax_resp == 2:
-            ein_resp = ''
-        elif ax_resp == 3:
-            ein_resp = 'd'
-        elif ax_resp == 4:
-            ein_resp = 'ad'
-        elif ax_resp > 4:
-            ein_resp = 'a...d'
-        ax_truth = len(truth_shape)
-        if ax_truth == 1:
-            ein_truth = ''
-        elif ax_truth == 2:
-            ein_truth = 'f'
-        elif ax_truth == 3:
-            ein_truth = 'ef'
-        elif ax_truth > 3:
-            ein_truth = 'e...f'
-        reco = np.einsum(ein_resp+'kl,'+ein_truth+'l->'+ein_resp+ein_truth+'k', resp, truth_vector)
+        reco = LikelihoodMachine._translate(resp, truth_vector)
 
         # Create a data vector of the shape (a,b,...,n_data,c,d,...,e,f,...)
         data = LikelihoodMachine._create_vector_array(data_vector, list(response_shape[:-2])+list(truth_shape[:-1]), append=False)
