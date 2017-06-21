@@ -175,6 +175,8 @@ class ResponseMatrix(object):
         truth_entries = self.get_truth_entries_as_ndarray()
         # Add "waste bin" of not selected events
         waste_entries = truth_entries - resp_entries.sum(axis=0)
+        if np.any(waste_entries < 0):
+            raise RuntimeError("Illegal response matrix: More reconstructed than true events!")
         resp_entries = np.append(resp_entries, waste_entries[np.newaxis,:], axis=0)
 
         # Get Dirichlet parameters when assuming prior flat in efficiency and
@@ -195,21 +197,23 @@ class ResponseMatrix(object):
         truth2 = self.get_truth_sumw2_as_ndarray()
         # Add "waste bin" of not selected events
         waste1 = truth1 - resp1.sum(axis=0)
+        if np.any(waste1 < 0):
+            raise RuntimeError("Illegal response matrix: Higher total reconstructed than true weight!")
         resp1 = np.append(resp1, waste1[np.newaxis,:], axis=0)
-        waste2 = truth2 - resp2.sum(axis=0)
-        resp2 = np.append(resp2, waste2[np.newaxis,:], axis=0)
 
-        mu = np.where(resp_entries > 0, resp1/np.where(resp_entries > 0, resp_entries, 1), expected_weight)
+        i = resp_entries > 0
+        mu = np.where(i, resp1/np.where(i, resp_entries, 1), expected_weight)
 
         # Add pseudo observation for variance estimation
-        resp1_p = resp1 + expected_weight
+        resp1_p = resp1[:-1] + expected_weight
         resp2_p = resp2 + expected_weight**2
         resp_entries_p = resp_entries + 1
+        resp_entries_p2 = resp_entries_p**2
 
-        sigma = ((resp2_p/resp_entries_p) - (resp1_p/resp_entries_p)**2) / resp_entries_p
+        sigma = ((resp2_p/resp_entries_p[:-1]) - (resp1_p/resp_entries_p[:-1])**2) / resp_entries_p[:-1]
         # Since we re-filled the truth bins with possibly different weights,
         # we need to calculate the mean weight error of the waste bins differently
-        sigma[-1] = np.sum(sigma[:-1]*resp_entries_p[:-1]**2, axis=0) / resp_entries_p[-1]**2
+        sigma = np.append(sigma, (np.sum(sigma*resp_entries_p2[:-1], axis=0) / resp_entries_p2[-1])[np.newaxis,:], axis=0)
         sigma = np.sqrt(sigma)
         # Add an epsilon so sigma is always > 0
         sigma += epsilon
