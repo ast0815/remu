@@ -26,11 +26,8 @@ class ResponseMatrix(object):
         self.reco_binning.fill(event, weight)
         self.response_binning.fill(event, weight)
 
-    def fill_from_csv_file(self, filename, **kwargs):
-        """Fill binnings from csv file."""
-        self.truth_binning.fill_from_csv_file(filename, **kwargs)
-        self.reco_binning.fill_from_csv_file(filename, **kwargs)
-        self.response_binning.fill_from_csv_file(filename, **kwargs)
+    def _fix_rounding_errors(self):
+        """Fix rounding errors that cause impossible matrices."""
 
         resp = self.get_response_values_as_ndarray()
         truth = self.get_truth_values_as_ndarray()
@@ -44,6 +41,13 @@ class ResponseMatrix(object):
         if np.any(diff < 0.): # But make sure truth is >= reco
             fixed_truth = np.where(diff < 0, resp, truth)
             self.truth_binning.set_values_from_ndarray(fixed_truth)
+
+    def fill_from_csv_file(self, filename, **kwargs):
+        """Fill binnings from csv file."""
+        self.truth_binning.fill_from_csv_file(filename, **kwargs)
+        self.reco_binning.fill_from_csv_file(filename, **kwargs)
+        self.response_binning.fill_from_csv_file(filename, **kwargs)
+        self._fix_rounding_errors()
 
     def fill_up_truth_from_csv_file(self, filename, **kwargs):
         """Re fill the truth bins with the given csv file.
@@ -93,6 +97,8 @@ class ResponseMatrix(object):
         self.truth_binning.set_values_from_ndarray(np.where(where, new_values, old_values))
         self.truth_binning.set_entries_from_ndarray(np.where(where, new_entries, old_entries))
         self.truth_binning.set_sumw2_from_ndarray(np.where(where, new_sumw2, old_sumw2))
+
+        self._fix_rounding_errors()
 
     def reset(self):
         """Reset all binnings."""
