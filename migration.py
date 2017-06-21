@@ -32,6 +32,19 @@ class ResponseMatrix(object):
         self.reco_binning.fill_from_csv_file(filename, **kwargs)
         self.response_binning.fill_from_csv_file(filename, **kwargs)
 
+        resp = self.get_response_values_as_ndarray()
+        truth = self.get_truth_values_as_ndarray()
+        resp.shape=(resp.size/truth.size, truth.size)
+        resp = np.sum(resp, axis=0)
+        diff = truth-resp
+
+        if np.any(diff < -1e-12): # Allow rounding errors
+            raise RuntimeError("Illegal response matrix: Higher total reconstructed than true weight!")
+
+        if np.any(diff < 0.): # But make sure truth is >= reco
+            fixed_truth = np.where(diff < 0, resp, truth)
+            self.truth_binning.set_values_from_ndarray(fixed_truth)
+
     def fill_up_truth_from_csv_file(self, filename, **kwargs):
         """Re fill the truth bins with the given csv file.
 
