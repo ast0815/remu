@@ -181,7 +181,7 @@ class ResponseMatrix(object):
 
         # Get Dirichlet parameters when assuming prior flat in efficiency and
         # ignorant about reconstruction. This also means that the prior
-        # expects the recosntructed events to be clustered in a small number of
+        # expects the reconstructed events to be clustered in a small number of
         # reco bins.
         alpha = np.asfarray(resp_entries)
         prior = np.full(N_reco+1, 1./N_reco, dtype=float)
