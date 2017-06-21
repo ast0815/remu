@@ -182,7 +182,7 @@ class JeffreysPrior(object):
 class LikelihoodMachine(object):
     """Class that calculates likelihoods for truth vectors."""
 
-    def __init__(self, data_vector, response_matrix, truth_limits=None, limit_method='raise'):
+    def __init__(self, data_vector, response_matrix, truth_limits=None, limit_method='raise', eff_threshold=0.):
         """Initialize the LikelihoodMachine with the given data and response matrix.
 
         The optional `truth_limits` tells the LikelihoodMachine up to which
@@ -210,11 +210,11 @@ class LikelihoodMachine(object):
         self.limit_method = limit_method
 
         # Calculte the reduced response matrix for speedier calculations
-        self._reduced_response_matrix, self._eff = LikelihoodMachine._reduce_response_matrix(self.response_matrix)
+        self._reduced_response_matrix, self._eff = LikelihoodMachine._reduce_response_matrix(self.response_matrix, threshold=eff_threshold)
         self._n_eff = np.sum(self._eff)
 
     @staticmethod
-    def _reduce_response_matrix(response_matrix):
+    def _reduce_response_matrix(response_matrix, threshold=0.):
         """Calculate a reduced response matrix, eliminating columns with 0. efficiency.
 
         Returns
@@ -233,7 +233,7 @@ class LikelihoodMachine(object):
         eff = np.sum(response_matrix, axis=-2)
         if eff.ndim > 1:
             eff = np.max(eff, axis=tuple(range(eff.ndim-1)))
-        eff = ( eff > 0. )
+        eff = ( eff > threshold )
 
         reduced_response_matrix = response_matrix[...,eff]
 
