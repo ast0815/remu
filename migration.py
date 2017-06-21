@@ -158,7 +158,7 @@ class ResponseMatrix(object):
         return M
 
     def _get_stat_error_parameters(self, expected_weight=1., nuisance_indices=None):
-        """Return $\alpha^t_{ij}$, $\hat{m}^t_{ij}$ and $\sigma(m^t_{ij})$.
+        r"""Return $\alpha^t_{ij}$, $\hat{m}^t_{ij}$ and $\sigma(m^t_{ij})$.
 
         Used for calculations of statistical variance.
         """
