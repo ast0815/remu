@@ -4,7 +4,7 @@ from copy import copy, deepcopy
 class ResponseMatrix(object):
     """Matrix that describes the detector response to true events."""
 
-    def __init__(self, reco_binning, truth_binning):
+    def __init__(self, reco_binning, truth_binning, nuisance_indices=[]):
         """Initilize the Response Matrix.
 
         Arguments
@@ -12,13 +12,18 @@ class ResponseMatrix(object):
 
         truth_binning: The Binning object describing the truth categorization.
         reco_binning: The Binning object describing the reco categorization.
+        nuisance_indices: List of indices of nuisance truth bins.
 
         The binnings will be combined with `cartesian_product`.
+
+        The truth bins corresonding to the `nuisance_indices` will be treated
+        like they have a total efficiency of 1.
         """
 
         self.truth_binning = truth_binning
         self.reco_binning = reco_binning
         self.response_binning = reco_binning.cartesian_product(truth_binning)
+        self.nuisance_indices=nuisance_indices
 
     def fill(self, event, weight=1.):
         """Fill events into the binnings."""
@@ -164,7 +169,7 @@ class ResponseMatrix(object):
         """
 
         if nuisance_indices is None:
-            nuisance_indices = np.ndarray(0, dtype=int)
+            nuisance_indices = self.nuisance_indices
 
         N_reco = len(self.reco_binning.bins)
         N_truth = len(self.truth_binning.bins)
@@ -516,7 +521,7 @@ class ResponseMatrix(object):
 
         truth_binning.plot_ndarray(filename, stat, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.max)
 
-    def plot_expected_efficiency(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, nuisance_indices=[], **kwargs):
+    def plot_expected_efficiency(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, nuisance_indices=None, **kwargs):
         """Plot expected efficiencies for projections on all truth variables.
 
         This assumes the truth values are distributed like the generator data.
@@ -525,6 +530,9 @@ class ResponseMatrix(object):
 
         Additional `kwargs` will be passed on to `get_response/truth_values_as_ndarray`.
         """
+
+        if nuisance_indices is None:
+            nuisance_indices = self.nuisance_indices
 
         truth_binning = self.truth_binning
         shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
