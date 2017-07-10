@@ -97,7 +97,14 @@ class ResponseMatrix(object):
         old_entries = self.truth_binning.get_entries_as_ndarray()
         old_sumw2 = self.truth_binning.get_sumw2_as_ndarray()
 
-        where = (new_values >= old_values)
+        where = (new_values > 0)
+        diff = new_values - old_values
+        # Check for bins where the fill-up is less than the original
+        # Allow some deviation since weight corrections and systematics are not exact
+        if np.any(where & (diff < -0.5)):
+            raise RuntimeError("Filled-up values are less than the original filling. This should not happen!")
+
+        where = (diff > 0)
 
         self.truth_binning.set_values_from_ndarray(np.where(where, new_values, old_values))
         self.truth_binning.set_entries_from_ndarray(np.where(where, new_entries, old_entries))
