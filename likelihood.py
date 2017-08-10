@@ -556,6 +556,15 @@ class LikelihoodMachine(object):
 
         return res
 
+    def _composite_hypothesis_wrapper(self, composite_hypothesis):
+        """Return a new composite hypothesis, that translates to reduced truth vectors."""
+        fun = lambda x: self._reduce_truth_vector(composite_hypothesis.translate(x))
+        H0 = CompositeHypothesis(translation_function=fun,
+                                parameter_limits=composite_hypothesis.parameter_limits,
+                                parameter_priors=composite_hypothesis.parameter_priors,
+                                parameter_names=composite_hypothesis.parameter_names)
+        return H0
+
     def max_log_likelihood(self, composite_hypothesis, *args, **kwargs):
         """Calculate the maximum possible Likelihood in the given CompositeHypothesis, given the measured data.
 
@@ -581,7 +590,11 @@ class LikelihoodMachine(object):
               In case of `systematics=='profile'`, it also contains the index of
               the response matrix that yielded the maximum likelihood `res.i`
         """
-        ret = LikelihoodMachine.max_log_probability(self.data_vector, self.response_matrix, composite_hypothesis, *args, **kwargs)
+
+        resp = self._reduced_response_matrix
+        # Wrapping composite hypothesis to produce reduced truth vectors
+        H0 = self._composite_hypothesis_wrapper(composite_hypothesis)
+        ret = LikelihoodMachine.max_log_probability(self.data_vector, resp, H0, *args, **kwargs)
         ret.L = ret.P
         del ret.P
         return ret
@@ -767,9 +780,12 @@ class LikelihoodMachine(object):
         # Flatten the fake data sets from possibly multiple response matrices
         fake_data.shape = (np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
 
+        # Wrapping composite hypothesis to produce reduced truth vectors
+        H0 = self._composite_hypothesis_wrapper(composite_hypothesis)
+
         # Calculate the maximum probabilities
         def prob_fun(data):
-            return LikelihoodMachine.max_log_probability(data, self.response_matrix, composite_hypothesis, systematics=systematics, **kwargs).P
+            return LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, H0, systematics=systematics, **kwargs).P
         prob = np.array(list(map(prob_fun, fake_data)))
 
         # Get likelihood of actual data
@@ -842,10 +858,14 @@ class LikelihoodMachine(object):
         # Flatten the fake data sets from possibly multiple response matrices
         fake_data.shape = (np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
 
+        # Wrapping composite hypothesis to produce reduced truth vectors
+        wH0 = self._composite_hypothesis_wrapper(H0)
+        wH1 = self._composite_hypothesis_wrapper(H1)
+
         # Calculate the maximum probabilities
         def ratio_fun(data):
-             p0 = LikelihoodMachine.max_log_probability(data, self.response_matrix, H0, systematics=systematics, **kwargs).P
-             p1 = LikelihoodMachine.max_log_probability(data, self.response_matrix, H1, systematics=systematics, **kwargs).P
+             p0 = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, **kwargs).P
+             p1 = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, **kwargs).P
              return p0-p1 # difference because log
         ratio = np.array(list(map(ratio_fun, fake_data)))
 
