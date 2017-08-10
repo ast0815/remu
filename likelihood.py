@@ -209,7 +209,7 @@ class LikelihoodMachine(object):
             self.truth_limits = np.array(truth_limits)
         self.limit_method = limit_method
 
-        # Calculte the reduced response matrix for speedier calculations
+        # Calculate the reduced response matrix for speedier calculations
         self._reduced_response_matrix, self._eff = LikelihoodMachine._reduce_response_matrix(self.response_matrix, threshold=eff_threshold)
         self._n_eff = np.sum(self._eff)
 
@@ -754,7 +754,7 @@ class LikelihoodMachine(object):
         if parameters is None:
             parameters = self.max_log_likelihood(composite_hypothesis, **kwargs).x
 
-        truth_vector = composite_hypothesis.translate(parameters)
+        truth_vector = self._reduce_truth_vector(composite_hypothesis.translate(parameters))
 
         # Decide which matrix to use for data generation
         if self._reduced_response_matrix.ndim > 2 and generator_matrix_index is not None:
@@ -773,7 +773,7 @@ class LikelihoodMachine(object):
         prob = np.array(list(map(prob_fun, fake_data)))
 
         # Get likelihood of actual data
-        p0 = self.log_likelihood(truth_vector, systematics=systematics)
+        p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
         n = np.sum(prob <= p0)
@@ -828,8 +828,8 @@ class LikelihoodMachine(object):
         if par1 is None:
             par1 = self.max_log_likelihood(H1, systematics=systematics, **kwargs).x
 
-        truth_vector = H0.translate(par0)
-        alternative_truth = H1.translate(par1)
+        truth_vector = self._reduce_truth_vector(H0.translate(par0))
+        alternative_truth = self._reduce_truth_vector(H1.translate(par1))
 
         # Decide which matrix to use for data generation
         if self._reduced_response_matrix.ndim > 2 and generator_matrix_index is not None:
@@ -850,8 +850,8 @@ class LikelihoodMachine(object):
         ratio = np.array(list(map(ratio_fun, fake_data)))
 
         # Get likelihood of actual data
-        p0 = self.log_likelihood(truth_vector, systematics=systematics)
-        p1 = self.log_likelihood(alternative_truth, systematics=systematics)
+        p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
+        p1 = self._reduced_log_likelihood(alternative_truth, systematics=systematics)
         r0 = p0-p1 # difference because log
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
