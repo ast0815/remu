@@ -24,12 +24,18 @@ class ResponseMatrix(object):
         self.reco_binning = reco_binning
         self.response_binning = reco_binning.cartesian_product(truth_binning)
         self.nuisance_indices=nuisance_indices
+        self.filled_truth_indices = []
+
+    def _update_filled_indices(self):
+        """Update the list of filled truth indices."""
+        self.filled_truth_indices = np.argwhere(self.get_truth_entries_as_ndarray() > 0).flatten()
 
     def fill(self, event, weight=1.):
         """Fill events into the binnings."""
         self.truth_binning.fill(event, weight)
         self.reco_binning.fill(event, weight)
         self.response_binning.fill(event, weight)
+        self._update_filled_indices()
 
     def _fix_rounding_errors(self):
         """Fix rounding errors that cause impossible matrices."""
@@ -53,6 +59,7 @@ class ResponseMatrix(object):
         self.reco_binning.fill_from_csv_file(filename, **kwargs)
         self.response_binning.fill_from_csv_file(filename, **kwargs)
         self._fix_rounding_errors()
+        self._update_filled_indices()
 
     def fill_up_truth_from_csv_file(self, filename, **kwargs):
         """Re fill the truth bins with the given csv file.
@@ -111,12 +118,14 @@ class ResponseMatrix(object):
         self.truth_binning.set_sumw2_from_ndarray(np.where(where, new_sumw2, old_sumw2))
 
         self._fix_rounding_errors()
+        self._update_filled_indices()
 
     def reset(self):
         """Reset all binnings."""
         self.truth_binning.reset()
         self.reco_binning.reset()
         self.response_binning.reset()
+        self._update_filled_indices()
 
     def get_truth_values_as_ndarray(self, *args, **kwargs):
         return self.truth_binning.get_values_as_ndarray(*args, **kwargs)
