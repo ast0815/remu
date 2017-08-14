@@ -632,6 +632,8 @@ class TestResponseMatrices(unittest.TestCase):
         self.assertEqual(ret.shape, (2,4,3))
         ret = self.rm.generate_random_response_matrices((2,3), shape=(2,8), nuisance_indices=[0])
         self.assertEqual(ret.shape, (2,3,2,8))
+        ret = self.rm.generate_random_response_matrices((2,3), shape=(4,3), nuisance_indices=[1,3], truth_indices=[0,2,3])
+        self.assertEqual(ret.shape, (2,3,4,3))
 
     def test_in_bin_variation(self):
         """Test the in-bin variation calculation."""

@@ -197,6 +197,16 @@ class ResponseMatrix(object):
 
         if truth_indices is None:
             truth_indices = slice(None, None, None)
+        else:
+            # Translate nuisance indices to sliced indices
+            i = np.searchsorted(truth_indices, nuisance_indices)
+            mask = i < len(truth_indices)
+            i = i[mask]
+            nuisance_indices = np.asarray(nuisance_indices)[mask]
+            mask = (nuisance_indices == np.asarray(truth_indices)[i])
+            nuisance_indices = np.array(i[mask])
+            del mask
+            del i
 
         N_reco = len(self.reco_binning.bins)
         N_truth = len(self.truth_binning.bins)
