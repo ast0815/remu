@@ -145,7 +145,7 @@ class ResponseMatrix(object):
     def get_response_sumw2_as_ndarray(self, *args, **kwargs):
         return self.response_binning.get_sumw2_as_ndarray(*args, **kwargs)
 
-    def get_response_matrix_as_ndarray(self, shape=None):
+    def get_response_matrix_as_ndarray(self, shape=None, truth_indices=None):
         """Return the ResponseMatrix as a ndarray.
 
         If no shape is specified, it will be set to `(N_reco, N_truth)`.
@@ -153,15 +153,20 @@ class ResponseMatrix(object):
 
             v_reco = response_matrix.dot(v_truth)
 
+        If `truth_indices` are provided, a sliced matrix with only the given
+        columns will be returned.
         """
+
+        if truth_indices is None:
+            truth_indices = slice(None, None, None)
 
         original_shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
 
         # Get the bin response entries
-        M = self.get_response_values_as_ndarray(original_shape)
+        M = self.get_response_values_as_ndarray(original_shape)[:,truth_indices]
 
         # Normalize to number of simulated events
-        N_t = self.get_truth_values_as_ndarray()
+        N_t = self.get_truth_values_as_ndarray(indices=truth_indices)
         M /= np.where(N_t > 0., N_t, 1.)
 
         if shape is not None:
@@ -169,22 +174,28 @@ class ResponseMatrix(object):
 
         return M
 
-    def _get_stat_error_parameters(self, expected_weight=1., nuisance_indices=None):
+    def _get_stat_error_parameters(self, expected_weight=1., nuisance_indices=None, truth_indices=None):
         r"""Return $\alpha^t_{ij}$, $\hat{m}^t_{ij}$ and $\sigma(m^t_{ij})$.
 
         Used for calculations of statistical variance.
+
+        If `truth_indices` are provided, a sliced matrix with only the given
+        columns will be returned.
         """
 
         if nuisance_indices is None:
             nuisance_indices = self.nuisance_indices
+
+        if truth_indices is None:
+            truth_indices = slice(None, None, None)
 
         N_reco = len(self.reco_binning.bins)
         N_truth = len(self.truth_binning.bins)
         orig_shape = (N_reco, N_truth)
         epsilon = 1e-50
 
-        resp_entries = self.get_response_entries_as_ndarray(orig_shape)
-        truth_entries = self.get_truth_entries_as_ndarray()
+        resp_entries = self.get_response_entries_as_ndarray(orig_shape)[:,truth_indices]
+        truth_entries = self.get_truth_entries_as_ndarray(indices=truth_indices)
         # Add "waste bin" of not selected events
         waste_entries = truth_entries - resp_entries.sum(axis=0)
         if np.any(waste_entries < 0):
@@ -203,10 +214,10 @@ class ResponseMatrix(object):
         alpha[-1,nuisance_indices] = epsilon
 
         # Estimate mean weight
-        resp1 = self.get_response_values_as_ndarray(orig_shape)
-        resp2 = self.get_response_sumw2_as_ndarray(orig_shape)
-        truth1 = self.get_truth_values_as_ndarray()
-        truth2 = self.get_truth_sumw2_as_ndarray()
+        resp1 = self.get_response_values_as_ndarray(orig_shape)[:,truth_indices]
+        resp2 = self.get_response_sumw2_as_ndarray(orig_shape)[:,truth_indices]
+        truth1 = self.get_truth_values_as_ndarray(indices=truth_indices)
+        truth2 = self.get_truth_sumw2_as_ndarray(indices=truth_indices)
         # Add "waste bin" of not selected events
         waste1 = truth1 - resp1.sum(axis=0)
         if np.any(waste1 < 0):
@@ -232,7 +243,7 @@ class ResponseMatrix(object):
 
         return alpha, mu, sigma
 
-    def get_mean_response_matrix_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None):
+    def get_mean_response_matrix_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None, truth_indices=None):
         """Return the means of the posterior distributions of the response matrix elements.
 
         This is different from the "raw" matrix one gets from
@@ -240,9 +251,12 @@ class ResponseMatrix(object):
         weights in the respective bins.
 
         If no shape is specified, it will be set to `(N_reco, N_truth)`.
+
+        If `truth_indices` are provided, a sliced matrix with only the given
+        columns will be returned.
         """
 
-        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices)
+        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, truth_indices=truth_indices)
         beta = np.sum(alpha, axis=0)
 
         # Unweighted (multinomial) transistion probabilty
@@ -265,7 +279,7 @@ class ResponseMatrix(object):
 
         return MM
 
-    def get_statistical_variance_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None):
+    def get_statistical_variance_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None, truth_indices=None):
         """Return the statistical variance of the single ResponseMatrix elements as ndarray.
 
         The variance is estimated from the actual bin contents in a Bayesian
@@ -311,9 +325,12 @@ class ResponseMatrix(object):
         variances ignore the correlations between matrix elements.
 
         If no shape is specified, it will be set to `(N_reco, N_truth)`.
+
+        If `truth_indices` are provided, a sliced matrix with only the given
+        columns will be returned.
         """
 
-        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices)
+        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, truth_indices=truth_indices)
         beta = np.sum(alpha, axis=0)
 
         # Unweighted (multinomial) transistion probabilty
@@ -370,7 +387,7 @@ class ResponseMatrix(object):
 
         return xs
 
-    def generate_random_response_matrices(self, size=None, shape=None, expected_weight=1., nuisance_indices=None):
+    def generate_random_response_matrices(self, size=None, shape=None, expected_weight=1., nuisance_indices=None, truth_indices=None):
         """Generate random response matrices according to the estimated variance.
 
         This is a two step process:
@@ -380,9 +397,12 @@ class ResponseMatrix(object):
         2.  Draw weight corrections from normal distributions.
 
         If no shape is specified, it will be set to `(N_reco, N_truth)`.
+
+        If `truth_indices` are provided, a sliced matrix with only the given
+        columns will be returned.
         """
 
-        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices)
+        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, truth_indices=truth_indices)
 
         # Transpose so we have an array of dirichlet parameters
         alpha = alpha.T
@@ -416,12 +436,15 @@ class ResponseMatrix(object):
 
         # Adjust shape
         if shape is None:
-            shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
+            if truth_indices is None:
+                shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
+            else:
+                shape = (len(self.reco_binning.bins), len(truth_indices))
         response = response.reshape(list(response.shape[:-2]) + list(shape))
 
         return response
 
-    def get_in_bin_variation_as_ndarray(self, shape=None, truth_only=True, ignore_variables=[]):
+    def get_in_bin_variation_as_ndarray(self, shape=None, truth_only=True, ignore_variables=[], truth_indices=None):
         """Returns an estimate for the variation of the response within a bin.
 
         The in-bin variation is estimated from the maximum difference to the
@@ -435,6 +458,9 @@ class ResponseMatrix(object):
         Variables specified in `ignore_variables` will not be considered.  This
         is useful to exclude categotical variables, where the response is not
         expected to vary smoothly.
+
+        If `truth_indices` are provided, a sliced matrix with only the given
+        columns will be returned.
         """
 
         nbins = self.response_binning.nbins
@@ -481,10 +507,15 @@ class ResponseMatrix(object):
             # Get maximum difference
             ret = np.maximum(ret, np.abs(resp - shifted_resp) / np.sqrt(stat + shifted_stat))
 
+        ret.shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
+
+        # Slice the truth bins
+        if truth_indices is not None:
+            ret = np.array(ret[:,truth_indices])
+
         # Adjust shape
-        if shape is None:
-            shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
-        ret.shape = shape
+        if shape is not None:
+            ret.shape = shape
 
         return ret
 
