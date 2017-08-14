@@ -118,32 +118,32 @@ class ResponseMatrix(object):
         self.reco_binning.reset()
         self.response_binning.reset()
 
-    def get_truth_values_as_ndarray(self, shape=None):
-        return self.truth_binning.get_values_as_ndarray(shape)
+    def get_truth_values_as_ndarray(self, *args, **kwargs):
+        return self.truth_binning.get_values_as_ndarray(*args, **kwargs)
 
-    def get_truth_entries_as_ndarray(self, shape=None):
-        return self.truth_binning.get_entries_as_ndarray(shape)
+    def get_truth_entries_as_ndarray(self, *args, **kwargs):
+        return self.truth_binning.get_entries_as_ndarray(*args, **kwargs)
 
-    def get_truth_sumw2_as_ndarray(self, shape=None):
-        return self.truth_binning.get_sumw2_as_ndarray(shape)
+    def get_truth_sumw2_as_ndarray(self, *args, **kwargs):
+        return self.truth_binning.get_sumw2_as_ndarray(*args, **kwargs)
 
-    def get_reco_values_as_ndarray(self, shape=None):
-        return self.reco_binning.get_values_as_ndarray(shape)
+    def get_reco_values_as_ndarray(self, *args, **kwargs):
+        return self.reco_binning.get_values_as_ndarray(*args, **kwargs)
 
-    def get_reco_entries_as_ndarray(self, shape=None):
-        return self.reco_binning.get_entries_as_ndarray(shape)
+    def get_reco_entries_as_ndarray(self, *args, **kwargs):
+        return self.reco_binning.get_entries_as_ndarray(*args, **kwargs)
 
-    def get_reco_sumw2_as_ndarray(self, shape=None):
-        return self.reco_binning.get_sumw2_as_ndarray(shape)
+    def get_reco_sumw2_as_ndarray(self, *args, **kwargs):
+        return self.reco_binning.get_sumw2_as_ndarray(*args, **kwargs)
 
-    def get_response_values_as_ndarray(self, shape=None):
-        return self.response_binning.get_values_as_ndarray(shape)
+    def get_response_values_as_ndarray(self, *args, **kwargs):
+        return self.response_binning.get_values_as_ndarray(*args, **kwargs)
 
-    def get_response_entries_as_ndarray(self, shape=None):
-        return self.response_binning.get_entries_as_ndarray(shape)
+    def get_response_entries_as_ndarray(self, *args, **kwargs):
+        return self.response_binning.get_entries_as_ndarray(*args, **kwargs)
 
-    def get_response_sumw2_as_ndarray(self, shape=None):
-        return self.response_binning.get_sumw2_as_ndarray(shape)
+    def get_response_sumw2_as_ndarray(self, *args, **kwargs):
+        return self.response_binning.get_sumw2_as_ndarray(*args, **kwargs)
 
     def get_response_matrix_as_ndarray(self, shape=None):
         """Return the ResponseMatrix as a ndarray.
