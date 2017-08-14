@@ -1055,7 +1055,7 @@ class RectangularBinning(Binning):
 
         self.bins._sumw2_array.flat[:] = arr.flat
 
-    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, denominator=None):
+    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, denominator=None, sqrt_errors=False):
         """Plot a visual representation of an array containing the entries or values of the binning.
 
         Arguments
@@ -1087,6 +1087,13 @@ class RectangularBinning(Binning):
         fig, ax : The figure and axis objects.
 
         """
+
+        kw1d = {'drawstyle': 'steps-post'}
+        if sqrt_errors:
+            kw1d['linestyle'] = 'none'
+        kw1d.update(kwargs1d)
+        kw2d = {}
+        kw2d.update(kwargs2d)
 
         if type(variables) is list:
             variables = (variables, None)
@@ -1141,16 +1148,32 @@ class RectangularBinning(Binning):
                     # 1D histogram
 
                     nn = temp_binning.project([y_var], reduction_function=reduction_function).get_values_as_ndarray()
+                    if sqrt_errors:
+                        yerr = np.sqrt(nn)
+                    else:
+                        yerr = None
+
                     if denominator is not None:
-                        nn /= denominator_binning.project([y_var], reduction_function=reduction_function).get_values_as_ndarray()
+                        deno = denominator_binning.project([y_var], reduction_function=reduction_function).get_values_as_ndarray()
+                        nn /= deno
+                        if sqrt_errors:
+                            yerr /= deno
 
                     if divide:
-                        nn /= (y_edg[1:] - y_edg[:-1])
+                        div = (y_edg[1:] - y_edg[:-1])
+                        nn /= div
+                        if sqrt_errors:
+                            yerr /= div
+
                     nn = np.append(nn, nn[-1])
+                    if sqrt_errors:
+                        y_edg = (y_edg[:-1] + y_edg[1:]) / 2.
+                        nn = nn[:-1]
+
 
                     ax[i][j].set_xlabel(y_var)
 
-                    ax[i][j].plot(y_edg, nn, drawstyle='steps-post', **kwargs1d)
+                    ax[i][j].errorbar(y_edg, nn, yerr=yerr, **kw1d)
 
                     # Mark open ended bins
                     if not np.isfinite(self.binedges[y_var][0]):
@@ -1159,7 +1182,7 @@ class RectangularBinning(Binning):
                     if not np.isfinite(self.binedges[y_var][-1]):
                         ax[i][j].axhline(nn[-1], 1.0, 1.1, color='k', linestyle='dotted', clip_on=False)
 
-                    if 'label' in kwargs1d:
+                    if 'label' in kw1d:
                         ax[i][j].legend(loc='best', framealpha=0.5, prop={'size':10})
 
                 else:
@@ -1194,11 +1217,10 @@ class RectangularBinning(Binning):
                     if j==0:
                         ax[i][j].set_ylabel(y_var)
 
-                    kw = {'norm': LogNorm()}
-                    kw.update(kwargs2d)
-                    ax[i][j].hist2d(xx, yy, weights=arr, bins=(x_edg, y_edg), **kw)
+                    kw2d.update({'norm': LogNorm()})
+                    ax[i][j].hist2d(xx, yy, weights=arr, bins=(x_edg, y_edg), **kw2d)
 
-                    if 'label' in kwargs1d:
+                    if 'label' in kwargs2d:
                         ax[i][j].legend(loc='best', framealpha=0.5)
 
         fig.tight_layout()
