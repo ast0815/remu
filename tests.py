@@ -635,7 +635,7 @@ class TestLikelihoodMachines(unittest.TestCase):
         rm.truth_binning.fill_from_csv_file('testdata/test-data.csv')
         response_matrix.append(rm.get_response_matrix_as_ndarray())
         self.L = LikelihoodMachine(data_vector, response_matrix[0])
-        self.L2 = LikelihoodMachine(data_vector, response_matrix)
+        self.L2 = LikelihoodMachine(data_vector, np.array(response_matrix)[...,[1,2,3]], truth_limits=[np.inf]*4, eff_indices=[1,2,3], is_sparse=True)
 
     def test_log_probabilities(self):
         """Test n-dimensional calculation of probabilities."""

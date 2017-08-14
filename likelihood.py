@@ -182,7 +182,7 @@ class JeffreysPrior(object):
 class LikelihoodMachine(object):
     """Class that calculates likelihoods for truth vectors."""
 
-    def __init__(self, data_vector, response_matrix, truth_limits=None, limit_method='raise', eff_threshold=0.):
+    def __init__(self, data_vector, response_matrix, truth_limits=None, limit_method='raise', eff_threshold=0., eff_indices=None, is_sparse=False):
         """Initialize the LikelihoodMachine with the given data and response matrix.
 
         The optional `truth_limits` tells the LikelihoodMachine up to which
@@ -199,6 +199,25 @@ class LikelihoodMachine(object):
 
             truth_limits = generator_truth_vector / 10.
 
+        The `eff_threshold` determines above which total reconstruction
+        efficiency a truth bin counts as efficient. Is the total efficiency
+        equal to or below the threshold, the bin is ignored in all likelihood
+        calculations.
+
+        Alternatively, a list of `eff_indices` can be provided. Only the
+        specified truth bins are used for likelihood calculations in that case.
+        If the flag `is_sparse` is set to `True`, the provided
+        `response_matrix` is *not* sliced according to the `eff_indices`.
+        Instead it is assumed that the given matrix already only contains the
+        columns as indicated by the `eff_indices` array, i.e. it must fulfill
+        the following condition:
+
+            response_matrix.shape[-1] == len(eff_indixes)
+
+        If the matrix is sparse, the vector of truth limits *must* be provided.
+        Its length must be that of the non-sparse response matrix, i.e. the
+        number of truth bins irrespective of efficient indices.
+
         """
 
         self.data_vector = np.array(data_vector)
@@ -210,8 +229,18 @@ class LikelihoodMachine(object):
         self.limit_method = limit_method
 
         # Calculate the reduced response matrix for speedier calculations
-        self._reduced_response_matrix, self._i_eff = LikelihoodMachine._reduce_response_matrix(self.response_matrix, threshold=eff_threshold)
-        self._n_eff = np.size(self._i_eff)
+        if eff_indices is None:
+            self._reduced_response_matrix, self._i_eff = LikelihoodMachine._reduce_response_matrix(self.response_matrix, threshold=eff_threshold)
+            self._n_eff = np.size(self._i_eff)
+        else:
+            self._i_eff = np.array(eff_indices)
+            self._n_eff = np.size(self._i_eff)
+            if is_sparse:
+                if truth_limits is None:
+                    raise ValueError("Must provide truth limits for sparse arrays.")
+                self._reduced_response_matrix = self.response_matrix
+            else:
+                self._reduced_response_matrix = np.array(self.response_matrix[...,self._i_eff])
 
     @staticmethod
     def _reduce_response_matrix(response_matrix, threshold=0.):
