@@ -528,7 +528,7 @@ class Binning(object):
             b.entries=entries
             b.sumw2=sumw2
 
-    def get_values_as_ndarray(self, shape=None):
+    def get_values_as_ndarray(self, shape=None, indices=None):
         """Return the bin values as nd array.
 
         Arguments
@@ -536,23 +536,28 @@ class Binning(object):
 
         shape: Shape of the resulting array.
                Default: len(bins)
+        indices: Only return the given bins.
+                 Default: Return all bins.
         """
 
         l = len(self.bins)
+        if indices is None:
+            indices = list(range(l))
+        l = len(indices)
 
         if shape is None:
             shape = l
 
         arr = np.ndarray(shape=l, order='C', dtype=float) # Row-major 'C-style' array. Last variable indices vary the fastest.
 
-        for i in range(l):
-            arr[i] = self.bins[i].value
+        for i, ind in enumerate(indices):
+            arr[i] = self.bins[ind].value
 
         arr.shape = shape
 
         return arr
 
-    def get_entries_as_ndarray(self, shape=None):
+    def get_entries_as_ndarray(self, shape=None, indices=None):
         """Return the number of bin entries as nd array.
 
         Arguments
@@ -560,23 +565,28 @@ class Binning(object):
 
         shape: Shape of the resulting array.
                Default: len(bins)
+        indices: Only return the given bins.
+                 Default: Return all bins.
         """
 
         l = len(self.bins)
+        if indices is None:
+            indices = list(range(l))
+        l = len(indices)
 
         if shape is None:
             shape = l
 
         arr = np.ndarray(shape=l, order='C', dtype=int) # Row-major 'C-style' array. Last variable indices vary the fastest.
 
-        for i in range(l):
-            arr[i] = self.bins[i].entries
+        for i, ind in enumerate(indices):
+            arr[i] = self.bins[ind].entries
 
         arr.shape = shape
 
         return arr
 
-    def get_sumw2_as_ndarray(self, shape=None):
+    def get_sumw2_as_ndarray(self, shape=None, indices=None):
         """Return the sums of squared weights as nd array.
 
         Arguments
@@ -584,17 +594,22 @@ class Binning(object):
 
         shape: Shape of the resulting array.
                Default: len(bins)
+        indices: Only return the given bins.
+                 Default: Return all bins.
         """
 
         l = len(self.bins)
+        if indices is None:
+            indices = list(range(l))
+        l = len(indices)
 
         if shape is None:
             shape = l
 
         arr = np.ndarray(shape=l, order='C', dtype=float) # Row-major 'C-style' array. Last variable indices vary the fastest.
 
-        for i in range(l):
-            arr[i] = self.bins[i].sumw2
+        for i, ind in enumerate(indices):
+            arr[i] = self.bins[ind].sumw2
 
         arr.shape = shape
 
@@ -944,7 +959,7 @@ class RectangularBinning(Binning):
         else:
             return new_binning
 
-    def get_values_as_ndarray(self, shape=None):
+    def get_values_as_ndarray(self, shape=None, indices=None):
         """Return the bin values as ndarray.
 
         Arguments
@@ -952,9 +967,14 @@ class RectangularBinning(Binning):
 
         shape: Shape of the resulting array.
                Default: len(bins)
+        indices: Only return the given bins.
+                 Default: Return all bins.
         """
 
-        ret = np.copy(self.bins._value_array)
+        if indices is None:
+            indices = slice(None, None, None)
+
+        ret = np.array(self.bins._value_array[indices])
         if shape is not None:
             ret = ret.reshape(shape, order='C')
         return ret
@@ -971,7 +991,7 @@ class RectangularBinning(Binning):
 
         self.bins._value_array.flat[:] = arr.flat
 
-    def get_entries_as_ndarray(self, shape=None):
+    def get_entries_as_ndarray(self, shape=None, indices=None):
         """Return the number of entries as ndarray.
 
         Arguments
@@ -979,9 +999,14 @@ class RectangularBinning(Binning):
 
         shape: Shape of the resulting array.
                Default: len(bins)
+        indices: Only return the given bins.
+                 Default: Return all bins.
         """
 
-        ret = np.copy(self.bins._entries_array)
+        if indices is None:
+            indices = slice(None, None, None)
+
+        ret = np.array(self.bins._entries_array[indices])
         if shape is not None:
             ret = ret.reshape(shape, order='C')
         return ret
@@ -998,7 +1023,7 @@ class RectangularBinning(Binning):
 
         self.bins._entries_array.flat[:] = arr.flat
 
-    def get_sumw2_as_ndarray(self, shape=None):
+    def get_sumw2_as_ndarray(self, shape=None, indices=None):
         """Return the sums of squared weights as ndarray.
 
         Arguments
@@ -1006,9 +1031,14 @@ class RectangularBinning(Binning):
 
         shape: Shape of the resulting array.
                Default: len(bins)
+        indices: Only return the given bins.
+                 Default: Return all bins.
         """
 
-        ret = np.copy(self.bins._sumw2_array)
+        if indices is None:
+            indices = slice(None, None, None)
+
+        ret = np.copy(self.bins._sumw2_array[indices])
         if shape is not None:
             ret = ret.reshape(shape, order='C')
         return ret
