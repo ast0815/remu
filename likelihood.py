@@ -210,8 +210,8 @@ class LikelihoodMachine(object):
         self.limit_method = limit_method
 
         # Calculate the reduced response matrix for speedier calculations
-        self._reduced_response_matrix, self._eff = LikelihoodMachine._reduce_response_matrix(self.response_matrix, threshold=eff_threshold)
-        self._n_eff = np.sum(self._eff)
+        self._reduced_response_matrix, self._i_eff = LikelihoodMachine._reduce_response_matrix(self.response_matrix, threshold=eff_threshold)
+        self._n_eff = np.size(self._i_eff)
 
     @staticmethod
     def _reduce_response_matrix(response_matrix, threshold=0.):
@@ -233,7 +233,7 @@ class LikelihoodMachine(object):
         eff = np.sum(response_matrix, axis=-2)
         if eff.ndim > 1:
             eff = np.max(eff, axis=tuple(range(eff.ndim-1)))
-        eff = ( eff > threshold )
+        eff = np.argwhere( eff > threshold ).flatten()
 
         reduced_response_matrix = response_matrix[...,eff]
 
@@ -375,17 +375,7 @@ class LikelihoodMachine(object):
 
     def _reduce_truth_vector(self, truth_vector):
         """Return a reduced truth vector view."""
-
-        truth_vector = np.array(truth_vector)
-        truth_shape = truth_vector.shape
-        eff_index = LikelihoodMachine._create_vector_array(self._eff, truth_shape[:-1])
-
-        # Reduced vectors in correct shape
-        reduced_shape = np.copy(truth_shape)
-        reduced_shape[-1] = self._n_eff
-        reduced_truth_vector = truth_vector[eff_index].reshape(reduced_shape)
-
-        return reduced_truth_vector
+        return np.array(np.asarray(truth_vector)[...,self._i_eff])
 
     def log_likelihood(self, truth_vector, systematics='profile'):
         """Calculate the log likelihood of a vector of truth expectation values.
@@ -625,7 +615,7 @@ class LikelihoodMachine(object):
         # Create a CompositeHypothesis that uses only the efficient truth values
         n = self._n_eff
         bounds = [(0,None)]*n
-        eff_to_all = np.eye(len(self._eff))[:,self._eff]
+        eff_to_all = np.eye(self.response_matrix.shape[-1])[:,self._i_eff]
         translate = lambda x: eff_to_all.dot(x)
         super_hypothesis = CompositeHypothesis(translate, bounds)
 
