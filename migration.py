@@ -404,6 +404,9 @@ class ResponseMatrix(object):
             xs[...,j] = (1-np.sum(xs, axis=-1)) * phi
         xs[...,-1] = (1-np.sum(xs, axis=-1))
 
+        # Fix rounding errors
+        xs[xs<0] = 0
+
         return xs
 
     def generate_random_response_matrices(self, size=None, shape=None, expected_weight=1., nuisance_indices=None, truth_indices=None):
