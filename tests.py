@@ -601,10 +601,10 @@ class TestResponseMatrices(unittest.TestCase):
         """Test the variance calculation."""
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         var = self.rm.get_statistical_variance_as_ndarray()
-        self.assertAlmostEqual(var[0,0], 0.01171875)
-        self.assertAlmostEqual(var[1,1], 0.01594388)
-        self.assertAlmostEqual(var[2,2], 0.04296875)
-        self.assertAlmostEqual(var[3,3], 0.04296875)
+        self.assertAlmostEqual(var[0,0], 0.0046875)
+        self.assertAlmostEqual(var[1,1], 0.00952183)
+        self.assertAlmostEqual(var[2,2], 0.02202381)
+        self.assertAlmostEqual(var[3,3], 0.02202381)
         var = self.rm.get_statistical_variance_as_ndarray(truth_indices=[0,-1])
         self.assertEqual(var.shape, (4,2))
 
@@ -613,9 +613,9 @@ class TestResponseMatrices(unittest.TestCase):
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         mean = self.rm.get_mean_response_matrix_as_ndarray()
         self.assertAlmostEqual(mean[0,0], 0.0625)
-        self.assertAlmostEqual(mean[1,1], 0.17857143)
-        self.assertAlmostEqual(mean[2,2], 0.3125)
-        self.assertAlmostEqual(mean[3,3], 0.3125)
+        self.assertAlmostEqual(mean[1,1], 0.15)
+        self.assertAlmostEqual(mean[2,2], 0.25)
+        self.assertAlmostEqual(mean[3,3], 0.25)
         mean = self.rm.get_mean_response_matrix_as_ndarray(truth_indices=[0,1])
         self.assertEqual(mean.shape, (4,2))
 

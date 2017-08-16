@@ -184,7 +184,7 @@ class ResponseMatrix(object):
         return M
 
     def _get_stat_error_parameters(self, expected_weight=1., nuisance_indices=None, truth_indices=None):
-        r"""Return $\alpha^t_{ij}$, $\hat{m}^t_{ij}$ and $\sigma(m^t_{ij})$.
+        r"""Return $\beta^t_1j$, $\beta^t_2j$, $\alpha^t_{ij}$, $\hat{w}^t_{ij}$ and $\sigma(w^t_{ij})$.
 
         Used for calculations of statistical variance.
 
@@ -215,52 +215,61 @@ class ResponseMatrix(object):
 
         resp_entries = self.get_response_entries_as_ndarray(orig_shape)[:,truth_indices]
         truth_entries = self.get_truth_entries_as_ndarray(indices=truth_indices)
-        # Add "waste bin" of not selected events
-        waste_entries = truth_entries - resp_entries.sum(axis=0)
+
+        # Get parameters of Beta distribution characterizing the efficiency.
+        # Assume a prior of Beta(1,1), i.e. flat in efficiency.
+        beta1 = np.sum(resp_entries, axis=0)
+        # "Waste bin" of not selected events
+        waste_entries = truth_entries - beta1
         if np.any(waste_entries < 0):
             raise RuntimeError("Illegal response matrix: More reconstructed than true events!")
-        resp_entries = np.append(resp_entries, waste_entries[np.newaxis,:], axis=0)
+        beta1 = np.asfarray(beta1 + 1)
+        beta2 = np.asfarray(waste_entries + 1)
 
-        # Get Dirichlet parameters when assuming prior flat in efficiency and
-        # ignorant about reconstruction. This also means that the prior
-        # expects the reconstructed events to be clustered in a small number of
-        # reco bins.
-        alpha = np.asfarray(resp_entries)
-        prior = np.full(N_reco+1, 1./N_reco, dtype=float)
-        prior[-1] = 1.
-        alpha += prior[:,np.newaxis]
-        # Set loss probability for nuisance truth bins to (almost) 0
-        alpha[-1,nuisance_indices] = epsilon
+        # Set efficiency of nuisance bins to 1, i.e. beta2 to (almost) zero.
+        beta2[nuisance_indices] = epsilon
+
+        # Get parameters of Dirichlet distribution characterizing the distribution within the reco bins.
+        # Assume a flat prior.
+        alpha = np.asfarray(resp_entries + 1)
 
         # Estimate mean weight
         resp1 = self.get_response_values_as_ndarray(orig_shape)[:,truth_indices]
         resp2 = self.get_response_sumw2_as_ndarray(orig_shape)[:,truth_indices]
         truth1 = self.get_truth_values_as_ndarray(indices=truth_indices)
         truth2 = self.get_truth_sumw2_as_ndarray(indices=truth_indices)
-        # Add "waste bin" of not selected events
-        waste1 = truth1 - resp1.sum(axis=0)
-        if np.any(waste1 < 0):
-            raise RuntimeError("Illegal response matrix: Higher total reconstructed than true weight!")
-        resp1 = np.append(resp1, waste1[np.newaxis,:], axis=0)
+        # Add truth bin of all events
+        resp1 = np.append(resp1, truth1[np.newaxis,:], axis=0)
+        resp2 = np.append(resp2, truth2[np.newaxis,:], axis=0)
+        resp_entries = np.append(resp_entries, truth_entries[np.newaxis,:], axis=0)
 
         i = resp_entries > 0
-        mu = np.where(i, resp1/np.where(i, resp_entries, 1), expected_weight)
+        mu = resp1/np.where(i, resp_entries, 1)
+        mu = np.where(i, mu, expected_weight) # Set empty bins to expected weight
 
         # Add pseudo observation for variance estimation
-        resp1_p = resp1[:-1] + expected_weight
+        resp1_p = resp1 + expected_weight
         resp2_p = resp2 + expected_weight**2
         resp_entries_p = resp_entries + 1
         resp_entries_p2 = resp_entries_p**2
 
-        sigma = ((resp2_p/resp_entries_p[:-1]) - (resp1_p/resp_entries_p[:-1])**2) / resp_entries_p[:-1]
-        # Since we re-filled the truth bins with possibly different weights,
-        # we need to calculate the mean weight error of the waste bins differently
-        sigma = np.append(sigma, (np.sum(sigma*resp_entries_p2[:-1], axis=0) / resp_entries_p2[-1])[np.newaxis,:], axis=0)
-        sigma = np.sqrt(sigma)
+        # Since `w_ij` is the mean weight, the variance is just the error of the mean.
+        #
+        #            |---- sum of weights
+        #            v                                      |---- sample variance
+        #     w_ij = W_ij / N_ij  <---- number of entries   v
+        #     var(w_ij) = var(W_ij) / (N_ij)**2       = var(W) / N_ij
+        #               = ( (V_ij / N_ij) - (W_ij / N_ij)**2 ) / N_ij
+        #                    ^
+        #                    |----- sum of squared weights
+        #
+        var = ((resp2_p/resp_entries_p) - (resp1_p/resp_entries_p)**2) / resp_entries_p
+
+        sigma = np.sqrt(var)
         # Add an epsilon so sigma is always > 0
         sigma += epsilon
 
-        return alpha, mu, sigma
+        return beta1, beta2, alpha, mu, sigma
 
     def get_mean_response_matrix_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None, truth_indices=None):
         """Return the means of the posterior distributions of the response matrix elements.
@@ -275,23 +284,25 @@ class ResponseMatrix(object):
         columns will be returned.
         """
 
-        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, truth_indices=truth_indices)
-        beta = np.sum(alpha, axis=0)
+        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, truth_indices=truth_indices)
+
+        # Unweighted binomial reconstructed probability (efficiency)
+        # Posterior mean estimate = beta1 / (beta1 + beta2)
+        beta0 = beta1 + beta2
+        effj = beta1 / beta0
 
         # Unweighted (multinomial) transistion probabilty
-        # Posterior mean estimate = alpha / beta
-        pij = np.asfarray(alpha) / beta
+        # Posterior mean estimate = alpha / alpha0
+        alpha0 = np.sum(alpha, axis=0)
+        pij = np.asfarray(alpha) / alpha0
 
         # Weight correction
-        wij = mu
-        wj = np.sum(mu * pij, axis=-2)
+        wij = mu[:-1]
+        wj = mu[-1]
         mij = wij / wj
 
-        # Combine the two
-        MM = mij*pij
-
-        # Remove "waste bin"
-        MM = MM[:-1,:]
+        # Combine the three
+        MM = mij*pij*effj
 
         if shape is not None:
             MM.shape = shape
@@ -304,27 +315,35 @@ class ResponseMatrix(object):
         The variance is estimated from the actual bin contents in a Bayesian
         motivated way.
 
-        The response matrix creation is modeled as a two step process:
+        The response matrix creation is modeled as a three step process:
 
+        1.  Reconstruction efficiency according to a binomial process.
         1.  Distribution of truth events among the reco bins according to a
             multinomial distribution.
-        2.  Correction of the multinomial transisiton probabilities according
-            to the mean weights of the events in each bin.
+        2.  Correction of the categorical probabilities according to the mean
+            weights of the events in each bin.
 
         So the response matrix element can be written like this:
 
-            R_ij = m_ij * p_ij
+            R_ij = m_ij * p_ij * eff_j
 
-        where p_ij is the unweighted multinomial transistion probability and
+        where eff_j is the total efficiency of events in truth bin j, p_ij is the
+        unweighted multinomial reconstruction probability in reco bin i and
         m_ij the weight correction. The variance of R_ij is estimated by
         estimating the variances of these values separately.
 
+        The variance of eff_j is estimated by using the Bayesian conjugate
+        prior for biinomial distributions: the Bets distribution. We assume a
+        prior that is uniform in the reconstruction efficiency. We then update
+        it with the simulated events. The variance of the posterior
+        distribution is taken as the variance of the efficiency.
+
         The variance of p_ij is estimated by using the Bayesian conjugate prior
         for multinomial distributions: the Dirichlet distribution. We assume a
-        prior that is uniform in the reconstruction efficiency and completely
-        ignorant about reconstruction accuracies. We then update it with the
-        simulated events. The variance of the posterior distribution is taken
-        as the variance of the transition probability.
+        prior that is uniform in the ignorant about reconstruction
+        probabilities. We then update it with the simulated events. The
+        variance of the posterior distribution is taken as the variance of the
+        transition probability.
 
         If a list of `nuisance_indices` is provided, the probabilities of *not*
         reconstructing events in the respective truth categories will be fixed
@@ -349,30 +368,47 @@ class ResponseMatrix(object):
         columns will be returned.
         """
 
-        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, truth_indices=truth_indices)
-        beta = np.sum(alpha, axis=0)
+        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, truth_indices=truth_indices)
+
+        # Unweighted binomial reconstructed probability (efficiency)
+        # Posterior mean estimate = beta1 / (beta1 + beta2)
+        beta0 = beta1 + beta2
+        effj = beta1 / beta0
+        # Posterior variance
+        effj_var = beta1*beta2 / (beta0**2 * (beta0+1))
 
         # Unweighted (multinomial) transistion probabilty
-        # Posterior mean estimate = alpha / beta
-        pij = np.asfarray(alpha) / beta
+        # Posterior mean estimate = alpha / alpha0
+        alpha0 = np.sum(alpha, axis=0)
+        pij = np.asfarray(alpha) / alpha0
         # Posterior variance
-        pij_var = np.asfarray(beta - alpha)
+        pij_var = np.asfarray(alpha0 - alpha)
         pij_var *= alpha
-        pij_var /= (beta**2 * (beta+1))
+        pij_var /= (alpha0**2 * (alpha0+1))
 
         # Weight correction
-        wij = mu
-        wj = np.sum(mu * pij, axis=-2)
+        #
+        #     w_j = W_j / N_j
+        #         = (W_wj + sum(W_ij)) / N_j
+        #         = W_wj/N_wj * N_wj/N_j + sum( W_ij/N_ij * N_ij/N_j )
+        #         = w_wj * (1-eff_j) + sum( w_ij * p_ij * eff_j )
+        #
+        wij = mu[:-1]
+        wj = mu[-1]
         mij = wij / wj
 
         # Standard error propagation
+        #
+        #     var(m_ij) = var(w_ij) / w_j**2 + (w_ij/w_j**2)**2 * var(w_j)
         wj2 = wj**2
-        mij_var = (sigma / wj2 - wij * (np.sum(pij * sigma, axis=-2) / wj2))**2
+        var = sigma**2
+        mij_var = var[:-1]/wj2 + (wij/wj2)**2 * var[-1]
 
         # Combine uncertainties
-        MM = mij**2 * pij_var + pij**2 * mij_var
-        # Remove "waste bin"
-        MM = MM[:-1,:]
+        effj2 = effj**2
+        pij2 = pij**2
+        mij2 = mij**2
+        MM = mij2 * pij2 * effj_var + mij2 * pij_var * effj2 + mij_var * pij2 * effj2
 
         if shape is not None:
             MM.shape = shape
@@ -412,11 +448,12 @@ class ResponseMatrix(object):
     def generate_random_response_matrices(self, size=None, shape=None, expected_weight=1., nuisance_indices=None, truth_indices=None):
         """Generate random response matrices according to the estimated variance.
 
-        This is a two step process:
+        This is a three step process:
 
-        1.  Draw the multinomial transition probabilities from a Dirichlet
+        1.  Draw the binomal efficiencies from Beta distributions
+        2.  Draw the multinomial reconstruction probabilities from a Dirichlet
             distribution.
-        2.  Draw weight corrections from normal distributions.
+        3.  Draw weight corrections from normal distributions.
 
         If no shape is specified, it will be set to `(N_reco, N_truth)`.
 
@@ -424,7 +461,18 @@ class ResponseMatrix(object):
         columns will be returned.
         """
 
-        alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, truth_indices=truth_indices)
+        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, truth_indices=truth_indices)
+
+        # Generate efficiencies
+        if size is None:
+            eff_size = beta1.shape
+        else:
+            try:
+                eff_size = tuple(size)
+            except TypeError:
+                eff_size = (size,)
+            eff_size = eff_size + beta1.shape
+        effj = np.random.beta(beta1, beta2, eff_size)
 
         # Transpose so we have an array of dirichlet parameters
         alpha = alpha.T
@@ -448,13 +496,11 @@ class ResponseMatrix(object):
 
         # Generate random weights
         wij = np.abs(np.random.normal(mu, sigma, size=size))
-        wj = np.sum(wij * pij, axis=-2)
+        wj = wij[...,-1,:]
+        wij = wij[...,:-1,:]
         mij = (wij / wj[...,np.newaxis,:])
 
-        response = mij * pij
-
-        # Remove "waste bin"
-        response = response[...,:-1,:]
+        response = mij * pij * effj[...,np.newaxis,:]
 
         # Adjust shape
         if shape is None:
@@ -478,7 +524,7 @@ class ResponseMatrix(object):
         truth-axes will be considered.
 
         Variables specified in `ignore_variables` will not be considered.  This
-        is useful to exclude categotical variables, where the response is not
+        is useful to exclude categorical variables, where the response is not
         expected to vary smoothly.
 
         If `truth_indices` are provided, a sliced matrix with only the given
