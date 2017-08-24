@@ -1227,7 +1227,8 @@ class RectangularBinning(Binning):
                     ax[i][j].hist2d(xx, yy, weights=arr, bins=(x_edg, y_edg), **kw2d)
 
         fig.tight_layout()
-        fig.savefig(filename)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            fig.savefig(filename)
 
         return fig, ax
 

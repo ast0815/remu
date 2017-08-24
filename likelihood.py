@@ -175,7 +175,8 @@ class JeffreysPrior(object):
             return -np.inf
 
         fish = self.fisher_matrix(value, toy_index)
-        sign, log_det = np.linalg.slogdet(fish)
+        with np.errstate(under='ignore'):
+            sign, log_det = np.linalg.slogdet(fish)
 
         return 0.5*log_det
 
@@ -566,8 +567,8 @@ class LikelihoodMachine(object):
                 }
             }
             kw.update(kwargs)
-
-            res = optimize.basinhopping(nll, x0, disp=disp, **kw)
+            with np.errstate(invalid='ignore'):
+                res = optimize.basinhopping(nll, x0, disp=disp, **kw)
         else:
             raise ValueError("Unknown method: %s"%(method,))
 

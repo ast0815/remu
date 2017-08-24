@@ -859,4 +859,5 @@ class TestLikelihoodMachines(unittest.TestCase):
             self.L.plot_reco_bin_traces(f, self.truth_vector, None, plot_data='relative')
 
 if __name__ == '__main__':
+    np.seterr(all='raise')
     unittest.main()
