@@ -545,8 +545,9 @@ class LikelihoodMachine(object):
 
                 # Make sure the new values are within bounds
                 ret = x + dx
-                ret = np.where(ret > limits[1], limits[1]-((ret-limits[1]) % ranges), ret)
-                ret = np.where(ret < limits[0], limits[0]+((limits[0]-ret) % ranges), ret)
+                with np.errstate(invalid='ignore'):
+                    ret = np.where(ret > limits[1], limits[1]-((ret-limits[1]) % ranges), ret)
+                    ret = np.where(ret < limits[0], limits[0]+((limits[0]-ret) % ranges), ret)
 
                 return ret
 
