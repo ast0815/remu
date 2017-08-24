@@ -23,10 +23,12 @@ system.
     $ # Install all required packages
     $ pip install -r requirements.txt
     $ pip install -r pymc-requirements.txt
+    $ pip install -r multiprocess-requirements.txt
 
 You might need to install additional system libraries to compile all packages.
 PyMC needs to be installed in a separate step, because it requires numpy
-already being installed to work.
+already being installed to work. The `multiprocess-requirements` are optional
+and only need to be installed, if one wants to use parallel computing.
 
 Tests
 -----

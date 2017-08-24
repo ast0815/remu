@@ -744,7 +744,7 @@ class LikelihoodMachine(object):
         # Return the quotient
         return float(n) / N
 
-    def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, generator_matrix_index=None, systematics='marginal', **kwargs):
+    def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=1, **kwargs):
         """Calculate the maximum likelihood p-value of a composite hypothesis given the measured data.
 
         Arguments
@@ -759,6 +759,8 @@ class LikelihoodMachine(object):
                                  the fake data. This needs to be specified only if the
                                  LikelihoodMachine contains more than one response matrix.
                                  If it is `None`, N data sets are thrown for *each* matrix.
+        nproc : How many processes to use in parallel.
+                Default: 1
 
         Additional keyword arguments will be passed to the likelihood maximizer.
 
@@ -808,7 +810,14 @@ class LikelihoodMachine(object):
         # Calculate the maximum probabilities
         def prob_fun(data):
             return LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, H0, systematics=systematics, **kwargs).P
-        prob = np.array(list(map(prob_fun, fake_data)))
+
+        if nproc > 1:
+            from multiprocess import Pool
+            p = Pool(nproc)
+            prob = np.array(p.map(prob_fun, fake_data))
+            del p
+        else:
+            prob = np.array(map(prob_fun, fake_data))
 
         # Get likelihood of actual data
         p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
@@ -819,7 +828,7 @@ class LikelihoodMachine(object):
         # Return the quotient
         return float(n) / N
 
-    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='marginal', **kwargs):
+    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=1, **kwargs):
         """Calculate the maximum likelihood ratio p-value of a two composite hypotheses given the measured data.
 
         Arguments
@@ -834,6 +843,8 @@ class LikelihoodMachine(object):
                                  the fake data. This needs to be specified only if the
                                  LikelihoodMachine contains more than one response matrix.
                                  If it is `None`, N data sets are thrown for *each* matrix.
+        nproc : How many processes to use in parallel.
+                Default: 1
 
         Additional keyword arguments will be passed to the likelihood maximizer.
 
@@ -886,10 +897,17 @@ class LikelihoodMachine(object):
 
         # Calculate the maximum probabilities
         def ratio_fun(data):
-             p0 = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, **kwargs).P
-             p1 = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, **kwargs).P
-             return p0-p1 # difference because log
-        ratio = np.array(list(map(ratio_fun, fake_data)))
+            p0 = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, **kwargs).P
+            p1 = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, **kwargs).P
+            return p0-p1 # difference because log
+
+        if nproc > 1:
+            from multiprocess import Pool
+            p = Pool(nproc)
+            ratio = np.array(p.map(ratio_fun, fake_data))
+            del p
+        else:
+            ratio = np.array(map(ratio_fun, fake_data))
 
         # Get likelihood of actual data
         p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
