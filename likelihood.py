@@ -392,7 +392,7 @@ class LikelihoodMachine(object):
 
         return ll
 
-    def _reduced_log_likelihood(self, reduced_truth_vector, systematics='profile'):
+    def _reduced_log_likelihood(self, reduced_truth_vector, systematics='marginal'):
         """Calculate a more efficient log likelihood using only truth values that have an influence."""
         ll = LikelihoodMachine.log_probability(self.data_vector, self._reduced_response_matrix, reduced_truth_vector)
 
@@ -407,7 +407,7 @@ class LikelihoodMachine(object):
         """Return a reduced truth vector view."""
         return np.array(np.asarray(truth_vector)[...,self._i_eff])
 
-    def log_likelihood(self, truth_vector, systematics='profile'):
+    def log_likelihood(self, truth_vector, systematics='marginal'):
         """Calculate the log likelihood of a vector of truth expectation values.
 
         Arguments
@@ -423,7 +423,7 @@ class LikelihoodMachine(object):
                       `array(indices)`: Select a specific matrix for each truth vector.
                                         Must have shape `(a, b, c, ..., len(index))`.
                       `None` : Do nothing, return multiple likelihoods.
-                      Defaults to `profile`.
+                      Defaults to `marginal`.
         """
 
         if np.any(truth_vector > self.truth_limits):
@@ -443,7 +443,7 @@ class LikelihoodMachine(object):
         return ll
 
     @staticmethod
-    def max_log_probability(data_vector, response_matrix, composite_hypothesis, systematics='profile', disp=False, method='basinhopping', kwargs={}):
+    def max_log_probability(data_vector, response_matrix, composite_hypothesis, systematics='marginal', disp=False, method='basinhopping', kwargs={}):
         """Calculate the maximum possible probability in the given CompositeHypothesis, given `response_matrix` and `data_vector`.
 
         Arguments
@@ -456,7 +456,7 @@ class LikelihoodMachine(object):
         systematics : How to deal with detector systematics, i.e. multiple response matrices.
                       'profile', 'maximum': Choose the response matrix that yields the highest probability.
                       'marginal', 'average': Sum the probabilites yielded by the matrices.
-                      Defaults to 'profile'.
+                      Defaults to 'marginal'.
         disp : Display status messages during optimization.
         method : Select the method to be used for maximization,
                  either 'differential_evolution' or 'basinhopping'.
@@ -596,7 +596,7 @@ class LikelihoodMachine(object):
         systematics : How to deal with detector systematics, i.e. multiple response matrices.
                       'profile', 'maximum': Choose the response matrix that yields the highest likelihood.
                       'marginal', 'average': Sum the probabilites yielded by the matrices.
-                      Defaults to 'profile'.
+                      Defaults to 'marginal'.
         disp : Display status messages during optimization.
         method : Select the method to be used for maximization,
                  either 'differential_evolution' or 'basinhopping'.
@@ -620,7 +620,7 @@ class LikelihoodMachine(object):
         del ret.P
         return ret
 
-    def absolute_max_log_likelihood(self, systematics='profile', disp=False, kwargs={}):
+    def absolute_max_log_likelihood(self, systematics='marginal', disp=False, kwargs={}):
         """Calculate the maximum log likelihood achievable with the given data.
 
         Arguments
@@ -629,7 +629,7 @@ class LikelihoodMachine(object):
         systematics : How to deal with detector systematics, i.e. multiple response matrices.
                       'profile', 'maximum': Choose the response matrix that yields the highest likelihood.
                       'marginal', 'average': Sum the probabilites yielded by the matrices.
-                      Defaults to 'profile'.
+                      Defaults to 'marginal'.
         disp : Display status messages during optimization.
         method : Select the method to be used for maximization,
                  either 'differential_evolution' or 'basinhopping'.
@@ -672,7 +672,7 @@ class LikelihoodMachine(object):
 
         return np.random.poisson(mu, size=size)
 
-    def likelihood_p_value(self, truth_vector, N=2500, generator_matrix_index=None, systematics='profile'):
+    def likelihood_p_value(self, truth_vector, N=2500, generator_matrix_index=None, systematics='marginal'):
         """Calculate the likelihood p-value of a truth vector given the measured data.
 
         Arguments
@@ -687,7 +687,7 @@ class LikelihoodMachine(object):
         systematics : How to deal with detector systematics, i.e. multiple response matrices.
                       'profile', 'maximum': Choose the response matrix that yields the highest likelihood.
                       'marginal', 'average': Sum the probabilites yielded by the matrices.
-                      Defaults to 'profile'.
+                      Defaults to 'marginal'.
 
         Returns
         -------
@@ -743,7 +743,7 @@ class LikelihoodMachine(object):
         # Return the quotient
         return float(n) / N
 
-    def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, generator_matrix_index=None, systematics='profile', **kwargs):
+    def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, generator_matrix_index=None, systematics='marginal', **kwargs):
         """Calculate the maximum likelihood p-value of a composite hypothesis given the measured data.
 
         Arguments
@@ -818,7 +818,7 @@ class LikelihoodMachine(object):
         # Return the quotient
         return float(n) / N
 
-    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='profile', **kwargs):
+    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='marginal', **kwargs):
         """Calculate the maximum likelihood ratio p-value of a two composite hypotheses given the measured data.
 
         Arguments
