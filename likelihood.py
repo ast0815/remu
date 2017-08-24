@@ -385,7 +385,8 @@ class LikelihoodMachine(object):
             ll = np.max(ll, axis=systaxis)
         elif systematics == 'marginal' or systematics == 'average':
             # Return average
-            ll = np.log(np.average(np.exp(ll), axis=systaxis))
+            N = np.prod(np.array(ll.shape)[np.array(systaxis, dtype=int)])
+            ll = np.logaddexp.reduce(ll, axis=systaxis) - np.log(N)
         else:
             raise ValueError("Unknown systematics method!")
 
@@ -476,7 +477,7 @@ class LikelihoodMachine(object):
             nll = lambda x: -np.max(LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(x)))
         elif systematics == 'marginal' or systematics == 'average':
             N_resp = np.prod(response_matrix.shape[:-2])
-            nll = lambda x: -np.log(np.sum(np.exp(LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(x)))) / N_resp)
+            nll = lambda x: -(np.logaddexp.reduce(LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(x))) - np.log(N_resp))
         else:
             raise ValueError("Unknown systematics method!")
 
