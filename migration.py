@@ -230,8 +230,14 @@ class ResponseMatrix(object):
         beta2[nuisance_indices] = epsilon
 
         # Get parameters of Dirichlet distribution characterizing the distribution within the reco bins.
-        # Assume a flat prior.
-        alpha = np.asfarray(resp_entries + 1)
+        # Assume a prior where we expect most of the events to be clustered in a few reco bins.
+        # Most events should end up divided into about 3 bins per reco variable:
+        # the correct one and the two neighbouring ones.
+        # Since the binning is orthogonal, we expect the number of bins to be roughly 3**N_variables.
+        # This leads to prior parameters >1 for degenerate reco binnings with < 3 bins/variable.
+        # We protect against that by setting the maximum prior value to 1.
+        prior = min(1., 3.**len(self.reco_binning.variables) / N_reco)
+        alpha = np.asfarray(resp_entries) + prior
 
         # Estimate mean weight
         resp1 = self.get_response_values_as_ndarray(orig_shape)[:,truth_indices]
