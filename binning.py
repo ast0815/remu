@@ -1226,9 +1226,6 @@ class RectangularBinning(Binning):
                     kw2d.update({'norm': LogNorm()})
                     ax[i][j].hist2d(xx, yy, weights=arr, bins=(x_edg, y_edg), **kw2d)
 
-                    if 'label' in kwargs2d:
-                        ax[i][j].legend(loc='best', framealpha=0.5)
-
         fig.tight_layout()
         fig.savefig(filename)
 
