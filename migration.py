@@ -545,8 +545,6 @@ class ResponseMatrix(object):
         ret = np.zeros_like(resp, dtype=float)
 
         # Generate the shifted matrices
-        i0 = np.zeros(len(nbins), dtype=int)
-        im1 = np.full(len(nbins), -1, dtype=int)
         for i, var in enumerate(resp_vars):
             # Ignore non-truth variables if flag says so
             if truth_only and var not in truth_vars:
@@ -560,10 +558,10 @@ class ResponseMatrix(object):
             shifted_resp = np.roll(resp, 1, axis=i)
             shifted_stat = np.roll(resp, 1, axis=i)
             # Set the 'rolled-in' elements to the values of their neighbours
-            i1 = np.array(i0)
-            i1[i] = 1
-            shifted_resp[tuple(i0)] = shifted_resp[tuple(i1)]
-            shifted_stat[tuple(i0)] = shifted_stat[tuple(i1)]
+            i0 = (slice(None,None,None),)*i + (0,) + (Ellipsis,)
+            i1 = (slice(None,None,None),)*i + (1,) + (Ellipsis,)
+            shifted_resp[i0] = shifted_resp[i1]
+            shifted_stat[i0] = shifted_stat[i1]
 
             # Get maximum difference
             ret = np.maximum(ret, np.abs(resp - shifted_resp) / np.sqrt(stat + shifted_stat))
@@ -573,10 +571,10 @@ class ResponseMatrix(object):
             shifted_resp = np.roll(resp, -1, axis=i)
             shifted_stat = np.roll(stat, -1, axis=i)
             # Set the 'rolled-in' elements to the values of their neighbours
-            im2 = np.array(im1)
-            im2[i] = -2
-            shifted_resp[tuple(im1)] = shifted_resp[tuple(im2)]
-            shifted_stat[tuple(im1)] = shifted_stat[tuple(im2)]
+            im1 = (slice(None,None,None),)*i + (-1,) + (Ellipsis,)
+            im2 = (slice(None,None,None),)*i + (-2,) + (Ellipsis,)
+            shifted_resp[im1] = shifted_resp[im2]
+            shifted_stat[im1] = shifted_stat[im2]
 
             # Get maximum difference
             ret = np.maximum(ret, np.abs(resp - shifted_resp) / np.sqrt(stat + shifted_stat))
