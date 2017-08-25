@@ -744,7 +744,7 @@ class LikelihoodMachine(object):
         # Return the quotient
         return float(n) / N
 
-    def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=1, **kwargs):
+    def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=0, **kwargs):
         """Calculate the maximum likelihood p-value of a composite hypothesis given the measured data.
 
         Arguments
@@ -760,7 +760,7 @@ class LikelihoodMachine(object):
                                  LikelihoodMachine contains more than one response matrix.
                                  If it is `None`, N data sets are thrown for *each* matrix.
         nproc : How many processes to use in parallel.
-                Default: 1
+                Default: 0
 
         Additional keyword arguments will be passed to the likelihood maximizer.
 
@@ -811,7 +811,7 @@ class LikelihoodMachine(object):
         def prob_fun(data):
             return LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, H0, systematics=systematics, **kwargs).P
 
-        if nproc > 1:
+        if nproc >= 1:
             from multiprocess import Pool
             p = Pool(nproc)
             prob = np.fromiter(p.map(prob_fun, fake_data), dtype=float)
@@ -828,7 +828,7 @@ class LikelihoodMachine(object):
         # Return the quotient
         return float(n) / N
 
-    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=1, **kwargs):
+    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=0, **kwargs):
         """Calculate the maximum likelihood ratio p-value of a two composite hypotheses given the measured data.
 
         Arguments
@@ -844,7 +844,7 @@ class LikelihoodMachine(object):
                                  LikelihoodMachine contains more than one response matrix.
                                  If it is `None`, N data sets are thrown for *each* matrix.
         nproc : How many processes to use in parallel.
-                Default: 1
+                Default: 0
 
         Additional keyword arguments will be passed to the likelihood maximizer.
 
@@ -901,7 +901,7 @@ class LikelihoodMachine(object):
             p1 = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, **kwargs).P
             return p0-p1 # difference because log
 
-        if nproc > 1:
+        if nproc >= 1:
             from multiprocess import Pool
             p = Pool(nproc)
             ratio = np.fromiter(p.map(ratio_fun, fake_data), dtype=float)
