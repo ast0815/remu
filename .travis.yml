@@ -26,14 +26,13 @@ before_install:
 # command to install dependencies
 install:
   - pip install -r requirements.txt
-  - python -c 'import matplotlib.pyplot'
   - pip install -r pymc-requirements.txt
   - pip install -r multiprocess-requirements.txt
   - pip install -r test-requirements.txt
 
 # command to run tests
 script:
-  - ./run_tests.sh
+  - ./run_tests.sh --verbose
 
 # command to run after tests
 after_success:
