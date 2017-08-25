@@ -12,7 +12,6 @@ if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
     parser.add_argument("--noproc", help="do not test multiprocess", action='store_true')
-    parser.add_argument('testargs', nargs=argparse.REMAINDER)
     args, testargs = parser.parse_known_args()
     noproc = args.noproc
     testargs = sys.argv[0:1] + testargs
