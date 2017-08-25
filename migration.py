@@ -393,12 +393,6 @@ class ResponseMatrix(object):
         pij_var /= (alpha0**2 * (alpha0+1))
 
         # Weight correction
-        #
-        #     w_j = W_j / N_j
-        #         = (W_wj + sum(W_ij)) / N_j
-        #         = W_wj/N_wj * N_wj/N_j + sum( W_ij/N_ij * N_ij/N_j )
-        #         = w_wj * (1-eff_j) + sum( w_ij * p_ij * eff_j )
-        #
         wij = mu[:-1]
         wj = mu[-1]
         mij = wij / wj
