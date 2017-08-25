@@ -1,10 +1,23 @@
 from __future__ import division
-import unittest
+import sys
+import unittest2 as unittest
 import ruamel.yaml as yaml
 from binning import *
 from migration import *
 from likelihood import *
 import numpy as np
+
+if __name__ == '__main__':
+    # Parse arguments for skipping tests
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--noproc", help="do not test multiprocess", action='store_true')
+    parser.add_argument('testargs', nargs=argparse.REMAINDER)
+    args, testargs = parser.parse_known_args()
+    noproc = args.noproc
+    testargs = sys.argv[0:1] + testargs
+else:
+    noproc = False
 
 class TestPhasSpaces(unittest.TestCase):
     def setUp(self):
@@ -813,7 +826,7 @@ class TestLikelihoodMachines(unittest.TestCase):
         fun = lambda x: np.repeat(x,4)
         H = CompositeHypothesis(fun, [(0,None)])
         ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
-        p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2}, N=10, nproc=1)
+        p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2}, N=10)
         self.assertTrue(0. <= p <= 1.0)
 
     def test_max_likelihood_ratio_p_value(self):
@@ -828,8 +841,18 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertTrue(0.0 <= p <= 1.0)
         fun = lambda x: np.repeat(x,4)
         H = CompositeHypothesis(fun, [(0,None)])
-        p = self.L.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2}, N=10, nproc=1)
+        p = self.L.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2}, N=10)
         self.assertTrue(0.0 <= p <= 1.0)
+
+    @unittest.skipIf(noproc, "Skipping multiprocess test.")
+    def test_multiprocess(self):
+        """Test parallelisation."""
+        fun = lambda x: np.repeat(x,2)
+        H = CompositeHypothesis(fun, [(0,None),(0,None)])
+        self.L.max_likelihood_p_value(H, kwargs={'niter':2}, N=10, nproc=2)
+        fun1 = lambda x: x
+        H1 = CompositeHypothesis(fun1, [(0,None)]*4)
+        self.L.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2}, N=10, nproc=2)
 
     def test_mcmc(self):
         """Test Marcov Chain Monte Carlo."""
@@ -860,4 +883,4 @@ class TestLikelihoodMachines(unittest.TestCase):
 
 if __name__ == '__main__':
     np.seterr(all='raise')
-    unittest.main()
+    unittest.main(argv=testargs)

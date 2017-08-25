@@ -32,7 +32,9 @@ install:
 
 # command to run tests
 script:
-  - ./run_tests.sh --verbose
+  - echo $TRAVIS_PYTHON_VERSION
+  - if [ $TRAVIS_PYTHON_VERSION == '2.6' ]; then ./run_tests --noproc --verbose ; fi # Travis CI's Python2.6 environment is not able to deal with multiprocess for some reason
+  - if [ $TRAVIS_PYTHON_VERSION != '2.6' ]; then ./run_tests --verbose ; fi
 
 # command to run after tests
 after_success:
