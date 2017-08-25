@@ -814,10 +814,10 @@ class LikelihoodMachine(object):
         if nproc > 1:
             from multiprocess import Pool
             p = Pool(nproc)
-            prob = np.array(p.map(prob_fun, fake_data))
+            prob = np.fromiter(p.map(prob_fun, fake_data), dtype=float)
             del p
         else:
-            prob = np.array(map(prob_fun, fake_data))
+            prob = np.fromiter(map(prob_fun, fake_data), dtype=float)
 
         # Get likelihood of actual data
         p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
@@ -904,10 +904,10 @@ class LikelihoodMachine(object):
         if nproc > 1:
             from multiprocess import Pool
             p = Pool(nproc)
-            ratio = np.array(p.map(ratio_fun, fake_data))
+            ratio = np.fromiter(p.map(ratio_fun, fake_data), dtype=float)
             del p
         else:
-            ratio = np.array(map(ratio_fun, fake_data))
+            ratio = np.fromiter(map(ratio_fun, fake_data), dtype=float)
 
         # Get likelihood of actual data
         p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
