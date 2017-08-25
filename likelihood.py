@@ -809,7 +809,11 @@ class LikelihoodMachine(object):
 
         # Calculate the maximum probabilities
         def prob_fun(data):
-            return LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, H0, systematics=systematics, **kwargs).P
+            try:
+                prob = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, H0, systematics=systematics, **kwargs).P
+            except KeyboardInterrupt:
+                raise Exception("Terminated.")
+            return prob
 
         if nproc >= 1:
             from multiprocess import Pool
@@ -897,8 +901,11 @@ class LikelihoodMachine(object):
 
         # Calculate the maximum probabilities
         def ratio_fun(data):
-            p0 = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, **kwargs).P
-            p1 = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, **kwargs).P
+            try:
+                p0 = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, **kwargs).P
+                p1 = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, **kwargs).P
+            except KeyboardInterrupt:
+                raise Exception("Terminated.")
             return p0-p1 # difference because log
 
         if nproc >= 1:
