@@ -60,7 +60,11 @@ class CompositeHypothesis(object):
         self.parameter_limits = parameter_limits
         self.parameter_priors = parameter_priors
         self.parameter_names = parameter_names
-        self.translate = translation_function
+        self._translate = translation_function
+
+    def translate(self, parameters):
+        """Translate the parameter vector to a truth vector."""
+        return self._translate(parameters)
 
 class JeffreysPrior(object):
     """Universal non-informative prior for use in Bayesian MCMC analysis."""
