@@ -87,7 +87,10 @@ class LinearHypothesis(CompositeHypothesis):
         """
 
         self.M = np.array(M, dtype=float)
-        self.b = np.array(b, dtype=float)
+        if b is None:
+            self.b = None
+        else:
+            self.b = np.array(b, dtype=float)
 
         if b is None:
             translate = lambda par: np.tensordot(self.M, par, axes=(-1,-1))
@@ -385,7 +388,7 @@ class LikelihoodMachine(object):
         return reco
 
     @staticmethod
-    def log_probability(data_vector, response_matrix, truth_vector):
+    def log_probability(data_vector, response_matrix, truth_vector, _constant=None):
         """Calculate the log probabilty of measuring `data_vector`, given `response_matrix` and `truth_vector`.
 
         Each of the three objects can actually be an array of vectors/matrices:
@@ -408,7 +411,10 @@ class LikelihoodMachine(object):
         resp = LikelihoodMachine._create_vector_array(response_matrix, data_shape[:-1])
 
         # Reco expectation values of shape (a,b,...,c,d,...,e,f,...,n_data)
-        reco = LikelihoodMachine._translate(resp, truth_vector)
+        if _constant is None:
+            reco = LikelihoodMachine._translate(resp, truth_vector)
+        else:
+            reco = LikelihoodMachine._translate(resp, truth_vector) + _constant
 
         # Create a data vector of the shape (a,b,...,n_data,c,d,...,e,f,...)
         data = LikelihoodMachine._create_vector_array(data_vector, list(response_shape[:-2])+list(truth_shape[:-1]), append=False)
@@ -464,6 +470,10 @@ class LikelihoodMachine(object):
     def _reduce_truth_vector(self, truth_vector):
         """Return a reduced truth vector view."""
         return np.array(np.asarray(truth_vector)[...,self._i_eff])
+
+    def _reduce_matrix(self, truth_vector):
+        """Return a reduced matrix view."""
+        return np.array(np.asarray(truth_vector)[...,self._i_eff,:])
 
     def log_likelihood(self, truth_vector, systematics='marginal'):
         """Calculate the log likelihood of a vector of truth expectation values.
@@ -530,12 +540,27 @@ class LikelihoodMachine(object):
               the response matrix that yielded the maximum likelihood `res.i`
         """
 
+        if isinstance(composite_hypothesis, LinearHypothesis):
+            # Special case!
+            # Since the parameter translation is just a matrix multiplication,
+            # we can save a lot of computing time by pre-calculating the combined
+            # matrix.
+            R = np.tensordot(response_matrix, composite_hypothesis.M, axes=(-1,-2))
+            b = composite_hypothesis.b
+            if b is None:
+                likfun = lambda x : LikelihoodMachine.log_probability(data_vector, R, x)
+            else:
+                const = LikelihoodMachine._translate(response_matrix, b)
+                likfun = lambda x : LikelihoodMachine.log_probability(data_vector, R, x, _constant=const)
+        else:
+            likfun = lambda x : LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(x))
+
         # Negative log probability function
         if systematics == 'profile' or systematics == 'maximum':
-            nll = lambda x: -np.max(LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(x)))
+            nll = lambda x: -np.max(likfun(x))
         elif systematics == 'marginal' or systematics == 'average':
             N_resp = np.prod(response_matrix.shape[:-2])
-            nll = lambda x: -(np.logaddexp.reduce(LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(x))) - np.log(N_resp))
+            nll = lambda x: -(np.logaddexp.reduce(likfun(x)) - np.log(N_resp))
         else:
             raise ValueError("Unknown systematics method!")
 
@@ -637,11 +662,23 @@ class LikelihoodMachine(object):
 
     def _composite_hypothesis_wrapper(self, composite_hypothesis):
         """Return a new composite hypothesis, that translates to reduced truth vectors."""
-        fun = lambda x: self._reduce_truth_vector(composite_hypothesis.translate(x))
-        H0 = CompositeHypothesis(translation_function=fun,
-                                parameter_limits=composite_hypothesis.parameter_limits,
-                                parameter_priors=composite_hypothesis.parameter_priors,
-                                parameter_names=composite_hypothesis.parameter_names)
+        if isinstance(composite_hypothesis, LinearHypothesis):
+            # Special case! Save computing time by removing the unneeded rows.
+            M = self._reduce_matrix(composite_hypothesis.M)
+            if composite_hypothesis.b is None:
+                b = None
+            else:
+                b = self._reduce_truth_vector(composite_hypothesis.b)
+            H0 = LinearHypothesis(M, b,
+                                    parameter_limits=composite_hypothesis.parameter_limits,
+                                    parameter_priors=composite_hypothesis.parameter_priors,
+                                    parameter_names=composite_hypothesis.parameter_names)
+        else:
+            fun = lambda x: self._reduce_truth_vector(composite_hypothesis.translate(x))
+            H0 = CompositeHypothesis(translation_function=fun,
+                                    parameter_limits=composite_hypothesis.parameter_limits,
+                                    parameter_priors=composite_hypothesis.parameter_priors,
+                                    parameter_names=composite_hypothesis.parameter_names)
         return H0
 
     def max_log_likelihood(self, composite_hypothesis, *args, **kwargs):

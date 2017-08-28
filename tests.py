@@ -771,6 +771,13 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertAlmostEqual(ll, -4.920, places=3)
         self.assertAlmostEqual(x[0], 4.93, places=2)
         self.assertAlmostEqual(x[1], 2.53, places=2)
+        H = TemplateHypothesis([[1,1,0,0],[0,0,1,1]], [1,1,1,1], [(0,10),(0,10)])
+        ret = self.L2.max_log_likelihood(H, method='differential_evolution', systematics='marginal')
+        ll, x, s = ret.L, ret.x, ret.success
+        self.assertTrue(s)
+        self.assertAlmostEqual(ll, -4.920, places=3)
+        self.assertAlmostEqual(x[0], 3.93, places=2)
+        self.assertAlmostEqual(x[1], 1.53, places=2)
 
     def test_absolute_max_log_likelihood(self):
         """Test absolute likelihood maximisation."""
