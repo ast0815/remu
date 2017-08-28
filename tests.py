@@ -764,8 +764,7 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertAlmostEqual(x[1], 2, places=2)
         self.assertAlmostEqual(x[2], 2, places=2)
         self.assertAlmostEqual(ll, -4.614, places=3)
-        fun = lambda x: np.repeat(x,2)
-        H = CompositeHypothesis(fun, [(0,10),(0,10)])
+        H = TemplateHypothesis([[1,1,0,0],[0,0,1,1]], None, [(0,10),(0,10)])
         ret = self.L2.max_log_likelihood(H, method='differential_evolution', systematics='marginal')
         ll, x, s = ret.L, ret.x, ret.success
         self.assertTrue(s)

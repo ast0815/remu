@@ -66,6 +66,59 @@ class CompositeHypothesis(object):
         """Translate the parameter vector to a truth vector."""
         return self._translate(parameters)
 
+class LinearHypothesis(CompositeHypothesis):
+    """Special case of CompositeHypothesis for linear combinations."""
+
+    def __init__(self, M, b=None, *args, **kwargs):
+        """Initialise the LinearHypothesis.
+
+        Arguments
+        ---------
+
+        M : The matrix translating the parameter vector into a truth vector:
+
+                truth = M.dot(parameters)
+
+        b : Optional. A constant (vector) to be added to the truth vector:
+
+                truth = M.dot(parameters) + b
+
+        Other arguments are passed on to the CompositeHypothesis init method.
+        """
+
+        self.M = np.array(M, dtype=float)
+        self.b = np.array(b, dtype=float)
+
+        if b is None:
+            translate = lambda par: np.tensordot(self.M, par, axes=(-1,-1))
+        else:
+            translate = lambda par: np.tensordot(self.M, par, axes=(-1,-1)) + self.b
+
+        CompositeHypothesis.__init__(self, translate, *args, **kwargs)
+
+class TemplateHypothesis(LinearHypothesis):
+    """Convenience class to turn truth templates into a CompositeHypothesis."""
+
+    def __init__(self, templates, constant=None, parameter_limits=None, *args, **kwargs):
+        """Initialise the TemplateHypothesis.
+
+        Arguments
+        ---------
+
+        templates : Iterable of truth vector templates.
+        constant : Optional. Constant offset to be added to the truth vector.
+        parameter_limits : Optional. An iterable of lower and upper limits of the hypothesis' parameters.
+                           Defaults to non-negative parameter values.
+
+        Other arguments are passed to the LinearHypothesis init method.
+        """
+
+        M = np.array(templates, dtype=float).T
+        if parameter_limits is None:
+            parameter_limits = [(0,None)]*M.shape[-1]
+
+        LinearHypothesis.__init__(self, M, constant, parameter_limits, *args, **kwargs)
+
 class JeffreysPrior(object):
     """Universal non-informative prior for use in Bayesian MCMC analysis."""
 
