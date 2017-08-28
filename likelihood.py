@@ -742,7 +742,7 @@ class LikelihoodMachine(object):
         n = np.sum(prob <= p0)
 
         # Return the quotient
-        return float(n) / N
+        return float(n) / prob.size
 
     def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=0, **kwargs):
         """Calculate the maximum likelihood p-value of a composite hypothesis given the measured data.
@@ -830,7 +830,7 @@ class LikelihoodMachine(object):
         n = np.sum(prob <= p0)
 
         # Return the quotient
-        return float(n) / N
+        return float(n) / prob.size
 
     def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=0, **kwargs):
         """Calculate the maximum likelihood ratio p-value of a two composite hypotheses given the measured data.
@@ -925,7 +925,7 @@ class LikelihoodMachine(object):
         n = np.sum(ratio <= r0)
 
         # Return the quotient
-        return float(n) / N
+        return float(n) / ratio.size
 
     def mcmc(self, composite_hypothesis, prior_only=False):
         """Return a Marcov Chain Monte Carlo object for the hypothesis.
