@@ -767,7 +767,7 @@ class LikelihoodMachine(object):
 
         return np.random.poisson(mu, size=size)
 
-    def likelihood_p_value(self, truth_vector, N=2500, generator_matrix_index=None, systematics='marginal'):
+    def likelihood_p_value(self, truth_vector, N=2500, generator_matrix_index=None, systematics='marginal', **kwargs):
         """Calculate the likelihood p-value of a truth vector given the measured data.
 
         Arguments
@@ -778,11 +778,15 @@ class LikelihoodMachine(object):
         generator_matrix_index : The index of the response matrix to be used to generate
                                  the fake data. This needs to be specified only if the
                                  LikelihoodMachine contains more than one response matrix.
-                                 If it is `None`, N data sets are thrown for *each* matrix.
+                                 If it is `None`, N data sets are thrown for *each* matrix,
+                                 and a p-value is evaluated for all of them.
+                                 The return value thus becomes an array of p-values.
         systematics : How to deal with detector systematics, i.e. multiple response matrices.
                       'profile', 'maximum': Choose the response matrix that yields the highest likelihood.
                       'marginal', 'average': Sum the probabilites yielded by the matrices.
                       Defaults to 'marginal'.
+
+        Additional keyword arguments will be passed to the likelihood method.
 
         Returns
         -------
@@ -811,7 +815,7 @@ class LikelihoodMachine(object):
         reduced_truth_vector = self._reduce_truth_vector(truth_vector)
 
         # Get likelihood of actual data
-        p0 = self._reduced_log_likelihood(reduced_truth_vector, systematics=systematics)
+        p0 = self._reduced_log_likelihood(reduced_truth_vector, systematics=systematics, **kwargs)
 
         # Decide which matrix to use for data generation
         if self._reduced_response_matrix.ndim > 2 and generator_matrix_index is not None:
@@ -821,22 +825,23 @@ class LikelihoodMachine(object):
 
         # Draw N fake data distributions
         fake_data = LikelihoodMachine.generate_random_data_sample(resp, reduced_truth_vector, N)
-        # Flatten the fake data sets from possibly multiple response matrices
-        fake_data.shape = (np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
+        # shape = N, resp_shape-2, data_shape
 
         # Calculate probabilities of each generated sample
-        prob = LikelihoodMachine.log_probability(fake_data, self._reduced_response_matrix, reduced_truth_vector)
+        prob = LikelihoodMachine.log_probability(fake_data, self._reduced_response_matrix, reduced_truth_vector, **kwargs)
+        # shape = N, resp_shape-2, resp_shape-2
 
         # Deal with systematics, i.e. multiple response matrices
-        if prob.ndim > 1:
-            systaxis = tuple(range(1, prob.ndim))
+        if prob.ndim > (1+resp.ndim-2):
+            systaxis = tuple(range(1+resp.ndim-2, prob.ndim))
             prob = LikelihoodMachine._collapse_systematics_axes(prob, systaxis, systematics)
+        # shape = N, resp_shape-2
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
-        n = np.count_nonzero(prob <= p0)
+        n = np.sum(prob <= p0, axis=0, dtype=float)
 
         # Return the quotient
-        return float(n) / prob.size
+        return n / N
 
     def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=0, **kwargs):
         """Calculate the maximum likelihood p-value of a composite hypothesis given the measured data.
@@ -852,7 +857,9 @@ class LikelihoodMachine(object):
         generator_matrix_index : The index of the response matrix to be used to generate
                                  the fake data. This needs to be specified only if the
                                  LikelihoodMachine contains more than one response matrix.
-                                 If it is `None`, N data sets are thrown for *each* matrix.
+                                 If it is `None`, N data sets are thrown for *each* matrix,
+                                 and a p-value is evaluated for all of them.
+                                 The return value thus becomes an array of p-values.
         nproc : How many processes to use in parallel.
                 Default: 0
 
@@ -895,8 +902,11 @@ class LikelihoodMachine(object):
 
         # Draw N fake data distributioxxns
         fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N)
+        # shape = N, resp_shape-2, data_shape
         # Flatten the fake data sets from possibly multiple response matrices
+        fake_shape = fake_data.shape
         fake_data.shape = (np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
+        # shape = N * resp_shape-2, data_shape
 
         # Wrapping composite hypothesis to produce reduced truth vectors
         H0 = self._composite_hypothesis_wrapper(composite_hypothesis)
@@ -916,15 +926,18 @@ class LikelihoodMachine(object):
             del p
         else:
             prob = np.fromiter(map(prob_fun, fake_data), dtype=float)
+        # shape = N*resp_shape-2
+        prob.shape = fake_shape[0:-1] + prob.shape[1:]
+        # shape = N, resp_shape-2
 
         # Get likelihood of actual data
         p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
-        n = np.count_nonzero(prob <= p0)
+        n = np.sum(prob <= p0, axis=0, dtype=float)
 
         # Return the quotient
-        return float(n) / prob.size
+        return n / N
 
     def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=0, **kwargs):
         """Calculate the maximum likelihood ratio p-value of a two composite hypotheses given the measured data.
@@ -940,7 +953,9 @@ class LikelihoodMachine(object):
         generator_matrix_index : The index of the response matrix to be used to generate
                                  the fake data. This needs to be specified only if the
                                  LikelihoodMachine contains more than one response matrix.
-                                 If it is `None`, N data sets are thrown for *each* matrix.
+                                 If it is `None`, N data sets are thrown for *each* matrix,
+                                 and a p-value is evaluated for all of them.
+                                 The return value thus becomes an array of p-values.
         nproc : How many processes to use in parallel.
                 Default: 0
 
@@ -986,8 +1001,11 @@ class LikelihoodMachine(object):
 
         # Draw N fake data distributions
         fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N)
+        # shape = N, resp_shape-2, data_shape
         # Flatten the fake data sets from possibly multiple response matrices
+        fake_shape = fake_data.shape
         fake_data.shape = (np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
+        # shape = N * resp_shape-2, data_shape
 
         # Wrapping composite hypothesis to produce reduced truth vectors
         wH0 = self._composite_hypothesis_wrapper(H0)
@@ -1009,6 +1027,9 @@ class LikelihoodMachine(object):
             del p
         else:
             ratio = np.fromiter(map(ratio_fun, fake_data), dtype=float)
+        # shape = N*resp_shape-2
+        ratio.shape = fake_shape[0:-1] + ratio.shape[1:]
+        # shape = N, resp_shape-2
 
         # Get likelihood of actual data
         p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
@@ -1016,10 +1037,10 @@ class LikelihoodMachine(object):
         r0 = p0-p1 # difference because log
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
-        n = np.count_nonzero(ratio <= r0)
+        n = np.sum(ratio <= r0, axis=0, dtype=float)
 
         # Return the quotient
-        return float(n) / ratio.size
+        return n / N
 
     def mcmc(self, composite_hypothesis, prior_only=False):
         """Return a Marcov Chain Monte Carlo object for the hypothesis.
