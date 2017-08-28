@@ -739,7 +739,7 @@ class LikelihoodMachine(object):
             prob = LikelihoodMachine._collapse_systematics_axes(prob, systaxis, systematics)
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
-        n = np.sum(prob <= p0)
+        n = np.count_nonzero(prob <= p0)
 
         # Return the quotient
         return float(n) / prob.size
@@ -827,7 +827,7 @@ class LikelihoodMachine(object):
         p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
-        n = np.sum(prob <= p0)
+        n = np.count_nonzero(prob <= p0)
 
         # Return the quotient
         return float(n) / prob.size
@@ -922,7 +922,7 @@ class LikelihoodMachine(object):
         r0 = p0-p1 # difference because log
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
-        n = np.sum(ratio <= r0)
+        n = np.count_nonzero(ratio <= r0)
 
         # Return the quotient
         return float(n) / ratio.size
@@ -1041,7 +1041,7 @@ class LikelihoodMachine(object):
         # Build all possible combinations
         # Assumes posteriors are independent, I guess
         PLR = np.array(np.meshgrid(L1, -L0)).T.sum(axis=-1).flatten()
-        preference = float(np.sum(PLR > 0)) / PLR.size
+        preference = float(np.count_nonzero(PLR > 0)) / PLR.size
         return PLR, preference
 
     def plot_bin_efficiencies(self, filename, plot_limits=False, bins_per_plot=20):
