@@ -348,14 +348,10 @@ class LikelihoodMachine(object):
 
         """
 
-        flat_vector = vector.flat
-
         if append:
             arr = np.broadcast_to(vector, list(shape) + list(vector.shape))
         else:
-            n = np.prod(shape, dtype=int)
-            arr = np.repeat(flat_vector,n)
-            arr = arr.reshape( list(vector.shape) + list(shape) )
+            arr = np.broadcast_to(vector.T, list(shape[::-1]) + list(vector.shape)[::-1]).T
 
         return arr
 
