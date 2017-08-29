@@ -1062,6 +1062,8 @@ class RectangularBinning(Binning):
         ---------
 
         filename : The target filename of the plot.
+                   If `None`, the plot fill not be saved to disk.
+                   This is only useful with the `figax` option.
         arr : The array containing the data to be plotted.
         variables : `list`, list of variables to plot marginal histograms for.
                     `None`, plor marginal histograms for all variables.
@@ -1227,8 +1229,9 @@ class RectangularBinning(Binning):
                     ax[i][j].hist2d(xx, yy, weights=arr, bins=(x_edg, y_edg), **kw2d)
 
         fig.tight_layout()
-        with np.errstate(divide='ignore', invalid='ignore'):
-            fig.savefig(filename)
+        if filename is not None:
+            with np.errstate(divide='ignore', invalid='ignore'):
+                fig.savefig(filename)
 
         return fig, ax
 
