@@ -483,6 +483,19 @@ class Binning(object):
     def fill_from_csv_file(self, filename, weightfield=None, rename={}, cut_function=lambda x: x, **kwargs):
         """Fill the binning with events from a CSV file.
 
+        Arguments
+        ---------
+
+        filename : The csv file with the data.
+        weightfield : Optional. The column with the event weights.
+        rename : Optional. A dict with columns that should be renamed before filling.
+
+                    {'csv_name': 'binning_name'}
+
+        cut_function : Optional. A function that modifies the loaded data before filling into the binning.
+
+                        cut_function(data) = data[ data['binning_name'] > some_threshold ]
+
         The file must be formated like this:
 
             first_varname,second_varname,...
