@@ -251,7 +251,9 @@ class ResponseMatrix(object):
 
         i = resp_entries > 0
         mu = resp1/np.where(i, resp_entries, 1)
-        mu = np.where(i, mu, expected_weight) # Set empty bins to expected weight
+        j = resp_entries[-1] > 0
+        mu[-1] = np.where(j, mu[-1], expected_weight) # Set empty truth bins to expected weight
+        mu[:-1,:] = np.where(i[:-1], mu[:-1,:], mu[-1,:])
 
         # Add pseudo observation for variance estimation
         resp1_p = resp1 + expected_weight
