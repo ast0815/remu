@@ -1068,7 +1068,7 @@ class RectangularBinning(Binning):
 
         self.bins._sumw2_array.flat[:] = arr.flat
 
-    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, denominator=None, sqrt_errors=False):
+    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, denominator=None, sqrt_errors=False, no_plot=False):
         """Plot a visual representation of an array containing the entries or values of the binning.
 
         Arguments
@@ -1095,6 +1095,10 @@ class RectangularBinning(Binning):
                              Default: numpy.sum
         denominator : A second array can be provided as a denominator.
                       It is projected the same way `arr` is prior to dividing.
+        sqrt_errors : Plot sqrt(n) error bars.
+                      Default: `False`
+        no_plot : Do not plot anything, just create the figure and axes.
+                  Default: `False`
 
         Returns
         -------
@@ -1134,112 +1138,113 @@ class RectangularBinning(Binning):
         else:
             fig, ax = figax
 
-        temp_binning = deepcopy(self)
-        temp_binning.set_values_from_ndarray(arr)
-        if denominator is not None:
-            denominator_binning = deepcopy(self)
-            denominator_binning.set_values_from_ndarray(denominator)
+        if not no_plot:
+            temp_binning = deepcopy(self)
+            temp_binning.set_values_from_ndarray(arr)
+            if denominator is not None:
+                denominator_binning = deepcopy(self)
+                denominator_binning.set_values_from_ndarray(denominator)
 
-        def make_finite(edges):
-            ret = list(edges)
-            if not np.isfinite(ret[0]):
-                if len(ret) >= 3:
-                    ret[0] = ret[1] - (ret[2] - ret[1])
-                else:
-                    ret[0] = ret[1]-1
-            if not np.isfinite(ret[-1]):
-                if len(ret) >= 3:
-                    ret[-1] = ret[-2] + (ret[-2] - ret[-3])
-                else:
-                    ret[-1] = ret[-2]+1
-            return ret
-
-        for i in range(ny):
-            y_var = variables[0][i]
-            y_edg = np.array(make_finite(self.binedges[y_var]))
-            for j in range(nx):
-                if variables[1] is None:
-                    x_var = y_var
-                    x_edg = y_edg
-                else:
-                    x_var = variables[1][j]
-                    x_edg = np.array(make_finite(self.binedges[x_var]))
-
-                if y_var == x_var:
-                    # 1D histogram
-
-                    nn = temp_binning.project([y_var], reduction_function=reduction_function).get_values_as_ndarray()
-                    if sqrt_errors:
-                        yerr = np.sqrt(nn)
+            def make_finite(edges):
+                ret = list(edges)
+                if not np.isfinite(ret[0]):
+                    if len(ret) >= 3:
+                        ret[0] = ret[1] - (ret[2] - ret[1])
                     else:
-                        yerr = None
+                        ret[0] = ret[1]-1
+                if not np.isfinite(ret[-1]):
+                    if len(ret) >= 3:
+                        ret[-1] = ret[-2] + (ret[-2] - ret[-3])
+                    else:
+                        ret[-1] = ret[-2]+1
+                return ret
 
-                    if denominator is not None:
-                        deno = denominator_binning.project([y_var], reduction_function=reduction_function).get_values_as_ndarray()
-                        nn /= deno
+            for i in range(ny):
+                y_var = variables[0][i]
+                y_edg = np.array(make_finite(self.binedges[y_var]))
+                for j in range(nx):
+                    if variables[1] is None:
+                        x_var = y_var
+                        x_edg = y_edg
+                    else:
+                        x_var = variables[1][j]
+                        x_edg = np.array(make_finite(self.binedges[x_var]))
+
+                    if y_var == x_var:
+                        # 1D histogram
+
+                        nn = temp_binning.project([y_var], reduction_function=reduction_function).get_values_as_ndarray()
                         if sqrt_errors:
-                            yerr /= deno
+                            yerr = np.sqrt(nn)
+                        else:
+                            yerr = None
 
-                    if divide:
-                        div = (y_edg[1:] - y_edg[:-1])
-                        nn /= div
+                        if denominator is not None:
+                            deno = denominator_binning.project([y_var], reduction_function=reduction_function).get_values_as_ndarray()
+                            nn /= deno
+                            if sqrt_errors:
+                                yerr /= deno
+
+                        if divide:
+                            div = (y_edg[1:] - y_edg[:-1])
+                            nn /= div
+                            if sqrt_errors:
+                                yerr /= div
+
+                        nn = np.append(nn, nn[-1])
                         if sqrt_errors:
-                            yerr /= div
-
-                    nn = np.append(nn, nn[-1])
-                    if sqrt_errors:
-                        y_edg = (y_edg[:-1] + y_edg[1:]) / 2.
-                        nn = nn[:-1]
+                            y_edg = (y_edg[:-1] + y_edg[1:]) / 2.
+                            nn = nn[:-1]
 
 
-                    ax[i][j].set_xlabel(y_var)
+                        ax[i][j].set_xlabel(y_var)
 
-                    ax[i][j].errorbar(y_edg, nn, yerr=yerr, **kw1d)
+                        ax[i][j].errorbar(y_edg, nn, yerr=yerr, **kw1d)
 
-                    # Mark open ended bins
-                    if not np.isfinite(self.binedges[y_var][0]):
-                        ax[i][j].axhline(nn[0], -0.1, 0.0, color='k', linestyle='dotted', clip_on=False)
+                        # Mark open ended bins
+                        if not np.isfinite(self.binedges[y_var][0]):
+                            ax[i][j].axhline(nn[0], -0.1, 0.0, color='k', linestyle='dotted', clip_on=False)
 
-                    if not np.isfinite(self.binedges[y_var][-1]):
-                        ax[i][j].axhline(nn[-1], 1.0, 1.1, color='k', linestyle='dotted', clip_on=False)
+                        if not np.isfinite(self.binedges[y_var][-1]):
+                            ax[i][j].axhline(nn[-1], 1.0, 1.1, color='k', linestyle='dotted', clip_on=False)
 
-                    if 'label' in kw1d:
-                        ax[i][j].legend(loc='best', framealpha=0.5, prop={'size':10})
+                        if 'label' in kw1d:
+                            ax[i][j].legend(loc='best', framealpha=0.5, prop={'size':10})
 
-                else:
-                    # 2D histogram
+                    else:
+                        # 2D histogram
 
-                    tb = temp_binning.project([x_var, y_var], reduction_function=reduction_function)
-                    arr = tb.get_values_as_ndarray()
-                    if denominator is not None:
-                        arr /= denominator_binning.project([x_var, y_var], reduction_function=reduction_function).get_values_as_ndarray()
-                    if tb.variables[0] != y_var:
-                        arr = arr.transpose()
-                    arr = arr.flatten()
+                        tb = temp_binning.project([x_var, y_var], reduction_function=reduction_function)
+                        arr = tb.get_values_as_ndarray()
+                        if denominator is not None:
+                            arr /= denominator_binning.project([x_var, y_var], reduction_function=reduction_function).get_values_as_ndarray()
+                        if tb.variables[0] != y_var:
+                            arr = arr.transpose()
+                        arr = arr.flatten()
 
-                    # Bin centres
-                    x = np.convolve(x_edg, np.ones(2)/2, mode='valid')
-                    y = np.convolve(y_edg, np.ones(2)/2, mode='valid')
-                    xx = np.broadcast_to(x, (len(y),len(x))).flatten()
-                    yy = np.repeat(y, len(x))
+                        # Bin centres
+                        x = np.convolve(x_edg, np.ones(2)/2, mode='valid')
+                        y = np.convolve(y_edg, np.ones(2)/2, mode='valid')
+                        xx = np.broadcast_to(x, (len(y),len(x))).flatten()
+                        yy = np.repeat(y, len(x))
 
-                    if divide:
-                        # Bin areas
-                        wx = np.diff(x_edg)
-                        wy = np.diff(y_edg)
-                        wxx = np.broadcast_to(wx, (len(wy),len(wx))).flatten()
-                        wyy = np.repeat(wy, len(wx))
-                        A = wxx * wyy
+                        if divide:
+                            # Bin areas
+                            wx = np.diff(x_edg)
+                            wy = np.diff(y_edg)
+                            wxx = np.broadcast_to(wx, (len(wy),len(wx))).flatten()
+                            wyy = np.repeat(wy, len(wx))
+                            A = wxx * wyy
 
-                        arr /= A
+                            arr /= A
 
-                    if i==len(variables[0])-1:
-                        ax[i][j].set_xlabel(x_var)
-                    if j==0:
-                        ax[i][j].set_ylabel(y_var)
+                        if i==len(variables[0])-1:
+                            ax[i][j].set_xlabel(x_var)
+                        if j==0:
+                            ax[i][j].set_ylabel(y_var)
 
-                    kw2d.update({'norm': LogNorm()})
-                    ax[i][j].hist2d(xx, yy, weights=arr, bins=(x_edg, y_edg), **kw2d)
+                        kw2d.update({'norm': LogNorm()})
+                        ax[i][j].hist2d(xx, yy, weights=arr, bins=(x_edg, y_edg), **kw2d)
 
         fig.tight_layout()
         if filename is not None:
