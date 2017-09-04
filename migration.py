@@ -1,5 +1,6 @@
 import numpy as np
 from copy import copy, deepcopy
+from warnings import warn
 
 class ResponseMatrix(object):
     """Matrix that describes the detector response to true events."""
@@ -109,7 +110,8 @@ class ResponseMatrix(object):
         # Check for bins where the fill-up is less than the original
         # Allow some deviation since weight corrections and systematics are not exact
         if np.any(where & (diff < -0.5)):
-            raise RuntimeError("Filled-up values are less than the original filling. This should not happen!")
+            i = np.argwhere(where & (diff < -0.5))
+            warn("Filled-up values are less than the original filling in %d bins. This should not happen!"%(i.size,), stacklevel=2)
 
         where = (diff > 0)
 
@@ -154,6 +156,14 @@ class ResponseMatrix(object):
     def get_response_sumw2_as_ndarray(self, *args, **kwargs):
         return self.response_binning.get_sumw2_as_ndarray(*args, **kwargs)
 
+    @staticmethod
+    def _normalize_matrix(M):
+        """Make sure all efficiencies are less than or equal to 1."""
+
+        eff = np.sum(M, axis=-2)
+        eff = np.where(eff < 1., 1., eff)[...,np.newaxis,:]
+        return M / eff
+
     def get_response_matrix_as_ndarray(self, shape=None, truth_indices=None):
         """Return the ResponseMatrix as a ndarray.
 
@@ -177,6 +187,9 @@ class ResponseMatrix(object):
         # Normalize to number of simulated events
         N_t = self.get_truth_values_as_ndarray(indices=truth_indices)
         M /= np.where(N_t > 0., N_t, 1.)
+
+        # Deal with bins where N_reco > N_truth
+        M = ResponseMatrix._normalize_matrix(M)
 
         if shape is not None:
             M = M.reshape(shape, order='C')
@@ -278,14 +291,6 @@ class ResponseMatrix(object):
         sigma += epsilon
 
         return beta1, beta2, alpha, mu, sigma
-
-    @staticmethod
-    def _normalize_matrix(M):
-        """Make sure all efficiencies are less than or equal to 1."""
-
-        eff = np.sum(M, axis=-2)
-        eff = np.where(eff < 1., 1., eff)[...,np.newaxis,:]
-        return M / eff
 
     def get_mean_response_matrix_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None, truth_indices=None):
         """Return the means of the posterior distributions of the response matrix elements.
