@@ -279,6 +279,14 @@ class ResponseMatrix(object):
 
         return beta1, beta2, alpha, mu, sigma
 
+    @staticmethod
+    def _normalize_matrix(M):
+        """Make sure all efficiencies are less than or equal to 1."""
+
+        eff = np.sum(M, axis=-2)
+        eff = np.where(eff < 1., 1., eff)[...,np.newaxis,:]
+        return M / eff
+
     def get_mean_response_matrix_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None, truth_indices=None):
         """Return the means of the posterior distributions of the response matrix elements.
 
@@ -311,6 +319,8 @@ class ResponseMatrix(object):
 
         # Combine the three
         MM = mij*pij*effj
+        # Re-normalise after weight corrections
+        MM = ResponseMatrix._normalize_matrix(MM)
 
         if shape is not None:
             MM.shape = shape
@@ -503,6 +513,8 @@ class ResponseMatrix(object):
         mij = (wij / wj[...,np.newaxis,:])
 
         response = mij * pij * effj[...,np.newaxis,:]
+        # Re-normalise after weight corrections
+        response = ResponseMatrix._normalize_matrix(response)
 
         # Adjust shape
         if shape is None:
