@@ -972,7 +972,7 @@ class RectangularBinning(Binning):
         else:
             return new_binning
 
-    def rebin(self, remove_binedges, return_indices=False):
+    def rebin(self, remove_binedges):
         """Return a new RectangularBinning with the given bin edges removed.
 
         Arguments
