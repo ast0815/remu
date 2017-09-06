@@ -896,9 +896,9 @@ class RectangularBinning(Binning):
         new_entries = reduction_function(self.get_entries_as_ndarray(shape=self.nbins), axis=axes)
         new_sumw2 = reduction_function(self.get_sumw2_as_ndarray(shape=self.nbins), axis=axes)
 
-        new_binning.bins._value_array=new_values
-        new_binning.bins._entries_array=new_entries
-        new_binning.bins._sumw2_array=new_sumw2
+        new_binning.set_values_from_ndarray(new_values)
+        new_binning.set_entries_from_ndarray(new_entries)
+        new_binning.set_sumw2_from_ndarray(new_sumw2)
 
         return new_binning
 
@@ -963,9 +963,9 @@ class RectangularBinning(Binning):
         new_entries = self.get_entries_as_ndarray(shape=self.nbins)[index]
         new_sumw2 = self.get_sumw2_as_ndarray(shape=self.nbins)[index]
 
-        new_binning.bins._value_array=new_values
-        new_binning.bins._entries_array=new_entries
-        new_binning.bins._sumw2_array=new_sumw2
+        new_binning.set_values_from_ndarray(new_values)
+        new_binning.set_entries_from_ndarray(new_entries)
+        new_binning.set_sumw2_from_ndarray(new_sumw2)
 
         if return_indices:
             return new_binning, index
