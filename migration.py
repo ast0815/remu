@@ -34,6 +34,37 @@ class ResponseMatrix(object):
         self.nuisance_indices=nuisance_indices
         self._update_filled_indices()
 
+    def rebin(self, remove_binedges):
+        """Return a new ResponseMatrix with the given bin edges removed.
+
+        Arguments
+        ---------
+
+        remove_binedges : A dictionary specifying the bin edge indeices of each
+                          variable that should be removed. Binning variables that are not part of the
+                          dictionary are kept as is.  E.g. if you want to remove
+                          bin edge 2 in `var_A` and bin edges 3, 4 and 7 in `var_C`:
+
+                              remove_binedges = { 'var_A': [2],
+                                                  'var_B': [3, 4, 7] }
+
+                          The values of the bins adjacent to the removed bin edges
+                          will be summed up in the resulting larger bin.
+                          Please note that bin values are lost if the first or last
+                          binedge of a variable are removed.
+
+        Please note that the `nuisance_indices` of the new matrix are set to `[]`!
+        """
+
+        new_response_binning = self.response_binning.rebin(remove_binedges)
+        rb = dict( (v, remove_binedges[v]) for v in remove_binedges if v in self.reco_binning.variables )
+        new_reco_binning = self.reco_binning.rebin(rb)
+        rb = dict( (v, remove_binedges[v]) for v in remove_binedges if v in self.truth_binning.variables )
+        new_truth_binning = self.truth_binning.rebin(rb)
+        new_nuisance_indices = []
+
+        return ResponseMatrix(reco_binning=new_reco_binning, truth_binning=new_truth_binning, response_binning=new_response_binning, nuisance_indices=new_nuisance_indices)
+
     def _update_filled_indices(self):
         """Update the list of filled truth indices."""
         self.filled_truth_indices = np.argwhere(self.get_truth_entries_as_ndarray() > 0).flatten()

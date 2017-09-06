@@ -545,6 +545,13 @@ class TestResponseMatrices(unittest.TestCase):
             self.rm.plot_statistical_variation(f)
             self.rm.plot_expected_efficiency(f)
 
+    def test_rebin(self):
+        """Test ResponseMatrix rebinning."""
+        ret = self.rm.rebin({'x_truth': [1], 'y_reco': [2]})
+        self.assertEqual(len(ret.reco_binning.bins), 2)
+        self.assertEqual(len(ret.truth_binning.bins), 2)
+        self.assertEqual(len(ret.response_binning.bins), 4)
+
     def test_fill(self):
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         reco = self.rm.get_reco_entries_as_ndarray((2,2))
