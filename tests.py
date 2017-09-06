@@ -501,6 +501,20 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertEqual(val.sum(), 2)
         self.assertEqual(ent.sum(), 1)
 
+    def test_rebinning(self):
+        """Test rebinning of rectangular binnings."""
+        self.bxyz.fill({'x':0, 'y':10, 'z':0}, weight=2.)
+        self.bxyz.fill({'x':1, 'y':10, 'z':1})
+        self.bxyz.fill({'x':0, 'y':0, 'z':0}, weight=2.)
+        nb = self.bxyz.rebin({'x': [2], 'y': [0,2]})
+        val = nb.get_values_as_ndarray()
+        ent = nb.get_entries_as_ndarray()
+        sw2 = nb.get_sumw2_as_ndarray()
+        self.assertEqual(val.shape[0], 4)
+        self.assertEqual(val.sum(), 4)
+        self.assertEqual(ent.sum(), 2)
+        self.assertEqual(sw2.sum(), 8)
+
     def test_plots(self):
         """Test plots."""
         with open('/dev/null', 'wb') as f:

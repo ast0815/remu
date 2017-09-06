@@ -972,6 +972,65 @@ class RectangularBinning(Binning):
         else:
             return new_binning
 
+    def rebin(self, remove_binedges, return_indices=False):
+        """Return a new RectangularBinning with the given bin edges removed.
+
+        Arguments
+        ---------
+
+        remove_binedges : A dictionary specifying the bin edge indeices of each
+                          variable that should be removed. Binning variables that are not part of the
+                          dictionary are kept as is.  E.g. if you want to remove
+                          bin edge 2 in `var_A` and bin edges 3, 4 and 7 in `var_C`:
+
+                              remove_binedges = { 'var_A': [2],
+                                                  'var_B': [3, 4, 7] }
+
+                          The values of the bins adjacent to the removed bin edges
+                          will be summed up in the resulting larger bin.
+                          Please note that bin values are lost if the first or last
+                          binedge of a variable are removed.
+        """
+
+        # Create new binning
+        new_binedges = deepcopy(self.binedges)
+        for var, il in remove_binedges.items():
+            for i in sorted(il, reverse=True):
+                L = list(new_binedges[var])
+                del L[i]
+                new_binedges[var] = tuple(L)
+
+        new_binning = RectangularBinning(variables=self.variables, binedges=new_binedges, include_upper=self._include_upper)
+
+        # Copy and add values
+        old_values  = self.get_values_as_ndarray(shape=self.nbins)
+        old_entries = self.get_entries_as_ndarray(shape=self.nbins)
+        old_sumw2   = self.get_sumw2_as_ndarray(shape=self.nbins)
+        new_values  = self.get_values_as_ndarray(shape=self.nbins)
+        new_entries = self.get_entries_as_ndarray(shape=self.nbins)
+        new_sumw2   = self.get_sumw2_as_ndarray(shape=self.nbins)
+        for var, il in remove_binedges.items():
+            ax = self.variables.index(var)
+            for i in sorted(il, reverse=True):
+                if i > 0 and i < self.nbins[ax]:
+                    new_values[(slice(None),)*ax + (i-1, Ellipsis)] += new_values[(slice(None),)*ax + (i, Ellipsis)]
+                    new_entries[(slice(None),)*ax + (i-1, Ellipsis)] += new_entries[(slice(None),)*ax + (i, Ellipsis)]
+                    new_sumw2[(slice(None),)*ax + (i-1, Ellipsis)] += new_sumw2[(slice(None),)*ax + (i, Ellipsis)]
+                if i < self.nbins[ax]:
+                    new_values  = np.delete(new_values, i, ax)
+                    new_entries  = np.delete(new_entries, i, ax)
+                    new_sumw2  = np.delete(new_sumw2, i, ax)
+                else:
+                    new_values  = np.delete(new_values, i-1, ax)
+                    new_entries  = np.delete(new_entries, i-1, ax)
+                    new_sumw2  = np.delete(new_sumw2, i-1, ax)
+
+        new_binning.set_values_from_ndarray(new_values)
+        new_binning.set_entries_from_ndarray(new_entries)
+        new_binning.set_sumw2_from_ndarray(new_sumw2)
+
+        return new_binning
+
     def get_values_as_ndarray(self, shape=None, indices=None):
         """Return the bin values as ndarray.
 
