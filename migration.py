@@ -5,7 +5,7 @@ from warnings import warn
 class ResponseMatrix(object):
     """Matrix that describes the detector response to true events."""
 
-    def __init__(self, reco_binning, truth_binning, nuisance_indices=[]):
+    def __init__(self, reco_binning, truth_binning, nuisance_indices=[], response_binning=None):
         """Initilize the Response Matrix.
 
         Arguments
@@ -14,6 +14,10 @@ class ResponseMatrix(object):
         truth_binning: The Binning object describing the truth categorization.
         reco_binning: The Binning object describing the reco categorization.
         nuisance_indices: List of indices of nuisance truth bins.
+        response_binning: Optional. The Binning object describing the reco and
+                          truth categorization. Usually this will be generated
+                          from the truth and reco binning using their
+                          `cartesian_product` method.
 
         The binnings will be combined with `cartesian_product`.
 
@@ -23,9 +27,12 @@ class ResponseMatrix(object):
 
         self.truth_binning = truth_binning
         self.reco_binning = reco_binning
-        self.response_binning = reco_binning.cartesian_product(truth_binning)
+        if response_binning is None:
+            self.response_binning = reco_binning.cartesian_product(truth_binning)
+        else:
+            self.response_binning = response_binning
         self.nuisance_indices=nuisance_indices
-        self.filled_truth_indices = []
+        self._update_filled_indices()
 
     def _update_filled_indices(self):
         """Update the list of filled truth indices."""
