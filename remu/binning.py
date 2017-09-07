@@ -1049,6 +1049,8 @@ class RectangularBinning(Binning):
         ret = np.array(self.bins._value_array[indices])
         if shape is not None:
             ret = ret.reshape(shape, order='C')
+        else:
+            ret = ret.reshape((ret.size,), order='C')
         return ret
 
     def set_values_from_ndarray(self, arr):
@@ -1081,6 +1083,8 @@ class RectangularBinning(Binning):
         ret = np.array(self.bins._entries_array[indices])
         if shape is not None:
             ret = ret.reshape(shape, order='C')
+        else:
+            ret = ret.reshape((ret.size,), order='C')
         return ret
 
     def set_entries_from_ndarray(self, arr):
@@ -1113,6 +1117,8 @@ class RectangularBinning(Binning):
         ret = np.copy(self.bins._sumw2_array[indices])
         if shape is not None:
             ret = ret.reshape(shape, order='C')
+        else:
+            ret = ret.reshape((ret.size,), order='C')
         return ret
 
     def set_sumw2_from_ndarray(self, arr):
@@ -1274,9 +1280,9 @@ class RectangularBinning(Binning):
                         # 2D histogram
 
                         tb = temp_binning.project([x_var, y_var], reduction_function=reduction_function)
-                        arr = tb.get_values_as_ndarray()
+                        arr = tb.get_values_as_ndarray(shape=tb.nbins)
                         if denominator is not None:
-                            arr /= denominator_binning.project([x_var, y_var], reduction_function=reduction_function).get_values_as_ndarray()
+                            arr /= denominator_binning.project([x_var, y_var], reduction_function=reduction_function).get_values_as_ndarray(shape=tb.nbins)
                         if tb.variables[0] != y_var:
                             arr = arr.transpose()
                         arr = arr.flatten()
