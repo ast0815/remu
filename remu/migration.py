@@ -611,7 +611,7 @@ class ResponseMatrix(object):
 
             # Roll the array
             shifted_resp = np.roll(resp, 1, axis=i)
-            shifted_stat = np.roll(resp, 1, axis=i)
+            shifted_stat = np.roll(stat, 1, axis=i)
             # Set the 'rolled-in' elements to the values of their neighbours
             i0 = (slice(None,None,None),)*i + (0,) + (Ellipsis,)
             i1 = (slice(None,None,None),)*i + (1,) + (Ellipsis,)
