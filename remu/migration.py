@@ -569,7 +569,7 @@ class ResponseMatrix(object):
 
         return response
 
-    def get_in_bin_variation_as_ndarray(self, shape=None, truth_only=True, ignore_variables=[], truth_indices=None):
+    def get_in_bin_variation_as_ndarray(self, shape=None, truth_only=True, ignore_variables=[], variable_slices={}, truth_indices=None):
         """Returns an estimate for the variation of the response within a bin.
 
         The in-bin variation is estimated from the maximum difference to the
@@ -583,6 +583,9 @@ class ResponseMatrix(object):
         Variables specified in `ignore_variables` will not be considered.  This
         is useful to exclude categorical variables, where the response is not
         expected to vary smoothly.
+
+        For variables in `variable_slices` only the specified slice will be rotated,
+        e.g. `variable_slices = {'var_A': slice(1,5)}`.
 
         If `truth_indices` are provided, a sliced matrix with only the given
         columns will be returned.
@@ -609,27 +612,59 @@ class ResponseMatrix(object):
             if resp.shape[i] == 1:
                 continue
 
-            # Roll the array
-            shifted_resp = np.roll(resp, 1, axis=i)
-            shifted_stat = np.roll(stat, 1, axis=i)
-            # Set the 'rolled-in' elements to the values of their neighbours
-            i0 = (slice(None,None,None),)*i + (0,) + (Ellipsis,)
-            i1 = (slice(None,None,None),)*i + (1,) + (Ellipsis,)
-            shifted_resp[i0] = shifted_resp[i1]
-            shifted_stat[i0] = shifted_stat[i1]
+            if var in variable_slices:
+                sl = variable_slices[var]
+                # Copy the array
+                shifted_resp = np.array(resp)
+                shifted_stat = np.array(stat)
+                # Roll the slices
+                tup = (slice(None),)*i + (sl, Ellipsis)
+                if resp[tup].shape[i] == 1: # Ignore single-bin slices
+                    continue
+                shifted_resp[tup] = np.roll(resp[tup], 1, axis=i)
+                shifted_stat[tup] = np.roll(stat[tup], 1, axis=i)
+                # Set the 'rolled-in' elements to the values of their neighbours
+                i0 = (slice(None),)*i + (0, Ellipsis)
+                i1 = (slice(None),)*i + (1, Ellipsis)
+                shifted_resp[tup][i0] = shifted_resp[tup][i1]
+                shifted_stat[tup][i0] = shifted_stat[tup][i1]
+            else:
+                # Roll the array
+                shifted_resp = np.roll(resp, 1, axis=i)
+                shifted_stat = np.roll(stat, 1, axis=i)
+                # Set the 'rolled-in' elements to the values of their neighbours
+                i0 = (slice(None),)*i + (0, Ellipsis)
+                i1 = (slice(None),)*i + (1, Ellipsis)
+                shifted_resp[i0] = shifted_resp[i1]
+                shifted_stat[i0] = shifted_stat[i1]
 
             # Get maximum difference
             ret = np.maximum(ret, np.abs(resp - shifted_resp) / np.sqrt(stat + shifted_stat))
 
             # Same in other direction
-            # Roll the array
-            shifted_resp = np.roll(resp, -1, axis=i)
-            shifted_stat = np.roll(stat, -1, axis=i)
-            # Set the 'rolled-in' elements to the values of their neighbours
-            im1 = (slice(None,None,None),)*i + (-1,) + (Ellipsis,)
-            im2 = (slice(None,None,None),)*i + (-2,) + (Ellipsis,)
-            shifted_resp[im1] = shifted_resp[im2]
-            shifted_stat[im1] = shifted_stat[im2]
+            if var in variable_slices:
+                sl = variable_slices[var]
+                # Copy the array
+                shifted_resp = np.array(resp)
+                shifted_stat = np.array(stat)
+                # Roll the slices
+                tup = (slice(None),)*i + (sl, Ellipsis)
+                shifted_resp[tup] = np.roll(resp[tup], -1, axis=i)
+                shifted_stat[tup] = np.roll(stat[tup], -1, axis=i)
+                # Set the 'rolled-in' elements to the values of their neighbours
+                im1 = (slice(None),)*i + (-1, Ellipsis)
+                im2 = (slice(None),)*i + (-2, Ellipsis)
+                shifted_resp[tup][im1] = shifted_resp[tup][im2]
+                shifted_stat[tup][im1] = shifted_stat[tup][im2]
+            else:
+                # Roll the array
+                shifted_resp = np.roll(resp, -1, axis=i)
+                shifted_stat = np.roll(stat, -1, axis=i)
+                # Set the 'rolled-in' elements to the values of their neighbours
+                im1 = (slice(None),)*i + (-1, Ellipsis)
+                im2 = (slice(None),)*i + (-2, Ellipsis)
+                shifted_resp[im1] = shifted_resp[im2]
+                shifted_stat[im1] = shifted_stat[im2]
 
             # Get maximum difference
             ret = np.maximum(ret, np.abs(resp - shifted_resp) / np.sqrt(stat + shifted_stat))
@@ -647,7 +682,7 @@ class ResponseMatrix(object):
         return ret
 
     @staticmethod
-    def _max_step(resp, ignore_variables):
+    def _max_step(resp, ignore_variables, variable_slices):
         variables = resp.truth_binning.variables
         projection = {}
 
@@ -656,24 +691,28 @@ class ResponseMatrix(object):
             projection[var] = resp.truth_binning.project([var]).get_entries_as_ndarray()
 
         # Get projected bin with lowest number of entries
-        lowest = (None, -1, np.inf)
+        lowest = (None, -1, np.inf, None)
         for var in projection:
             if var in ignore_variables:
                 continue
-            proj = projection[var]
+            if var in variable_slices:
+                sl = variable_slices[var]
+                proj = projection[var][sl]
+            else:
+                sl = slice(None)
+                proj = projection[var]
             if len(proj) <= 1:
                 continue
             i = np.argmin(proj)
             if proj[i] < lowest[2]:
-                lowest = (var, i, proj[i])
-            print lowest, (var, i, proj[i])
+                lowest = (var, i, proj[i], sl)
 
         if lowest[0] is None:
             return None
 
         # Get lowest neighbour
-        var, i, entries = lowest
-        projection = projection[var]
+        var, i, entries, sl = lowest
+        projection = projection[var][sl]
         neighbour = -1
         if i > 0:
             neighbour = i-1
@@ -684,11 +723,12 @@ class ResponseMatrix(object):
 
         # Which binedge to remove
         i = max(i, neighbour)
-        print var, i
+        if sl.start is not None:
+            i += sl.start
 
         return resp.rebin({var: [i]})
 
-    def maximize_stats_by_rebinning(self, in_bin_variation_limit=5., ignore_variables=[], **kwargs):
+    def maximize_stats_by_rebinning(self, in_bin_variation_limit=5., ignore_variables=[], variable_slices={}, **kwargs):
         """Maximize the number of events per bin by rebinning the matrix.
 
         Bins will only be merged if the maximum in-bin variation of the
@@ -700,15 +740,14 @@ class ResponseMatrix(object):
 
         resp = deepcopy(self)
         last_resp = deepcopy(self)
-        var = np.max(resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, **kwargs))
+        var = np.max(resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, variable_slices=variable_slices, **kwargs))
 
         while var < in_bin_variation_limit:
             last_resp = resp
-            resp = ResponseMatrix._max_step(resp, ignore_variables)
+            resp = ResponseMatrix._max_step(resp, ignore_variables, variable_slices)
             if resp is None:
                 break
             var = np.max(resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, **kwargs))
-            print var
 
         return last_resp
 
