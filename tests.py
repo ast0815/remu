@@ -680,6 +680,12 @@ class TestResponseMatrices(unittest.TestCase):
         ret_t = self.rm.get_in_bin_variation_as_ndarray(truth_only=True, truth_indices=[0,3])
         self.assertEqual(ret_t.shape, (4,2))
 
+    def test_maximize_stats(self):
+        """Test ResponseMatrix stat maximization by rebinning."""
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        ret = self.rm.maximize_stats_by_rebinning()
+        self.assertEqual(np.sum(ret.get_truth_entries_as_ndarray()), np.sum(self.rm.get_truth_entries_as_ndarray()))
+
 class TestLikelihoodMachines(unittest.TestCase):
     def setUp(self):
         with open('testdata/test-truth-binning.yml', 'r') as f:

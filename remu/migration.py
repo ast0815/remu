@@ -605,6 +605,10 @@ class ResponseMatrix(object):
             if var in ignore_variables:
                 continue
 
+            # Ignore single-bin variables
+            if resp.shape[i] == 1:
+                continue
+
             # Roll the array
             shifted_resp = np.roll(resp, 1, axis=i)
             shifted_stat = np.roll(resp, 1, axis=i)
@@ -641,6 +645,73 @@ class ResponseMatrix(object):
             ret.shape = shape
 
         return ret
+
+    @staticmethod
+    def _max_step(resp, ignore_variables):
+        variables = resp.truth_binning.variables
+        projection = {}
+
+        # Get projections of the entries on all variable axes
+        for var in variables:
+            projection[var] = resp.truth_binning.project([var]).get_entries_as_ndarray()
+
+        # Get projected bin with lowest number of entries
+        lowest = (None, -1, np.inf)
+        for var in projection:
+            if var in ignore_variables:
+                continue
+            proj = projection[var]
+            if len(proj) <= 1:
+                continue
+            i = np.argmin(proj)
+            if proj[i] < lowest[2]:
+                lowest = (var, i, proj[i])
+            print lowest, (var, i, proj[i])
+
+        if lowest[0] is None:
+            return None
+
+        # Get lowest neighbour
+        var, i, entries = lowest
+        projection = projection[var]
+        neighbour = -1
+        if i > 0:
+            neighbour = i-1
+            if i < len(projection)-1 and projection[i+1] < projection[i-1]:
+                neighbour = i+1
+        else:
+            neighbour = i+1
+
+        # Which binedge to remove
+        i = max(i, neighbour)
+        print var, i
+
+        return resp.rebin({var: [i]})
+
+    def maximize_stats_by_rebinning(self, in_bin_variation_limit=5., ignore_variables=[], **kwargs):
+        """Maximize the number of events per bin by rebinning the matrix.
+
+        Bins will only be merged if the maximum in-bin variation of the
+        resulting matrix does not exceed the `in_bin_variation_limit`.
+
+        Additional keyword arguments will be passed to the method
+        `get_in_bin_variation_as_ndarray`.
+        """
+
+        resp = deepcopy(self)
+        last_resp = deepcopy(self)
+        var = np.max(resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, **kwargs))
+
+        while var < in_bin_variation_limit:
+            last_resp = resp
+            resp = ResponseMatrix._max_step(resp, ignore_variables)
+            if resp is None:
+                break
+            var = np.max(resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, **kwargs))
+            print var
+
+        return last_resp
+
 
     def plot_values(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
         """Plot the values of the response binning.
