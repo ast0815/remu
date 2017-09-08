@@ -85,7 +85,7 @@ class ResponseMatrix(object):
         resp = np.sum(resp, axis=0)
         diff = truth-resp
 
-        if np.any(diff < -1e-12): # Allow rounding errors
+        if np.any(diff < -1e-10): # Allow rounding errors
             raise RuntimeError("Illegal response matrix: Higher total reconstructed than true weight!")
 
         if np.any(diff < 0.): # But make sure truth is >= reco
