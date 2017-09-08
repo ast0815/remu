@@ -682,13 +682,21 @@ class ResponseMatrix(object):
         return ret
 
     @staticmethod
-    def _max_step(resp, ignore_variables, variable_slices):
+    def _max_step(resp, select, ignore_variables, variable_slices, kwargs):
         variables = resp.truth_binning.variables
         projection = {}
 
         # Get projections of the entries on all variable axes
         for var in variables:
-            projection[var] = resp.truth_binning.project([var]).get_entries_as_ndarray()
+            if select == 'entries':
+                projection[var] = resp.truth_binning.project([var]).get_entries_as_ndarray()
+            elif select == 'in-bin':
+                inbin = resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, variable_slices=variable_slices, **kwargs)
+                temp_binning = deepcopy(resp.truth_binning)
+                temp_binning.set_values_from_ndarray(inbin)
+                projection[var] = temp_binning.project([var], reduction_function=np.max).get_values_as_ndarray()
+            else:
+                raise ValueError("Unknown selection method.")
 
         # Get projected bin with lowest number of entries
         lowest = (None, -1, np.inf, None)
@@ -728,11 +736,16 @@ class ResponseMatrix(object):
 
         return resp.rebin({var: [i]})
 
-    def maximize_stats_by_rebinning(self, in_bin_variation_limit=5., ignore_variables=[], variable_slices={}, **kwargs):
+    def maximize_stats_by_rebinning(self, in_bin_variation_limit=5., select='entries', ignore_variables=[], variable_slices={}, **kwargs):
         """Maximize the number of events per bin by rebinning the matrix.
 
         Bins will only be merged if the maximum in-bin variation of the
         resulting matrix does not exceed the `in_bin_variation_limit`.
+
+        The argument `select` determines how the merging candidate is selected:
+
+            entries: the bin with the lowest number of truth entries
+            in-bin: the bin with the lowest maximum in-bin variation
 
         Additional keyword arguments will be passed to the method
         `get_in_bin_variation_as_ndarray`.
@@ -744,10 +757,10 @@ class ResponseMatrix(object):
 
         while var < in_bin_variation_limit:
             last_resp = resp
-            resp = ResponseMatrix._max_step(resp, ignore_variables, variable_slices)
+            resp = ResponseMatrix._max_step(resp, select, ignore_variables, variable_slices, kwargs)
             if resp is None:
                 break
-            var = np.max(resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, **kwargs))
+            var = np.max(resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, variable_slices=variable_slices, **kwargs))
 
         return last_resp
 

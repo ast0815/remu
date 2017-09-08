@@ -685,6 +685,8 @@ class TestResponseMatrices(unittest.TestCase):
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         ret = self.rm.maximize_stats_by_rebinning(variable_slices={'x_truth': slice(0,None)})
         self.assertEqual(np.sum(ret.get_truth_entries_as_ndarray()), np.sum(self.rm.get_truth_entries_as_ndarray()))
+        ret = self.rm.maximize_stats_by_rebinning(variable_slices={'x_truth': slice(0,None)}, select='in-bin')
+        self.assertEqual(np.sum(ret.get_truth_entries_as_ndarray()), np.sum(self.rm.get_truth_entries_as_ndarray()))
 
 class TestLikelihoodMachines(unittest.TestCase):
     def setUp(self):
