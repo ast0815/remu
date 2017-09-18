@@ -1213,12 +1213,14 @@ class RectangularBinning(Binning):
             def make_finite(edges):
                 ret = list(edges)
                 if not np.isfinite(ret[0]):
-                    if len(ret) >= 3:
+                    if len(ret) >= 3 and np.isfinite(ret[2]):
                         ret[0] = ret[1] - (ret[2] - ret[1])
-                    else:
+                    elif np.isfinite(ret[1]):
                         ret[0] = ret[1]-1
+                    else:
+                        ret[0] = -0.5
                 if not np.isfinite(ret[-1]):
-                    if len(ret) >= 3:
+                    if len(ret) >= 3 and np.isfinite(ret[-3]):
                         ret[-1] = ret[-2] + (ret[-2] - ret[-3])
                     else:
                         ret[-1] = ret[-2]+1
