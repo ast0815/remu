@@ -1,2 +1,4 @@
 # Ignore virtualenv
 /ENV
+rebil.egg-info
+dist

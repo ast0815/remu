@@ -5,15 +5,9 @@ from six.moves import map, zip
 import numpy as np
 from matplotlib import pyplot as plt
 
-# Set working directory and sys.path
-import sys, os
-pathname = os.path.abspath(os.path.join(os.path.dirname(sys.argv[0]), '..'))
-sys.path.append(pathname)
-os.chdir(os.path.dirname(sys.argv[0]))
-
-import binning
-import migration
-import likelihood
+import remu.binning as binning
+import remu.migration as migration
+import remu.likelihood as likelihood
 
 # Parallelization
 from multiprocessing import Pool

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 echo "Running tests..." &&
-coverage run --source '.' --omit 'ENV/*' tests.py $@ &&
+coverage run --source 'remu' tests.py $@ &&
 echo &&
 echo "Coverage:" &&
 echo &&

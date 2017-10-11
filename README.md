@@ -1,10 +1,10 @@
-likelihood-machine
-==================
+ReMU - Response Matrix Utilities
+================================
 
-A framework for hypothesis testing using binned events.
+A framework for likelihood calculations and hypothesis testing using binned events and response matrices.
 
-[![Build Status](https://travis-ci.org/ast0815/likelihood-machine.svg?branch=master)](https://travis-ci.org/ast0815/likelihood-machine)
-[![Coverage Status](https://coveralls.io/repos/github/ast0815/likelihood-machine/badge.svg?branch=master)](https://coveralls.io/github/ast0815/likelihood-machine?branch=master)
+[![Build Status](https://travis-ci.org/ast0815/remu.svg?branch=master)](https://travis-ci.org/ast0815/remu)
+[![Coverage Status](https://coveralls.io/repos/github/ast0815/remu/badge.svg?branch=master)](https://coveralls.io/github/ast0815/remu?branch=master)
 
 Setup
 -----
@@ -24,6 +24,8 @@ system.
     $ pip install -r requirements.txt
     $ pip install -r pymc-requirements.txt
     $ pip install -r multiprocess-requirements.txt
+    $ # Install actual package
+    $ pip install -e .
 
 You might need to install additional system libraries to compile all packages.
 PyMC needs to be installed in a separate step, because it requires numpy
@@ -48,4 +50,5 @@ software. The examples need some additional packages to run:
 
 They can be run like this:
 
-    $ python examples/example_analysis.py
+    $ cd examples
+    $ python example_analysis.py

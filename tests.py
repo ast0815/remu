@@ -2,9 +2,9 @@ from __future__ import division
 import sys
 import unittest2 as unittest
 import ruamel.yaml as yaml
-from binning import *
-from migration import *
-from likelihood import *
+from remu.binning import *
+from remu.migration import *
+from remu.likelihood import *
 import numpy as np
 
 if __name__ == '__main__':
