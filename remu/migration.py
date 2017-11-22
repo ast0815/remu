@@ -828,3 +828,120 @@ class ResponseMatrix(object):
         truth[nuisance_indices] = 1e-50
 
         truth_binning.plot_ndarray(filename, eff, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.sum, denominator=truth)
+
+class ResponseMatrixArrayBuilder(object):
+    """Class that generates consistent ndarrays from multiple response matrix objects.
+
+    To save space, it only stores the truth bins that were actually filled.
+    When creating the total ndarray, missing columns are filled with default values.
+    The matrices must have been built using the same truth information!
+    Their truth binnings may only differ in the nuisance bins!
+    """
+
+    def __init__(self, nstat):
+        """ """
+        self.nstat = nstat
+        self.reset()
+
+    def reset(self):
+        self._matrices = []
+        self._mean_matrices = []
+        self._truth_values = []
+        self._truth_entries = []
+        self._filled_indices = []
+        self._nuisance_indices = None
+
+    def add_matrix(self, response_matrix):
+        """Add a matrix to the collection."""
+
+        # Check that the nuisance indices are identical
+        nuisance_indices = response_matrix.nuisance_indices
+        if self._nuisance_indices is None:
+            self._nuisance_indices = nuisance_indices
+        elif set(self._nuisance_indices) != set(nuisance_indices):
+            raise RuntimeError("Matrices have different nuisance indices!")
+
+        filled_indices = response_matrix.filled_truth_indices
+        if self.nstat > 0:
+            matrix = response_matrix.generate_random_response_matrices(self.nstat, truth_indices=filled_indices)
+        else:
+            matrix = response_matrix.get_response_matrix_as_ndarray(truth_indices=filled_indices)
+        mean_matrix = response_matrix.get_mean_response_matrix_as_ndarray(truth_indices=filled_indices)
+        truth_values = response_matrix.get_truth_values_as_ndarray(indices=filled_indices)
+        truth_entries = response_matrix.get_truth_entries_as_ndarray() # We need *all* entries
+
+        self._filled_indices.append(filled_indices)
+        self._matrices.append(matrix)
+        self._mean_matrices.append(mean_matrix)
+        self._truth_values.append(truth_values)
+        self._truth_entries.append(truth_entries)
+
+    def _get_filled_truth_indices_set(self):
+        """Return the set of filled truth indices."""
+        all_indices = set()
+        for i in self._filled_indices:
+            all_indices.update(i)
+        return all_indices
+
+    def get_filled_truth_indices(self):
+        """Return the list of filled truth indices."""
+        return sorted(self._get_filled_truth_indices_set())
+
+    def get_truth_entries_as_ndarray(self):
+        """Return the array of (maximum) entries in the truh bins."""
+        return np.max(np.array(self._truth_entries), axis=0)
+
+    def get_response_matrices_as_ndarray(self):
+        """Get the response matrices as consistent ndarray."""
+
+        M = []
+        tv = []
+
+        # Insert missing columns
+        all_indices = self._get_filled_truth_indices_set()
+        for indices, matrix, truth_values in zip(self._filled_indices, self._matrices, self._truth_values):
+            missing_indices = list(all_indices - set(indices))
+            insert_positions = np.searchsorted(indices, missing_indices)
+            extended_matrix = np.insert(matrix, insert_positions, 0., axis=-1)
+            M.append(extended_matrix)
+            extended_truth_values = np.insert(truth_values, insert_positions, 0., axis=-1)
+            tv.append(extended_truth_values)
+
+        M = np.array(M)
+        tv = np.array(tv)
+
+        # Scale (nuisance) truth bins according to highest value so they are consistent
+        max_tv = np.max(tv, axis=0)
+        scale = tv / max_tv
+        if self.nstat > 0:
+            M = M * scale[:,np.newaxis,np.newaxis,:]
+        else:
+            M = M * scale[:,np.newaxis,:]
+
+        return M
+
+    def get_mean_response_matrix_as_ndarray(self):
+        """Get the mean response matrix as ndarray."""
+
+        M = []
+        tv = []
+
+        # Insert missing columns
+        all_indices = self._get_filled_truth_indices_set()
+        for indices, matrix, truth_values in zip(self._filled_indices, self._mean_matrices, self._truth_values):
+            missing_indices = list(all_indices - set(indices))
+            insert_positions = np.searchsorted(indices, missing_indices)
+            extended_matrix = np.insert(matrix, insert_positions, 0., axis=-1)
+            M.append(extended_matrix)
+            extended_truth_values = np.insert(truth_values, insert_positions, 0., axis=-1)
+            tv.append(extended_truth_values)
+
+        M = np.array(M)
+        tv = np.array(tv)
+
+        # Scale (nuisance) truth bins according to highest value so they are consistent
+        max_tv = np.max(tv, axis=0)
+        scale = tv / max_tv
+        M = M * scale[:,np.newaxis,:]
+
+        return np.mean(M, axis=0)

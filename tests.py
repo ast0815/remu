@@ -688,6 +688,53 @@ class TestResponseMatrices(unittest.TestCase):
         ret = self.rm.maximize_stats_by_rebinning(variable_slices={'x_truth': slice(0,None)}, select='in-bin')
         self.assertEqual(np.sum(ret.get_truth_entries_as_ndarray()), np.sum(self.rm.get_truth_entries_as_ndarray()))
 
+class TestResponseMatrixArrayBuilders(unittest.TestCase):
+    def setUp(self):
+        with open('testdata/test-truth-binning.yml', 'r') as f:
+            self.tb = yaml.load(f)
+        with open('testdata/test-reco-binning.yml', 'r') as f:
+            self.rb = yaml.load(f)
+        self.rm = ResponseMatrix(self.rb, self.tb)
+        self.builder = ResponseMatrixArrayBuilder(5)
+
+    def test_mean(self):
+        """Test ResponseMatricArrayBuilder mean matrix."""
+        self.builder.nstat = 0
+        self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
+        self.builder.add_matrix(self.rm)
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        self.builder.add_matrix(self.rm)
+        M = self.builder.get_mean_response_matrix_as_ndarray()
+        self.assertEqual(M.shape, (4,4))
+
+    def test_norandom(self):
+        """Test ResponseMatricArrayBuilder without random generation."""
+        self.builder.nstat = 0
+        self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
+        self.builder.add_matrix(self.rm)
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        self.builder.add_matrix(self.rm)
+        M = self.builder.get_response_matrices_as_ndarray()
+        self.assertEqual(M.shape, (2,4,4))
+
+    def test_random(self):
+        """Test ResponseMatricArrayBuilder with random generation."""
+        self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
+        self.builder.add_matrix(self.rm)
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        self.builder.add_matrix(self.rm)
+        M = self.builder.get_response_matrices_as_ndarray()
+        self.assertEqual(M.shape, (2,5,4,4))
+
+    def test_truth_entries(self):
+        """Test the truth entries array generation."""
+        self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
+        self.builder.add_matrix(self.rm)
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        self.builder.add_matrix(self.rm)
+        M = self.builder.get_truth_entries_as_ndarray()
+        self.assertEqual(tuple(M), (2,3,3,2))
+
 class TestLikelihoodMachines(unittest.TestCase):
     def setUp(self):
         with open('testdata/test-truth-binning.yml', 'r') as f:
