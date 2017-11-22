@@ -494,7 +494,9 @@ class Binning(object):
 
         cut_function : Optional. A function that modifies the loaded data before filling into the binning.
 
-                        cut_function(data) = data[ data['binning_name'] > some_threshold ]
+                            cut_function(data) = data[ data['binning_name'] > some_threshold ]
+
+                       This is done *after* the optional renaming.
 
         The file must be formated like this:
 
