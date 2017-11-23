@@ -847,7 +847,7 @@ class ResponseMatrixArrayBuilder(object):
         self._matrices = []
         self._mean_matrices = []
         self._truth_values = []
-        self._truth_entries = []
+        self._truth_entries = None
         self._filled_indices = []
         self._nuisance_indices = None
 
@@ -874,7 +874,10 @@ class ResponseMatrixArrayBuilder(object):
         self._matrices.append(matrix)
         self._mean_matrices.append(mean_matrix)
         self._truth_values.append(truth_values)
-        self._truth_entries.append(truth_entries)
+        if self._truth_entries is None:
+            self._truth_entries = truth_entries
+        else:
+            self._truth_entries = np.maximum(self._truth_entries, truth_entries)
 
     def _get_filled_truth_indices_set(self):
         """Return the set of filled truth indices."""
@@ -889,7 +892,7 @@ class ResponseMatrixArrayBuilder(object):
 
     def get_truth_entries_as_ndarray(self):
         """Return the array of (maximum) entries in the truh bins."""
-        return np.max(np.array(self._truth_entries), axis=0)
+        return self._truth_entries
 
     def get_response_matrices_as_ndarray(self):
         """Get the response matrices as consistent ndarray."""
