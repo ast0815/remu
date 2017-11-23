@@ -480,7 +480,36 @@ class Binning(object):
             if i is not None:
                 self.bins[i].fill(w)
 
-    def fill_from_csv_file(self, filename, weightfield=None, rename={}, cut_function=lambda x: x, **kwargs):
+    @staticmethod
+    def fill_multiple_from_csv_file(binnings, filename, weightfield=None, rename={}, cut_function=lambda x: x, **kwargs):
+        """Fill multiple Binnings from the same csv file(s).
+
+        This saves time, because the numpy array only has to be generated once.
+        Other than the list of binnings to be filled, the (keyword) arguments
+        are identical to the ones used by the instance method
+        `fill_from_csv_file`.
+        """
+
+        # Handle lists recursively
+        if isinstance(filename, list):
+            for item in filename:
+                Binning.fill_multiple_from_csv_file(binnings, item, weightfield=weightfield, rename=rename, cut_function=cut_function, **kwargs)
+            return
+
+        data = np.genfromtxt(filename, delimiter=',', names=True)
+        data = rename_fields(data, rename)
+        data = cut_function(data)
+
+        if weightfield is None:
+            for binning in binnings:
+                binning.fill(data, **kwargs)
+        else:
+            weight = data[weightfield]
+            for binning in binnings:
+                binning.fill(data, weight=weight, **kwargs)
+
+
+    def fill_from_csv_file(self, *args, **kwargs):
         """Fill the binning with events from a CSV file.
 
         Arguments
@@ -520,21 +549,8 @@ class Binning(object):
 
         """
 
-        # Handle lists recursively
-        if isinstance(filename, list):
-            for item in filename:
-                self.fill_from_csv_file(item, weightfield=weightfield, rename=rename, cut_function=cut_function, **kwargs)
-            return
-
-        data = np.genfromtxt(filename, delimiter=',', names=True)
-        data = rename_fields(data, rename)
-        data = cut_function(data)
-
-        if weightfield is None:
-            self.fill(data, **kwargs)
-        else:
-            weight = data[weightfield]
-            self.fill(data, weight=weight, **kwargs)
+        # Actual filling is handled by static method
+        Binning.fill_multiple_from_csv_file([self], *args, **kwargs)
 
     def reset(self, value=0., entries=0, sumw2=0.):
         """Reset all bin values."""
