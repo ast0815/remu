@@ -2,7 +2,7 @@ import numpy as np
 from copy import copy, deepcopy
 from warnings import warn
 
-import binning
+from .binning import Binning
 
 class ResponseMatrix(object):
     """Matrix that describes the detector response to true events."""
@@ -96,7 +96,7 @@ class ResponseMatrix(object):
 
     def fill_from_csv_file(self, filename, **kwargs):
         """Fill binnings from csv file."""
-        binning.Binning.fill_multiple_from_csv_file([self.truth_binning, self.reco_binning, self.response_binning], filename, **kwargs)
+        Binning.fill_multiple_from_csv_file([self.truth_binning, self.reco_binning, self.response_binning], filename, **kwargs)
         self._fix_rounding_errors()
         self._update_filled_indices()
 
