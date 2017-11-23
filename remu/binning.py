@@ -460,11 +460,16 @@ class Binning(object):
                 event[rename[name]] = event[name]
 
         try:
-            # Try to get bin numbers from list of events
-            ibins = list(map(self.get_event_bin_number, event))
+            # Try to get bin numbers from structured numpy array
+            ibins = list(map(self.get_event_bin_number, np.nditer(event)))
         except TypeError:
-            # We probably only have a single event
-            ibins = [self.get_event_bin_number(event)]
+            # Seems like this is not a structured numpy array
+            try:
+                # Try to get bin numbers from any iterable of events
+                ibins = list(map(self.get_event_bin_number, event))
+            except TypeError:
+                # We probably only have a single event
+                ibins = [self.get_event_bin_number(event)]
 
         if raise_error and None in ibins:
             raise ValueError("Event not part of binning!")
