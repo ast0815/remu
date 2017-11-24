@@ -1,7 +1,7 @@
 from setuptools import setup
 
 # Todo: Parse this from a proper readme file in the future
-description='Response Matrix Utilities',
+description='Response Matrix Utilities'
 long_description = """ReMU - Response Matrix Utilities
 """
 
