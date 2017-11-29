@@ -94,9 +94,12 @@ class ResponseMatrix(object):
             fixed_truth = np.where(diff < 0, resp, truth)
             self.truth_binning.set_values_from_ndarray(fixed_truth)
 
-    def fill_from_csv_file(self, filename, **kwargs):
-        """Fill binnings from csv file."""
-        Binning.fill_multiple_from_csv_file([self.truth_binning, self.reco_binning, self.response_binning], filename, **kwargs)
+    def fill_from_csv_file(self, *args, **kwargs):
+        """Fill binnings from csv file.
+
+        See the `Binning.fill_from_csv_file` method for a description of the arguments.
+        """
+        Binning.fill_multiple_from_csv_file([self.truth_binning, self.reco_binning, self.response_binning], *args, **kwargs)
         self._fix_rounding_errors()
         self._update_filled_indices()
 

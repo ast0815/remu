@@ -8,6 +8,7 @@ from numpy.lib.recfunctions import rename_fields
 import csv
 from matplotlib import pyplot as plt
 from matplotlib.colors import LogNorm
+from tempfile import TemporaryFile
 
 class PhaseSpace(object):
     """A PhaseSpace defines the possible combinations of variables that characterize an event.
@@ -485,8 +486,31 @@ class Binning(object):
             if i is not None:
                 self.bins[i].fill(w)
 
-    @staticmethod
-    def fill_multiple_from_csv_file(binnings, filename, weightfield=None, rename={}, cut_function=lambda x: x, **kwargs):
+    _csv_buffer = {}
+    @classmethod
+    def _load_csv_file_buffered(cls, filename):
+        """Load a CSV file and save the resulting array in a temporary file.
+
+        If the same file is loaded a second time, the buffer is loaded instead
+        of re-parsing the CSV file.
+        """
+
+        if filename in cls._csv_buffer:
+            # File has been loaded before
+            f = cls._csv_buffer[filename]
+            f.seek(0)
+            arr = np.load(f)
+        else:
+            # New file
+            f = TemporaryFile()
+            arr = np.genfromtxt(filename, delimiter=',', names=True)
+            np.save(f, arr)
+            cls._csv_buffer[filename] = f
+
+        return arr
+
+    @classmethod
+    def fill_multiple_from_csv_file(cls, binnings, filename, weightfield=None, rename={}, cut_function=lambda x: x, buffer_csv_files=False, **kwargs):
         """Fill multiple Binnings from the same csv file(s).
 
         This saves time, because the numpy array only has to be generated once.
@@ -498,10 +522,13 @@ class Binning(object):
         # Handle lists recursively
         if isinstance(filename, list):
             for item in filename:
-                Binning.fill_multiple_from_csv_file(binnings, item, weightfield=weightfield, rename=rename, cut_function=cut_function, **kwargs)
+                cls.fill_multiple_from_csv_file(binnings, item, weightfield=weightfield, rename=rename, cut_function=cut_function, buffer_csv_files=buffer_csv_files, **kwargs)
             return
 
-        data = np.genfromtxt(filename, delimiter=',', names=True)
+        if buffer_csv_files:
+            data = cls._load_csv_file_buffered(filename)
+        else:
+            data = np.genfromtxt(filename, delimiter=',', names=True)
         data = rename_fields(data, rename)
         data = cut_function(data)
 
@@ -531,6 +558,10 @@ class Binning(object):
                             cut_function(data) = data[ data['binning_name'] > some_threshold ]
 
                        This is done *after* the optional renaming.
+        buffer_csv_files : Optional. Save the results of loading CSV files in temporary files
+                           that can be recovered if the same CSV file is loaded again. This
+                           speeds up filling multiple Binnings with the same CSV-files considerably!
+                           Default: False
 
         The file must be formated like this:
 
