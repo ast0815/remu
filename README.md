@@ -9,6 +9,8 @@ A framework for likelihood calculations and hypothesis testing using binned even
 Setup
 -----
 
+### Installing development version from source
+
 It is recommended to run this software in a virtual Python environment
 (virtualenv).  This ensures that all required packages are present in the
 tested version and do not interfere with other packages installed on the
@@ -31,6 +33,19 @@ You might need to install additional system libraries to compile all packages.
 PyMC needs to be installed in a separate step, because it requires numpy
 already being installed to work. The `multiprocess-requirements` are optional
 and only need to be installed, if one wants to use parallel computing.
+
+### Installing official releases with `pip`
+
+Alternatively you can install official releases directly with `pip`:
+
+    $ # Create a new virtual environment
+    $ virtualenv ENV
+    $ # Activate the environment
+    $ . ENV/bin/activate
+    $ # Upgrade pip to the latest version (optional)
+    $ pip install --upgrade pip
+    $ # Install remu and its dependencies
+    $ pip install remu==1.0.0
 
 Tests
 -----
