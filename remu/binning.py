@@ -189,11 +189,24 @@ class Bin(object):
 
     def fill(self, weight=1.):
         """Add the weight(s) to the bin."""
-        weight = np.asarray(weight)
 
-        self.value += np.sum(weight)
-        self.entries += weight.size
-        self.sumw2 += np.sum(weight**2)
+        try:
+            # Does the weight have a length?
+            n = len(weight)
+        except TypeError:
+            # No
+            w = weight
+            w2 = w**2
+            n = 1
+        else:
+            # Yes
+            weight = np.asarray(weight)
+            w = np.sum(weight)
+            w2 = np.sum(weight**2)
+
+        self.value += w
+        self.entries += n
+        self.sumw2 += w2
 
     def __contains__(self, event):
         """Return True if the event falls within the bin."""
@@ -756,11 +769,24 @@ class _RecBinProxy(object):
 
     def fill_index(self, index, weight=1.):
         """Shortcut function to fill rectangular binnings faster."""
-        weight = np.asarray(weight)
 
-        self._value_array[index] += np.sum(weight)
-        self._entries_array[index] += weight.size
-        self._sumw2_array[index] += np.sum(weight**2)
+        try:
+            # Does the weight have a length?
+            n = len(weight)
+        except TypeError:
+            # No
+            w = weight
+            w2 = w**2
+            n = 1
+        else:
+            # Yes
+            weight = np.asarray(weight)
+            w = np.sum(weight)
+            w2 = np.sum(weight**2)
+
+        self._value_array[index] += w
+        self._entries_array[index] += n
+        self._sumw2_array[index] += w2
 
     def __getitem__(self, index):
         """Dynamically build a RectangularBin when requested."""
