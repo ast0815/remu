@@ -894,7 +894,7 @@ class RectangularBinning(Binning):
         i_var = []
         for var in self.variables:
             edges = self.binedges[var]
-            i = np.digitize(event[var], edges, right=self._include_upper)
+            i = int(np.digitize(event[var], edges, right=self._include_upper))
             if i > 0 and i < len(edges):
                 i_var.append(i-1)
             else:
