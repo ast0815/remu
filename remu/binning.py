@@ -484,7 +484,11 @@ class Binning(object):
 
         for i, w in zip(ibins, weight):
             if i is not None:
-                self.bins[i].fill(w)
+                try:
+                    # Try fill_index method. Should be faster if it exists.
+                    self.bins.fill_index(i, w)
+                except AttributeError:
+                    self.bins[i].fill(w)
 
     _csv_buffer = {}
     @classmethod
@@ -749,6 +753,14 @@ class _RecBinProxy(object):
         self._value_array = np.zeros(binning._totbins, dtype=float)
         self._entries_array = np.zeros(binning._totbins, dtype=int)
         self._sumw2_array = np.zeros(binning._totbins, dtype=float)
+
+    def fill_index(self, index, weight=1.):
+        """Shortcut function to fill rectangular binnings faster."""
+        weight = np.asarray(weight)
+
+        self._value_array[index] += np.sum(weight)
+        self._entries_array[index] += weight.size
+        self._sumw2_array[index] += np.sum(weight**2)
 
     def __getitem__(self, index):
         """Dynamically build a RectangularBin when requested."""
