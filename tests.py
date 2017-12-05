@@ -278,6 +278,9 @@ class TestBinnings(unittest.TestCase):
         self.binning.fill_from_csv_file(['testdata/csv-test.csv', 'testdata/csv-test.csv'], buffer_csv_files=True)
         self.assertEqual(self.b0.value, 14)
         self.assertEqual(self.b1.value, 5)
+        self.binning.fill_from_csv_file('testdata/csv-test.csv', weight=0.5)
+        self.assertEqual(self.b0.value, 15)
+        self.assertAlmostEqual(self.b1.value, 5.5)
 
     def test_ndarray(self):
         """Test conversion from and to ndarrays."""

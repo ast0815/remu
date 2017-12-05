@@ -527,7 +527,7 @@ class Binning(object):
         return arr
 
     @classmethod
-    def fill_multiple_from_csv_file(cls, binnings, filename, weightfield=None, rename={}, cut_function=lambda x: x, buffer_csv_files=False, **kwargs):
+    def fill_multiple_from_csv_file(cls, binnings, filename, weightfield=None, weight=1.0, rename={}, cut_function=lambda x: x, buffer_csv_files=False, **kwargs):
         """Fill multiple Binnings from the same csv file(s).
 
         This saves time, because the numpy array only has to be generated once.
@@ -549,13 +549,11 @@ class Binning(object):
         data = rename_fields(data, rename)
         data = cut_function(data)
 
-        if weightfield is None:
-            for binning in binnings:
-                binning.fill(data, **kwargs)
-        else:
-            weight = data[weightfield]
-            for binning in binnings:
-                binning.fill(data, weight=weight, **kwargs)
+        if weightfield is not None:
+            weight = data[weightfield] * weight
+
+        for binning in binnings:
+            binning.fill(data, weight=weight, **kwargs)
 
 
     def fill_from_csv_file(self, *args, **kwargs):
