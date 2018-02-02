@@ -87,6 +87,11 @@ class ResponseMatrix(object):
         resp = np.sum(resp, axis=0)
         diff = truth-resp
 
+        if np.any(truth < 0):
+            raise RuntimeError("Illegal response matrix: Negative true weight!")
+        if np.any(resp < 0):
+            raise RuntimeError("Illegal response matrix: Negative total reconstructed weight!")
+
         if np.any(diff < -1e-10): # Allow rounding errors
             raise RuntimeError("Illegal response matrix: Higher total reconstructed than true weight!")
 
@@ -146,15 +151,23 @@ class ResponseMatrix(object):
         old_entries = self.truth_binning.get_entries_as_ndarray()
         old_sumw2 = self.truth_binning.get_sumw2_as_ndarray()
 
+        if np.any(new_values < 0):
+            i = np.argwhere(new_values < 0)
+            raise RuntimeError("Filled-up values are negative in %d bins."%(i.size,), stacklevel=2)
+
         where = (new_values > 0)
-        diff = new_values - old_values
+        diff_v = new_values - old_values
+        diff_e = new_entries - old_entries
         # Check for bins where the fill-up is less than the original
         # Allow some deviation since weight corrections and systematics are not exact
-        if np.any(where & (diff < -0.5)):
-            i = np.argwhere(where & (diff < -0.5))
+        if np.any(where & (diff_v < -0.5)):
+            i = np.argwhere(where & (diff_v < -0.5))
             warn("Filled-up values are less than the original filling in %d bins. This should not happen!"%(i.size,), stacklevel=2)
+        if np.any(where & (diff_e < 0)):
+            i = np.argwhere(where & (diff_e < 0))
+            warn("Filled-up entries are less than the original filling in %d bins. This should not happen!"%(i.size,), stacklevel=2)
 
-        where = (diff > 0)
+        where = (where & (diff_v >= 0) & (diff_e >= 0))
 
         self.truth_binning.set_values_from_ndarray(np.where(where, new_values, old_values))
         self.truth_binning.set_entries_from_ndarray(np.where(where, new_entries, old_entries))
