@@ -316,11 +316,10 @@ class ResponseMatrix(object):
         resp2 = np.append(resp2, truth2[np.newaxis,:], axis=0)
         resp_entries = np.append(resp_entries, truth_entries[np.newaxis,:], axis=0)
 
-        i = resp_entries > 0
+        i = ((resp_entries > 0) & (resp1 > 0))
         mu = resp1/np.where(i, resp_entries, 1)
-        j = resp_entries[-1] > 0
-        mu[-1] = np.where(j, mu[-1], expected_weight) # Set empty truth bins to expected weight
-        mu[:-1,:] = np.where(i[:-1], mu[:-1,:], mu[-1,:])
+        mu[-1] = np.where(i[-1], mu[-1], expected_weight) # Set empty truth bins to expected weight
+        mu[:-1,:] = np.where(i[:-1], mu[:-1,:], mu[-1,:]) # Set empty reco bins to average truth weight
 
         # Add pseudo observation for variance estimation
         resp1_p = resp1 + expected_weight
@@ -943,6 +942,7 @@ class ResponseMatrixArrayBuilder(object):
 
         # Scale (nuisance) truth bins according to highest value so they are consistent
         max_tv = np.max(tv, axis=0)
+        max_tv = np.where(max_tv > 0, max_tv, 1.0)
         scale = tv / max_tv
         if self.nstat > 0:
             M = M * scale[:,np.newaxis,np.newaxis,:]
@@ -972,6 +972,7 @@ class ResponseMatrixArrayBuilder(object):
 
         # Scale (nuisance) truth bins according to highest value so they are consistent
         max_tv = np.max(tv, axis=0)
+        max_tv = np.where(max_tv > 0, max_tv, 1.0)
         scale = tv / max_tv
         M = M * scale[:,np.newaxis,:]
 
