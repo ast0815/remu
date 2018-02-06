@@ -538,8 +538,12 @@ class Binning(object):
 
         # Handle lists recursively
         if isinstance(filename, list):
-            for item in filename:
-                cls.fill_multiple_from_csv_file(binnings, item, weightfield=weightfield, rename=rename, cut_function=cut_function, buffer_csv_files=buffer_csv_files, **kwargs)
+            try:
+                for item, w in zip(filename, weight):
+                    cls.fill_multiple_from_csv_file(binnings, item, weightfield=weightfield, weight=w, rename=rename, cut_function=cut_function, buffer_csv_files=buffer_csv_files, **kwargs)
+            except TypeError:
+                for item in filename:
+                    cls.fill_multiple_from_csv_file(binnings, item, weightfield=weightfield, weight=weight, rename=rename, cut_function=cut_function, buffer_csv_files=buffer_csv_files, **kwargs)
             return
 
         if buffer_csv_files:
@@ -562,8 +566,10 @@ class Binning(object):
         Arguments
         ---------
 
-        filename : The csv file with the data.
+        filename : The csv file with the data. Can be a list of filenames.
         weightfield : Optional. The column with the event weights.
+        weight : Optional. A single weight that will be applied to all events in the file.
+                 Can be an iterable with one weight for each file if `filename` is a list.
         rename : Optional. A dict with columns that should be renamed before filling.
 
                     {'csv_name': 'binning_name'}
