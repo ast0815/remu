@@ -474,6 +474,14 @@ class Binning(object):
                 event[rename[name]] = event[name]
 
         try:
+            if len(event) == 0:
+                # Empty iterable? Stop right here
+                return
+        except TypeError:
+            # Not an iterable
+            pass
+
+        try:
             # Try to get bin numbers from structured numpy array
             ibins = list(map(self.get_event_bin_number, np.nditer(event)))
         except TypeError:

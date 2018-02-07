@@ -256,6 +256,8 @@ class TestBinnings(unittest.TestCase):
         self.assertEqual(self.b1.value, 6)
         self.assertEqual(self.b1.entries, 3)
         self.binning.reset()
+        str_arr = np.array([], dtype=[('x', float), ('y', float)])
+        self.binning.fill(str_arr)
         self.assertEqual(self.b0.value, 0)
         self.assertEqual(self.b0.entries, 0)
         self.assertEqual(self.b1.value, 0)
