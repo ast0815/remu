@@ -851,6 +851,7 @@ class ResponseMatrixArrayBuilder(object):
     When creating the total ndarray, missing columns are filled with default values.
     The matrices must have been built using the same truth information!
     Their truth binnings may only differ in the nuisance bins!
+    These truth bins are handled such that the efficiency of the most efficient matrix in each of the nuisance bins is 100%.
     """
 
     def __init__(self, nstat):
@@ -929,8 +930,13 @@ class ResponseMatrixArrayBuilder(object):
 
         # Insert missing columns
         all_indices = self._get_filled_truth_indices_set()
+        nuisance_indices = set(self._nuisance_indices)
         for indices, matrix, truth_values in zip(self._filled_indices, self._matrices, self._truth_values):
-            missing_indices = list(all_indices - set(indices))
+            missing_indices = all_indices - set(indices)
+            # Make sure only nuisance indices are missing
+            if (len(missing_indices - nuisance_indices) > 0):
+                raise RuntimeError("Truth difference in non-nuisance index!")
+            missing_indices = list(missing_indices)
             insert_positions = np.searchsorted(indices, missing_indices)
             extended_matrix = np.insert(matrix, insert_positions, 0., axis=-1)
             M.append(extended_matrix)
@@ -944,6 +950,12 @@ class ResponseMatrixArrayBuilder(object):
         max_tv = np.max(tv, axis=0)
         max_tv = np.where(max_tv > 0, max_tv, 1.0)
         scale = tv / max_tv
+        # Make sure we only scale nuisance indices
+        filled_indices = sorted(all_indices)
+        scaled_indices = set( filled_indices[i] for i in np.argwhere(scale != 1.0)[...,-1] )
+        if (len(scaled_indices - nuisance_indices) > 0):
+            raise RuntimeError("Truth difference in non-nuisance index!")
+
         if self.nstat > 0:
             M = M * scale[:,np.newaxis,np.newaxis,:]
         else:
@@ -959,8 +971,13 @@ class ResponseMatrixArrayBuilder(object):
 
         # Insert missing columns
         all_indices = self._get_filled_truth_indices_set()
+        nuisance_indices = set(self._nuisance_indices)
         for indices, matrix, truth_values in zip(self._filled_indices, self._mean_matrices, self._truth_values):
-            missing_indices = list(all_indices - set(indices))
+            missing_indices = all_indices - set(indices)
+            # Make sure only nuisance indices are missing
+            if (len(missing_indices - nuisance_indices) > 0):
+                raise RuntimeError("Truth difference in non-nuisance index!")
+            missing_indices = list(missing_indices)
             insert_positions = np.searchsorted(indices, missing_indices)
             extended_matrix = np.insert(matrix, insert_positions, 0., axis=-1)
             M.append(extended_matrix)
@@ -974,6 +991,12 @@ class ResponseMatrixArrayBuilder(object):
         max_tv = np.max(tv, axis=0)
         max_tv = np.where(max_tv > 0, max_tv, 1.0)
         scale = tv / max_tv
+        # Make sure we only scale nuisance indices
+        filled_indices = sorted(all_indices)
+        scaled_indices = set( filled_indices[i] for i in np.argwhere(scale != 1.0)[...,-1] )
+        if (len(scaled_indices - nuisance_indices) > 0):
+            raise RuntimeError("Truth difference in non-nuisance index!")
+
         M = M * scale[:,np.newaxis,:]
 
         return np.mean(M, axis=0)
