@@ -951,7 +951,7 @@ class ResponseMatrixArrayBuilder(object):
         scale = tv / max_tv
         # Make sure we only scale nuisance indices
         filled_indices = sorted(all_indices)
-        indices = np.argwhere(np.abs(scale - 1.0) > 1e-10)[...,-1]
+        indices = np.argwhere((scale - 1.0) < -1e-10)[...,-1]
         scaled_indices = set( filled_indices[i] for i in indices )
         problems = scaled_indices - nuisance_indices
         if (len(problems) > 0):
@@ -996,7 +996,7 @@ class ResponseMatrixArrayBuilder(object):
         scale = tv / max_tv
         # Make sure we only scale nuisance indices
         filled_indices = sorted(all_indices)
-        indices = np.argwhere(np.abs(scale - 1.0) > 1e-10)[...,-1]
+        indices = np.argwhere((scale - 1.0) < -1e-10)[...,-1]
         scaled_indices = set( filled_indices[i] for i in indices )
         problems = scaled_indices - nuisance_indices
         if (len(problems) > 0):
