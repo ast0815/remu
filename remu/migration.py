@@ -952,9 +952,13 @@ class ResponseMatrixArrayBuilder(object):
         scale = tv / max_tv
         # Make sure we only scale nuisance indices
         filled_indices = sorted(all_indices)
-        scaled_indices = set( filled_indices[i] for i in np.argwhere(scale != 1.0)[...,-1] )
-        if (len(scaled_indices - nuisance_indices) > 0):
-            raise RuntimeError("Truth difference in non-nuisance index!")
+        indices = np.argwhere(np.abs(scale - 1.0) > 1e-10)[...,-1]
+        scaled_indices = set( filled_indices[i] for i in indices )
+        problems = scaled_indices - nuisance_indices
+        if (len(problems) > 0):
+            warn("Different truth values in %d non-nuisance bins. This should not happen!"%(len(problems),), stacklevel=2)
+            for i in np.searchsorted(filled_indices, sorted(problems)):
+                scale[...,i] = 1.
 
         if self.nstat > 0:
             M = M * scale[:,np.newaxis,np.newaxis,:]
@@ -993,9 +997,13 @@ class ResponseMatrixArrayBuilder(object):
         scale = tv / max_tv
         # Make sure we only scale nuisance indices
         filled_indices = sorted(all_indices)
-        scaled_indices = set( filled_indices[i] for i in np.argwhere(scale != 1.0)[...,-1] )
-        if (len(scaled_indices - nuisance_indices) > 0):
-            raise RuntimeError("Truth difference in non-nuisance index!")
+        indices = np.argwhere(np.abs(scale - 1.0) > 1e-10)[...,-1]
+        scaled_indices = set( filled_indices[i] for i in indices )
+        problems = scaled_indices - nuisance_indices
+        if (len(problems) > 0):
+            warn("Different truth values in %d non-nuisance bins. This should not happen!"%(len(problems),), stacklevel=2)
+            for i in np.searchsorted(filled_indices, sorted(problems)):
+                scale[...,i] = 1.
 
         M = M * scale[:,np.newaxis,:]
 
