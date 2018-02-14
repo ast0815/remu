@@ -1039,7 +1039,7 @@ class RectangularBinning(Binning):
                           last in `var_C`:
 
                               variable_slices = { 'var_A': slice(2,3),
-                                                'var_B': slice(1,None) }
+                                                'var_C': slice(1,None) }
 
                           Please note that strides other than 1 are *not*
                           supported.
