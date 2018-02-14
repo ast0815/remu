@@ -159,9 +159,8 @@ class ResponseMatrix(object):
         diff_v = new_values - old_values
         diff_e = new_entries - old_entries
         # Check for bins where the fill-up is less than the original
-        # Allow some deviation since weight corrections and systematics are not exact
-        if np.any(where & (diff_v < -0.5)):
-            i = np.argwhere(where & (diff_v < -0.5))
+        if np.any(where & (diff_v < -1e-10)):
+            i = np.argwhere(where & (diff_v < -1e-10))
             warn("Filled-up values are less than the original filling in %d bins. This should not happen!"%(i.size,), stacklevel=2)
         if np.any(where & (diff_e < 0)):
             i = np.argwhere(where & (diff_e < 0))
