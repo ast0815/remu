@@ -706,7 +706,7 @@ class TestResponseMatrixArrayBuilders(unittest.TestCase):
         self.builder = ResponseMatrixArrayBuilder(5)
 
     def test_mean(self):
-        """Test ResponseMatricArrayBuilder mean matrix."""
+        """Test ResponseMatrixArrayBuilder mean matrix."""
         self.builder.nstat = 0
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         self.builder.add_matrix(self.rm)
@@ -716,7 +716,7 @@ class TestResponseMatrixArrayBuilders(unittest.TestCase):
         self.assertEqual(M.shape, (4,4))
 
     def test_norandom(self):
-        """Test ResponseMatricArrayBuilder without random generation."""
+        """Test ResponseMatrixArrayBuilder without random generation."""
         self.builder.nstat = 0
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         self.builder.add_matrix(self.rm)
@@ -726,7 +726,7 @@ class TestResponseMatrixArrayBuilders(unittest.TestCase):
         self.assertEqual(M.shape, (2,4,4))
 
     def test_random(self):
-        """Test ResponseMatricArrayBuilder with random generation."""
+        """Test ResponseMatrixArrayBuilder with random generation."""
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         self.builder.add_matrix(self.rm)
         self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
