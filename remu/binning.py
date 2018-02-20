@@ -1424,14 +1424,14 @@ class RectangularBinning(Binning):
 
         return fig, ax
 
-    def plot_values(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
-        return self.plot_ndarray(filename, self.bins._value_array, variables, divide, kwargs1d, kwargs2d, figax)
+    def plot_values(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
+        return self.plot_ndarray(filename, self.bins._value_array, variables, divide, kwargs1d, kwargs2d, figax, **kwargs)
 
-    def plot_entries(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
-        return self.plot_ndarray(filename, self.bins._entries_array, variables, divide, kwargs1d, kwargs2d, figax)
+    def plot_entries(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
+        return self.plot_ndarray(filename, self.bins._entries_array, variables, divide, kwargs1d, kwargs2d, figax, **kwargs)
 
-    def plot_sumw2(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
-        return self.plot_ndarray(filename, self.bins._sumw2_array, variables, divide, kwargs1d, kwargs2d, figax)
+    def plot_sumw2(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
+        return self.plot_ndarray(filename, self.bins._sumw2_array, variables, divide, kwargs1d, kwargs2d, figax, **kwargs)
 
     def __eq__(self, other):
         """Rectangular binnings are equal if the variables and edges match."""
