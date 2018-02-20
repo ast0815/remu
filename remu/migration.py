@@ -921,6 +921,34 @@ class ResponseMatrixArrayBuilder(object):
         """Return the (mean) values of the response bins."""
         return self._response_values / self.nmatrices
 
+    def _get_truth_value_scale(self, tv):
+        """Get scale to make nuisance bins consistent.
+
+        The nuisance bins must be scaled between the multiple matrices, because
+        in each matrix their efficiency is 1 by definition.  Ideally they all
+        would be scaled to the true number of true events in each truth bin,
+        but this information is not available for nuisance bins.  Instead we
+        use the sum of truth values over all matrices as denominator off the
+        efficiency, e.g. the efficiency of nuisance truth bin j in matrix t:
+
+            eff_tj = N_tj / sum_t( N_tj)
+
+        This means the efficiency of the nuisance bins goes down with more
+        added toy matrices.  This could be counteracted by multiplying the
+        efficiency with the number of matrices, but that could lead to
+        efficiencies >1, which can lead to mathematical problems further down
+        the line.
+        """
+
+        all_indices = self.get_filled_truth_indices()
+        nuisance_indices = set(self._nuisance_indices)
+        max_tv = np.sum(tv, axis=0)
+        max_tv = np.where(max_tv > 0, max_tv, 1.0)
+        scale = np.ones_like(tv) # Start with scales = 1
+        for i in np.searchsorted(all_indices, sorted(nuisance_indices)):
+            scale[:,i] = tv[:,i] / max_tv[i] # Set scale of nuisance indices
+        return scale
+
     def get_response_matrices_as_ndarray(self):
         """Get the response matrices as consistent ndarray."""
 
@@ -945,20 +973,8 @@ class ResponseMatrixArrayBuilder(object):
         M = np.array(M)
         tv = np.array(tv)
 
-        # Scale (nuisance) truth bins according to highest value so they are consistent
-        max_tv = np.max(tv, axis=0)
-        max_tv = np.where(max_tv > 0, max_tv, 1.0)
-        scale = tv / max_tv
-        # Make sure we only scale nuisance indices
-        filled_indices = sorted(all_indices)
-        indices = np.argwhere((scale - 1.0) < -1e-10)[...,-1]
-        scaled_indices = set( filled_indices[i] for i in indices )
-        problems = scaled_indices - nuisance_indices
-        if (len(problems) > 0):
-            warn("Different truth values in %d non-nuisance bins. This should not happen!"%(len(problems),), stacklevel=2)
-            for i in np.searchsorted(filled_indices, sorted(problems)):
-                scale[...,i] = 1.
-
+        # Scale (nuisance) truth bins so they are consistent
+        scale = self._get_truth_value_scale(tv)
         if self.nstat > 0:
             M = M * scale[:,np.newaxis,np.newaxis,:]
         else:
@@ -990,20 +1006,8 @@ class ResponseMatrixArrayBuilder(object):
         M = np.array(M)
         tv = np.array(tv)
 
-        # Scale (nuisance) truth bins according to highest value so they are consistent
-        max_tv = np.max(tv, axis=0)
-        max_tv = np.where(max_tv > 0, max_tv, 1.0)
-        scale = tv / max_tv
-        # Make sure we only scale nuisance indices
-        filled_indices = sorted(all_indices)
-        indices = np.argwhere((scale - 1.0) < -1e-10)[...,-1]
-        scaled_indices = set( filled_indices[i] for i in indices )
-        problems = scaled_indices - nuisance_indices
-        if (len(problems) > 0):
-            warn("Different truth values in %d non-nuisance bins. This should not happen!"%(len(problems),), stacklevel=2)
-            for i in np.searchsorted(filled_indices, sorted(problems)):
-                scale[...,i] = 1.
-
+        # Scale (nuisance) truth bins so they are consistent
+        scale = self._get_truth_value_scale(tv)
         M = M * scale[:,np.newaxis,:]
 
         return np.mean(M, axis=0)
