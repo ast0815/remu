@@ -511,9 +511,32 @@ class Binning(object):
                 except AttributeError:
                     self.bins[i].fill(w)
 
+    @staticmethod
+    def _genfromtxt(filename, delimiter=',', names=True, chunksize=10000):
+        """Replacement for numpy's genfromtxt, that should need less memory."""
+
+        with open(filename, 'r') as f:
+            if names:
+                namelist = f.readline().split(delimiter)
+                dtype = [ (name.strip(), float) for name in namelist ]
+            else:
+                namelist = None
+                dtype = float
+
+            arr = np.array([], dtype=dtype)
+            rows = []
+            for line in f:
+                if len(rows) >= chunksize:
+                    arr = np.concatenate((arr, np.array(rows, dtype=dtype)), axis=0)
+                    rows = []
+                rows.append( tuple(map(float, line.split(delimiter))) )
+            arr = np.concatenate((arr, np.array(rows, dtype=dtype)), axis=0)
+
+        return arr
+
     _csv_buffer = {}
     @classmethod
-    def _load_csv_file_buffered(cls, filename):
+    def _load_csv_file_buffered(cls, filename, chunksize):
         """Load a CSV file and save the resulting array in a temporary file.
 
         If the same file is loaded a second time, the buffer is loaded instead
@@ -528,14 +551,14 @@ class Binning(object):
         else:
             # New file
             f = TemporaryFile()
-            arr = np.genfromtxt(filename, delimiter=',', names=True)
+            arr = cls._genfromtxt(filename, delimiter=',', names=True, chunksize=chunksize)
             np.save(f, arr)
             cls._csv_buffer[filename] = f
 
         return arr
 
     @classmethod
-    def fill_multiple_from_csv_file(cls, binnings, filename, weightfield=None, weight=1.0, rename={}, cut_function=lambda x: x, buffer_csv_files=False, **kwargs):
+    def fill_multiple_from_csv_file(cls, binnings, filename, weightfield=None, weight=1.0, rename={}, cut_function=lambda x: x, buffer_csv_files=False, chunksize=10000, **kwargs):
         """Fill multiple Binnings from the same csv file(s).
 
         This saves time, because the numpy array only has to be generated once.
@@ -555,9 +578,9 @@ class Binning(object):
             return
 
         if buffer_csv_files:
-            data = cls._load_csv_file_buffered(filename)
+            data = cls._load_csv_file_buffered(filename, chunksize=chunksize)
         else:
-            data = np.genfromtxt(filename, delimiter=',', names=True)
+            data = cls._genfromtxt(filename, delimiter=',', names=True, chunksize=chunksize)
         data = rename_fields(data, rename)
         data = cut_function(data)
 
@@ -566,7 +589,6 @@ class Binning(object):
 
         for binning in binnings:
             binning.fill(data, weight=weight, **kwargs)
-
 
     def fill_from_csv_file(self, *args, **kwargs):
         """Fill the binning with events from a CSV file.
@@ -591,6 +613,9 @@ class Binning(object):
                            that can be recovered if the same CSV file is loaded again. This
                            speeds up filling multiple Binnings with the same CSV-files considerably!
                            Default: False
+        chunksize : Optional. Load csv file in chunks of <chunksize> rows. This reduces the memory
+                    footprint of the loading operation, but can slow it down.
+                    Default: 10000
 
         The file must be formated like this:
 
