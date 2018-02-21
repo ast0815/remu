@@ -940,12 +940,13 @@ class ResponseMatrixArrayBuilder(object):
         the line.
         """
 
-        all_indices = self.get_filled_truth_indices()
+        all_indices = self._get_filled_truth_indices_set()
         nuisance_indices = set(self._nuisance_indices)
+        filled_nuisance_indices = all_indices & nuisance_indices
         max_tv = np.sum(tv, axis=0)
         max_tv = np.where(max_tv > 0, max_tv, 1.0)
         scale = np.ones_like(tv) # Start with scales = 1
-        for i in np.searchsorted(all_indices, sorted(nuisance_indices)):
+        for i in np.searchsorted(sorted(all_indices), sorted(filled_nuisance_indices)):
             scale[:,i] = tv[:,i] / max_tv[i] # Set scale of nuisance indices
         return scale
 
