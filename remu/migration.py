@@ -699,16 +699,26 @@ class ResponseMatrix(object):
     def _max_step(resp, select, ignore_variables, variable_slices, kwargs):
         variables = resp.truth_binning.variables
         projection = {}
+        summed = False
 
         # Get projections of the entries on all variable axes
         for var in variables:
             if select == 'entries':
                 projection[var] = resp.truth_binning.project([var]).get_entries_as_ndarray()
+            elif select == 'entries_sum':
+                projection[var] = resp.truth_binning.project([var]).get_entries_as_ndarray()
+                summed = True
             elif select == 'in-bin':
                 inbin = resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, variable_slices=variable_slices, **kwargs)
                 temp_binning = deepcopy(resp.truth_binning)
                 temp_binning.set_values_from_ndarray(inbin)
                 projection[var] = temp_binning.project([var], reduction_function=np.max).get_values_as_ndarray()
+            elif select == 'in-bin_sum':
+                inbin = resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, variable_slices=variable_slices, **kwargs)
+                temp_binning = deepcopy(resp.truth_binning)
+                temp_binning.set_values_from_ndarray(inbin)
+                projection[var] = temp_binning.project([var], reduction_function=np.max).get_values_as_ndarray()
+                summed = True
             else:
                 raise ValueError("Unknown selection method.")
 
@@ -725,6 +735,8 @@ class ResponseMatrix(object):
                 proj = projection[var]
             if len(proj) <= 1:
                 continue
+            if summed:
+                proj = np.convolve(proj, [1,1], mode='valid')
             i = np.argmin(proj)
             if proj[i] < lowest[2]:
                 lowest = (var, i, proj[i], sl)
@@ -735,13 +747,15 @@ class ResponseMatrix(object):
         # Get lowest neighbour
         var, i, entries, sl = lowest
         projection = projection[var][sl]
-        neighbour = -1
-        if i > 0:
-            neighbour = i-1
-            if i < len(projection)-1 and projection[i+1] < projection[i-1]:
-                neighbour = i+1
-        else:
+        if summed:
             neighbour = i+1
+        else:
+            if i > 0:
+                neighbour = i-1
+                if i < len(projection)-1 and projection[i+1] < projection[i-1]:
+                    neighbour = i+1
+            else:
+                neighbour = i+1
 
         # Which binedge to remove
         i = max(i, neighbour)
@@ -759,7 +773,9 @@ class ResponseMatrix(object):
         The argument `select` determines how the merging candidate is selected:
 
             entries: the bin with the lowest number of truth entries
+            entries_sum: the pair of bins with the lowest number of truth entries
             in-bin: the bin with the lowest maximum in-bin variation
+            in-bin_sum: the pair of bins with the lowest sum of maximum in-bin variations
 
         Additional keyword arguments will be passed to the method
         `get_in_bin_variation_as_ndarray`.
