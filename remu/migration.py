@@ -92,7 +92,7 @@ class ResponseMatrix(object):
         if np.any(resp < 0):
             raise RuntimeError("Illegal response matrix: Negative total reconstructed weight!")
 
-        if np.any(diff < -1e-10): # Allow rounding errors
+        if np.any(diff < -1e-9): # Allow rounding errors
             raise RuntimeError("Illegal response matrix: Higher total reconstructed than true weight!")
 
         if np.any(diff < 0.): # But make sure truth is >= reco
@@ -159,8 +159,8 @@ class ResponseMatrix(object):
         diff_v = new_values - old_values
         diff_e = new_entries - old_entries
         # Check for bins where the fill-up is less than the original
-        if np.any(where & (diff_v < -1e-10)):
-            i = np.argwhere(where & (diff_v < -1e-10))
+        if np.any(where & (diff_v < -1e-9)):
+            i = np.argwhere(where & (diff_v < -1e-9))
             warn("Filled-up values are less than the original filling in %d bins. This should not happen!"%(i.size,), stacklevel=2)
         if np.any(where & (diff_e < 0)):
             i = np.argwhere(where & (diff_e < 0))
