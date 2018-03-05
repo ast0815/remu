@@ -665,6 +665,8 @@ class TestResponseMatrices(unittest.TestCase):
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         ret = self.rm.generate_random_response_matrices()
         self.assertEqual(ret.shape, (4,4))
+        ret = self.rm.generate_random_response_matrices(impossible_indices=[0,3])
+        self.assertEqual(ret.shape, (4,4))
         ret = self.rm.generate_random_response_matrices(truth_indices=[0,2])
         self.assertEqual(ret.shape, (4,2))
         ret = self.rm.generate_random_response_matrices(2)

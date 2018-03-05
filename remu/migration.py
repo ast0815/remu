@@ -7,7 +7,7 @@ from .binning import Binning
 class ResponseMatrix(object):
     """Matrix that describes the detector response to true events."""
 
-    def __init__(self, reco_binning, truth_binning, nuisance_indices=[], response_binning=None):
+    def __init__(self, reco_binning, truth_binning, nuisance_indices=[], impossible_indices=[], response_binning=None):
         """Initilize the Response Matrix.
 
         Arguments
@@ -16,6 +16,7 @@ class ResponseMatrix(object):
         truth_binning: The Binning object describing the truth categorization.
         reco_binning: The Binning object describing the reco categorization.
         nuisance_indices: List of indices of nuisance truth bins.
+        impossible_indices: List of indices of impossible reco bins.
         response_binning: Optional. The Binning object describing the reco and
                           truth categorization. Usually this will be generated
                           from the truth and reco binning using their
@@ -25,6 +26,9 @@ class ResponseMatrix(object):
 
         The truth bins corresonding to the `nuisance_indices` will be treated
         like they have a total efficiency of 1.
+
+        The reco bins corresonding to the `impossible_indices` will be treated
+        like they are filled with a probability of 0.
         """
 
         self.truth_binning = truth_binning
@@ -34,6 +38,7 @@ class ResponseMatrix(object):
         else:
             self.response_binning = response_binning
         self.nuisance_indices=nuisance_indices
+        self.impossible_indices=impossible_indices
         self._update_filled_indices()
 
     def rebin(self, remove_binedges):
@@ -55,7 +60,7 @@ class ResponseMatrix(object):
                           Please note that bin values are lost if the first or last
                           binedge of a variable are removed.
 
-        Please note that the `nuisance_indices` of the new matrix are set to `[]`!
+        Please note that the `nuisance_indices` and `impossible_indices` of the new matrix are set to `[]`!
         """
 
         new_response_binning = self.response_binning.rebin(remove_binedges)
@@ -64,8 +69,9 @@ class ResponseMatrix(object):
         rb = dict( (v, remove_binedges[v]) for v in remove_binedges if v in self.truth_binning.variables )
         new_truth_binning = self.truth_binning.rebin(rb)
         new_nuisance_indices = []
+        new_impossible_indices = []
 
-        return ResponseMatrix(reco_binning=new_reco_binning, truth_binning=new_truth_binning, response_binning=new_response_binning, nuisance_indices=new_nuisance_indices)
+        return ResponseMatrix(reco_binning=new_reco_binning, truth_binning=new_truth_binning, response_binning=new_response_binning, nuisance_indices=new_nuisance_indices, impossible_indices=new_impossible_indices)
 
     def _update_filled_indices(self):
         """Update the list of filled truth indices."""
@@ -249,7 +255,7 @@ class ResponseMatrix(object):
 
         return M
 
-    def _get_stat_error_parameters(self, expected_weight=1., nuisance_indices=None, truth_indices=None):
+    def _get_stat_error_parameters(self, expected_weight=1., nuisance_indices=None, impossible_indices=None, truth_indices=None):
         r"""Return $\beta^t_1j$, $\beta^t_2j$, $\alpha^t_{ij}$, $\hat{w}^t_{ij}$ and $\sigma(w^t_{ij})$.
 
         Used for calculations of statistical variance.
@@ -260,6 +266,9 @@ class ResponseMatrix(object):
 
         if nuisance_indices is None:
             nuisance_indices = self.nuisance_indices
+
+        if impossible_indices is None:
+            impossible_indices = self.impossible_indices
 
         if truth_indices is None:
             truth_indices = slice(None, None, None)
@@ -305,6 +314,9 @@ class ResponseMatrix(object):
         prior = min(1., 3.**len(self.reco_binning.variables) / N_reco)
         alpha = np.asfarray(resp_entries) + prior
 
+        # Set efficiency of impossible bins to (almost) 0
+        alpha[impossible_indices] = epsilon
+
         # Estimate mean weight
         resp1 = self.get_response_values_as_ndarray(orig_shape)[:,truth_indices]
         resp2 = self.get_response_sumw2_as_ndarray(orig_shape)[:,truth_indices]
@@ -344,7 +356,7 @@ class ResponseMatrix(object):
 
         return beta1, beta2, alpha, mu, sigma
 
-    def get_mean_response_matrix_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None, truth_indices=None):
+    def get_mean_response_matrix_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None, impossible_indices=None, truth_indices=None):
         """Return the means of the posterior distributions of the response matrix elements.
 
         This is different from the "raw" matrix one gets from
@@ -357,7 +369,7 @@ class ResponseMatrix(object):
         columns will be returned.
         """
 
-        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, truth_indices=truth_indices)
+        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, impossible_indices=impossible_indices, truth_indices=truth_indices)
 
         # Unweighted binomial reconstructed probability (efficiency)
         # Posterior mean estimate = beta1 / (beta1 + beta2)
@@ -384,7 +396,7 @@ class ResponseMatrix(object):
 
         return MM
 
-    def get_statistical_variance_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None, truth_indices=None):
+    def get_statistical_variance_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None, impossible_indices=None, truth_indices=None):
         """Return the statistical variance of the single ResponseMatrix elements as ndarray.
 
         The variance is estimated from the actual bin contents in a Bayesian
@@ -425,6 +437,11 @@ class ResponseMatrix(object):
         to 0. This is useful for background categories where one is not
         interested in the true number of events.
 
+        If a list of `impossible_indices` is provided, the probabilities of
+        reconstructing events in the respective reco categories will be fixed
+        to 0. This is useful for bins that are impossible to have any events
+        in them by theiur definition.
+
         The variances of m_ij is estimated from the errors of the average
         weights in the matrix elements as classical "standard error of the
         mean". To avoid problems with bins with 0 or 1 entries, we add a "prior
@@ -443,7 +460,7 @@ class ResponseMatrix(object):
         columns will be returned.
         """
 
-        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, truth_indices=truth_indices)
+        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, impossible_indices=impossible_indices, truth_indices=truth_indices)
 
         # Unweighted binomial reconstructed probability (efficiency)
         # Posterior mean estimate = beta1 / (beta1 + beta2)
@@ -514,7 +531,7 @@ class ResponseMatrix(object):
 
         return xs
 
-    def generate_random_response_matrices(self, size=None, shape=None, expected_weight=1., nuisance_indices=None, truth_indices=None):
+    def generate_random_response_matrices(self, size=None, shape=None, expected_weight=1., nuisance_indices=None, impossible_indices=None, truth_indices=None):
         """Generate random response matrices according to the estimated variance.
 
         This is a three step process:
@@ -530,7 +547,7 @@ class ResponseMatrix(object):
         columns will be returned.
         """
 
-        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, truth_indices=truth_indices)
+        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, impossible_indices=impossible_indices, truth_indices=truth_indices)
 
         # Generate efficiencies
         if size is None:
