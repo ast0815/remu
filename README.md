@@ -34,6 +34,12 @@ PyMC needs to be installed in a separate step, because it requires numpy
 already being installed to work. The `multiprocess-requirements` are optional
 and only need to be installed, if one wants to use parallel computing.
 
+ReMU requires Python 2.7 or >=3.4 for best functionality. Python 2.6 is
+supported, but a lot of required packages have dropped support for Python 2.6
+in newer releases. The file `requirements26.txt` can be used instead of
+`requirements.txt` in the instructions above to install the packages in
+versions that still support Python 2.6.
+
 ### Installing official releases with `pip`
 
 Alternatively you can install official releases directly with `pip`:
