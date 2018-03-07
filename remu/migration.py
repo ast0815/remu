@@ -311,7 +311,7 @@ class ResponseMatrix(object):
         # Since the binning is orthogonal, we expect the number of bins to be roughly 3**N_variables.
         # This leads to prior parameters >1 for degenerate reco binnings with < 3 bins/variable.
         # We protect against that by setting the maximum prior value to 1.
-        prior = min(1., 3.**len(self.reco_binning.variables) / N_reco)
+        prior = min(1., 3.**len(self.reco_binning.variables) / (N_reco - len(impossible_indices)))
         alpha = np.asfarray(resp_entries) + prior
 
         # Set efficiency of impossible bins to (almost) 0
