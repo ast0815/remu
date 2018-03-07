@@ -89,7 +89,7 @@ class ResponseMatrix(object):
 
         resp = self.get_response_values_as_ndarray()
         truth = self.get_truth_values_as_ndarray()
-        resp.shape=(resp.size/truth.size, truth.size)
+        resp.shape=(resp.size // truth.size, truth.size)
         resp = np.sum(resp, axis=0)
         diff = truth-resp
 
