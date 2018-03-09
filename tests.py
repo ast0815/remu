@@ -905,6 +905,10 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertEqual(mc.shape, (3,4))
         mc = LikelihoodMachine.generate_random_data_sample(self.L.response_matrix, truth, (5,6))
         self.assertEqual(mc.shape, (5,6,4))
+        mc = LikelihoodMachine.generate_random_data_sample(self.L2.response_matrix, truth[1:], (5,6))
+        self.assertEqual(mc.shape, (5,6,4))
+        mc = LikelihoodMachine.generate_random_data_sample(self.L2.response_matrix, truth[1:], (5,6), each=True)
+        self.assertEqual(mc.shape, (5,6,2,4))
 
     def test_likelihood_p_value(self):
         """Test the calculation of p-values."""

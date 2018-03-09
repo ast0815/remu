@@ -748,20 +748,49 @@ class LikelihoodMachine(object):
         return res
 
     @staticmethod
-    def generate_random_data_sample(response_matrix, truth_vector, size=None):
-        """Generate random data samples from the provided truth_vector."""
+    def generate_random_data_sample(response_matrix, truth_vector, size=None, each=False):
+        """Generate random data samples from the provided truth_vector.
+
+        If `each` is `True`, the data is generated for each matrix in
+        `response_matrix`.  Otherwise `size` determines the total number of
+        generated data sets.
+        """
 
         mu = response_matrix.dot(truth_vector)
-        if size is not None:
-            # Append truth vector shape to requested shape of data sets
-            try:
-                shape = list(size)
-            except TypeError:
-                shape = [size]
-            shape.extend(mu.shape)
-            size = shape
 
-        return np.random.poisson(mu, size=size)
+        if each:
+            # One set per matrix
+            if size is not None:
+                # Append truth vector shape to requested shape of data sets
+                try:
+                    shape = list(size)
+                except TypeError:
+                    shape = [size]
+                shape.extend(mu.shape)
+                size = shape
+
+            return np.random.poisson(mu, size=size)
+        else:
+            # Randomly choose matrices
+            # Flatten expectation values
+            if mu.ndim > 1:
+                mu.shape = (np.prod(mu.shape[:-1]), mu.shape[-1])
+            else:
+                mu.shape = (1, mu.shape[-1])
+
+            if size is not None:
+                # Append truth vector shape to requested shape of data sets
+                try:
+                    shape = list(size)
+                except TypeError:
+                    shape = [size]
+                i = np.random.randint(mu.shape[0], size=shape)
+                mu = mu[i,...]
+            else:
+                i = np.random.randint(mu.shape[0])
+                mu = mu[i,...]
+
+            return np.random.poisson(mu)
 
     def likelihood_p_value(self, truth_vector, N=2500, generator_matrix_index=None, systematics='marginal', **kwargs):
         """Calculate the likelihood p-value of a truth vector given the measured data.
