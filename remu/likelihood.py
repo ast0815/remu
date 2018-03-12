@@ -948,6 +948,8 @@ class LikelihoodMachine(object):
             from multiprocess import Pool
             p = Pool(nproc)
             prob = np.fromiter(p.map(prob_fun, fake_data), dtype=float)
+            p.terminate()
+            p.join()
             del p
         else:
             prob = np.fromiter(map(prob_fun, fake_data), dtype=float)
@@ -1049,6 +1051,8 @@ class LikelihoodMachine(object):
             from multiprocess import Pool
             p = Pool(nproc)
             ratio = np.fromiter(p.map(ratio_fun, fake_data), dtype=float)
+            p.terminate()
+            p.join()
             del p
         else:
             ratio = np.fromiter(map(ratio_fun, fake_data), dtype=float)
