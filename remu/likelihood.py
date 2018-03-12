@@ -7,6 +7,7 @@ from scipy.misc import derivative
 from matplotlib import pyplot as plt
 import pymc
 import inspect
+from warnings import warn
 
 class CompositeHypothesis(object):
     """A CompositeHypothesis translates a set of parameters into a truth vector."""
@@ -604,6 +605,12 @@ class LikelihoodMachine(object):
                     return (limits[1]+limits[0]) / 2.
 
             x0 = np.array(list(map(start_value, bounds)))
+            if 'x0' in kwargs:
+                if len(kwargs['x0']) == len(bounds):
+                    x0 = np.array(kwargs.pop('x0'))
+                else:
+                    warn("Length of `x0` does not correspond to number of parameters!", stacklevel=2)
+                    kwargs.pop('x0')
 
             # Step length for basin hopping
             def step_value(limits):
@@ -611,7 +618,7 @@ class LikelihoodMachine(object):
                     return 1.
                 else:
                     # Step size in the order of the parameter range
-                    return (limits[1]-limits[0]) / 2.
+                    return (limits[1]-limits[0]) / 10.
             step = np.array(list(map(step_value, bounds)))
 
             # Number of parameters
@@ -619,9 +626,9 @@ class LikelihoodMachine(object):
 
             # Define a step function that does *not* produce illegal parameter values
             def step_fun(x):
-                # Vary parameters according to their value,
+                # Vary parameters according to their distance from the expectation,
                 # but at least by a minimum amount.
-                dx = np.random.randn(n) * np.maximum(np.abs(x - x0), step)
+                dx = np.random.randn(n) * np.maximum(np.abs(x - x0) / 2., step)
 
                 # Make sure the new values are within bounds
                 ret = x + dx
@@ -994,6 +1001,10 @@ class LikelihoodMachine(object):
 
         Additional keyword arguments will be passed to the likelihood maximizer.
 
+        Special case for maximizer argument `kwargs['x0']`: The two different hypotheses
+        have different parameter spaces. So the (optional) elements 'x0' and 'x1' are handled
+        as the starting points for the `H0` and `H1` fit respectively.
+
         Returns
         -------
 
@@ -1066,6 +1077,19 @@ class LikelihoodMachine(object):
         wH1 = self._composite_hypothesis_wrapper(H1)
 
         # Calculate the maximum probabilities
+        kwargs0 = {}
+        kwargs1 = {}
+        if 'kwargs' in kwargs:
+            fitkwargs = kwargs.pop('kwargs')
+            kwargs0.update(fitkwargs)
+            kwargs1.update(fitkwargs)
+            if 'x1' in kwargs0:
+                kwargs0.pop('x1')
+            if 'x0' in kwargs1:
+                kwargs1.pop('x0')
+            if 'x1' in kwargs1:
+                kwargs1['x0'] = kwargs1.pop('x1')
+
         def ratio_fun(data):
             r = 1.
             p0 = -np.inf
@@ -1077,8 +1101,8 @@ class LikelihoodMachine(object):
             # If we assume a nested hypothesis, we should try to fix impossible likelihood ratios
             while r > 1e-9 and ttl > 0:
                 try:
-                    p0 = np.maximum(p0, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, **kwargs).P)
-                    p1 = np.maximum(p1, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, **kwargs).P)
+                    p0 = np.maximum(p0, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, kwargs=kwargs0, **kwargs).P)
+                    p1 = np.maximum(p1, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, kwargs=kwargs1, **kwargs).P)
                 except KeyboardInterrupt:
                     raise Exception("Terminated.")
                 r = p0 - p1
