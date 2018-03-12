@@ -966,13 +966,13 @@ class LikelihoodMachine(object):
         # Return the quotient
         return n / N
 
-    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=0, **kwargs):
+    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=0, nested=True, **kwargs):
         """Calculate the maximum likelihood ratio p-value of a two composite hypotheses given the measured data.
 
         Arguments
         ---------
 
-        H0 : The tested composite hypothesis.
+        H0 : The tested composite hypothesis. Usually a subset of H1.
         H1 : The alternative composite hypothesis.
         par0 : The assumed true parameters of the tested hypothesis.
         par1 : The maximum likelihood parameters of the alternative hypothesis.
@@ -985,6 +985,12 @@ class LikelihoodMachine(object):
                                  The return value thus becomes an array of p-values.
         nproc : How many processes to use in parallel.
                 Default: 0
+        nested : Is H0 a nested theory, i.e. does it cover a subset of H1?
+                 In this case the likelihood maximum likelihood values must always be L0 <= L1.
+                 If `True` or `'ignore'`, the calculation of likelihood ratios is re-tried
+                 a couple of times if no valid likelihood ratio is found.
+                 If `True` and no valid value was found after 10 tries, an errors is raised.
+                 If `False`, those cases are just accepted.
 
         Additional keyword arguments will be passed to the likelihood maximizer.
 
@@ -1020,6 +1026,27 @@ class LikelihoodMachine(object):
         truth_vector = self._reduce_truth_vector(H0.translate(par0))
         alternative_truth = self._reduce_truth_vector(H1.translate(par1))
 
+        # Get likelihood of actual data
+        p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
+        p1 = self._reduced_log_likelihood(alternative_truth, systematics=systematics)
+        r0 = p0-p1 # difference because log
+
+        # If we assume a nested hypothesis, we should try to fix impossible likelihood ratios
+        if nested is True or nested == 'ignore':
+            ttl = 10
+            while r0 > 1e-9 and ttl > 0:
+                try:
+                    p0 = np.maximum(p0, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, **kwargs).P)
+                    p1 = np.maximum(p1, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, **kwargs).P)
+                except KeyboardInterrupt:
+                    raise Exception("Terminated.")
+                r0 = p0 - p1
+                ttl -= 1
+        if r0 > 1e-9 and (nested is True):
+            raise RuntimeError("Could not find a valid likelihood ratio! Is H0 a subset of H1?")
+        if r0 > 0 and (nested is True):
+            r0 = 0.
+
         # Decide which matrix to use for data generation
         if self._reduced_response_matrix.ndim > 2 and generator_matrix_index is not None:
             resp = self._reduced_response_matrix[generator_matrix_index]
@@ -1040,12 +1067,27 @@ class LikelihoodMachine(object):
 
         # Calculate the maximum probabilities
         def ratio_fun(data):
-            try:
-                p0 = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, **kwargs).P
-                p1 = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, **kwargs).P
-            except KeyboardInterrupt:
-                raise Exception("Terminated.")
-            return p0-p1 # difference because log
+            r = 1.
+            p0 = -np.inf
+            p1 = -np.inf
+            if nested is True or nested == 'ignore':
+                ttl = 10
+            else:
+                ttl = 1
+            # If we assume a nested hypothesis, we should try to fix impossible likelihood ratios
+            while r > 1e-9 and ttl > 0:
+                try:
+                    p0 = np.maximum(p0, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, **kwargs).P)
+                    p1 = np.maximum(p1, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, **kwargs).P)
+                except KeyboardInterrupt:
+                    raise Exception("Terminated.")
+                r = p0 - p1
+                ttl -= 1
+            if r > 1e-9 and (nested is True):
+                raise RuntimeError("Could not find a valid likelihood ratio! Is H0 a subset of H1?")
+            if r > 0 and (nested is True):
+                r = 0.
+            return r # difference because log
 
         if nproc >= 1:
             from multiprocess import Pool
@@ -1059,11 +1101,6 @@ class LikelihoodMachine(object):
         # shape = N*resp_shape-2
         ratio.shape = fake_shape[0:-1] + ratio.shape[1:]
         # shape = N, resp_shape-2
-
-        # Get likelihood of actual data
-        p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
-        p1 = self._reduced_log_likelihood(alternative_truth, systematics=systematics)
-        r0 = p0-p1 # difference because log
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
         n = np.sum(ratio <= r0, axis=0, dtype=float)
