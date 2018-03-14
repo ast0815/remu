@@ -648,6 +648,7 @@ class LikelihoodMachine(object):
                     'bounds': bounds,
                     'options': {
                         #'disp': True,
+                        'ftol' : 1e-12,
                     }
                 }
             }
