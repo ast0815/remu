@@ -1048,14 +1048,16 @@ class LikelihoodMachine(object):
             ttl = 10
             while r0 > 1e-9 and ttl > 0:
                 try:
-                    p0 = np.maximum(p0, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, **kwargs).P)
-                    p1 = np.maximum(p1, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, **kwargs).P)
+                    p0 = np.maximum(p0, self.max_log_likelihood(H0, systematics=systematics, **kwargs).L)
+                    p1 = np.maximum(p1, self.max_log_likelihood(H1, systematics=systematics, **kwargs).L)
                 except KeyboardInterrupt:
                     raise Exception("Terminated.")
                 r0 = p0 - p1
                 ttl -= 1
         if r0 > 1e-9 and (nested is True):
             raise RuntimeError("Could not find a valid likelihood ratio! Is H0 a subset of H1?")
+        if r0 > 1e-9 and (nested == 'ignore'):
+            warn("Could not find a valid likelihood ratio! Is H0 a subset of H1?", stacklevel=2)
         if r0 > 0 and (nested is True):
             r0 = 0.
 

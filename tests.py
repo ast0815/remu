@@ -947,6 +947,8 @@ class TestLikelihoodMachines(unittest.TestCase):
         ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
         p = self.L.max_likelihood_ratio_p_value(H, H1, par0=ret.x, par1=ret1.x, kwargs={'niter':2}, N=10)
         self.assertTrue(0.0 <= p <= 1.0)
+        p = self.L.max_likelihood_ratio_p_value(H, H1, par0=[10,10], par1=[1000,1000,1000,1000], kwargs={'niter':2}, N=10)
+        self.assertTrue(0.0 <= p <= 1.0)
         fun = lambda x: np.repeat(x,4)
         H = CompositeHypothesis(fun, [(0,None)])
         p = self.L.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2}, N=10)
