@@ -1044,9 +1044,10 @@ class LikelihoodMachine(object):
         r0 = p0-p1 # difference because log
 
         # If we assume a nested hypothesis, we should try to fix impossible likelihood ratios
+        nested_tolerance = 1e-2
         if nested is True or nested == 'ignore':
             ttl = 10
-            while r0 > 1e-9 and ttl > 0:
+            while r0 > nested_tolerance and ttl > 0:
                 try:
                     p0 = np.maximum(p0, self.max_log_likelihood(H0, systematics=systematics, **kwargs).L)
                     p1 = np.maximum(p1, self.max_log_likelihood(H1, systematics=systematics, **kwargs).L)
@@ -1054,9 +1055,9 @@ class LikelihoodMachine(object):
                     raise Exception("Terminated.")
                 r0 = p0 - p1
                 ttl -= 1
-        if r0 > 1e-9 and (nested is True):
+        if r0 > nested_tolerance and (nested is True):
             raise RuntimeError("Could not find a valid likelihood ratio! Is H0 a subset of H1?")
-        if r0 > 1e-9 and (nested == 'ignore'):
+        if r0 > nested_tolerance and (nested == 'ignore'):
             warn("Could not find a valid likelihood ratio! Is H0 a subset of H1?", stacklevel=2)
         if r0 > 0 and (nested is True):
             r0 = 0.
@@ -1102,7 +1103,7 @@ class LikelihoodMachine(object):
             else:
                 ttl = 1
             # If we assume a nested hypothesis, we should try to fix impossible likelihood ratios
-            while r > 1e-9 and ttl > 0:
+            while r > nested_tolerance and ttl > 0:
                 try:
                     p0 = np.maximum(p0, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, kwargs=kwargs0, **kwargs).P)
                     p1 = np.maximum(p1, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, kwargs=kwargs1, **kwargs).P)
@@ -1110,7 +1111,7 @@ class LikelihoodMachine(object):
                     raise Exception("Terminated.")
                 r = p0 - p1
                 ttl -= 1
-            if r > 1e-9 and (nested is True):
+            if r > nested_tolerance and (nested is True):
                 raise RuntimeError("Could not find a valid likelihood ratio! Is H0 a subset of H1?")
             if r > 0 and (nested is True):
                 r = 0.
