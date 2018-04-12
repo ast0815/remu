@@ -3,10 +3,21 @@ from setuptools import setup
 # Todo: Parse this from a proper readme file in the future
 description='Response Matrix Utilities'
 long_description = """ReMU - Response Matrix Utilities
+
+ReMU is a framework for response matrices in cross-section measurements and
+general counting experiments. It offers functions to build response matricesi,
+and use them to compare truth-space expectation values with actual experimental
+results in reconstructed space.
+
+Systematic uncertainties about the detector response can be included in the
+matrices.  Done correctly, this enables anyone to test arbitrary models against
+data that was published together with a response matrix, including systematic
+detector effects. Intimate knowledge of the detector is only needed to build
+the response matrix, *not* to use it.
 """
 
 setup(name='remu',
-      version='0.1.0',
+      version='0.2.0',
       description=description,
       long_description=long_description,
       url='http://github.com/ast0815/remu',
@@ -21,7 +32,7 @@ setup(name='remu',
         #   3 - Alpha
         #   4 - Beta
         #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
+        'Development Status :: 4 - Beta',
 
         # Indicate who your project is intended for
         'Intended Audience :: Developers',
