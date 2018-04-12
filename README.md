@@ -5,6 +5,7 @@ A framework for likelihood calculations and hypothesis testing using binned even
 
 [![Build Status](https://travis-ci.org/ast0815/remu.svg?branch=master)](https://travis-ci.org/ast0815/remu)
 [![Coverage Status](https://coveralls.io/repos/github/ast0815/remu/badge.svg?branch=master)](https://coveralls.io/github/ast0815/remu?branch=master)
+[![DOI](https://zenodo.org/badge/77051099.svg)](https://zenodo.org/badge/latestdoi/77051099)
 
 Setup
 -----
