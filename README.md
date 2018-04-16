@@ -74,3 +74,14 @@ They can be run like this:
 
     $ cd examples
     $ python example_analysis.py
+
+Citing
+======
+
+If you use ReMU in a publication, please cite it as follows:
+
+    L. Koch, ReMU - Response Matrix Utilities, http://github.com/ast0815/remu, doi:10.5281/zenodo.1217572
+
+The DOI is different from the one shown in the badge at the top of this page.
+The DOI in the citation does not change and always refers to the latest release,
+while the displayed DOI in the badge refers to a specific version and changes with every release.
