@@ -6,9 +6,13 @@ import re
 import numpy as np
 from numpy.lib.recfunctions import rename_fields
 import csv
-from matplotlib import pyplot as plt
-from matplotlib.colors import LogNorm
 from tempfile import TemporaryFile
+
+# Load matplotlib only on demand
+# from matplotlib import pyplot as plt
+plt = None
+# from matplotlib.colors import LogNorm
+LogNorm = None
 
 class PhaseSpace(object):
     """A PhaseSpace defines the possible combinations of variables that characterize an event.
@@ -1300,6 +1304,14 @@ class RectangularBinning(Binning):
         fig, ax : The figure and axis objects.
 
         """
+
+        # Load matplotlib on demand
+        global plt, LogNorm
+        if plt is None:
+            from matplotlib import pyplot as _pyplot
+            plt = _pyplot
+            from matplotlib.colors import LogNorm as _LogNorm
+            LogNorm = _LogNorm
 
         kw1d = {'drawstyle': 'steps-post'}
         if sqrt_errors:

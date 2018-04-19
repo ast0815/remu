@@ -4,10 +4,16 @@ import numpy as np
 from scipy.stats import poisson
 from scipy import optimize
 from scipy.misc import derivative
-from matplotlib import pyplot as plt
-import pymc
 import inspect
 from warnings import warn
+
+# Load multiprocess, matplotlib, and pymc on demand
+#rom multiprocess import Pool
+Pool = None
+#from matplotlib import pyplot as plt
+plt = None
+#import pymc
+pymc = None
 
 class CompositeHypothesis(object):
     """A CompositeHypothesis translates a set of parameters into a truth vector."""
@@ -953,7 +959,11 @@ class LikelihoodMachine(object):
             return prob
 
         if nproc >= 1:
-            from multiprocess import Pool
+            # Load multiprocess on demand
+            global Pool
+            if Pool is None:
+                from multiprocess import Pool as _Pool
+                Pool = _Pool
             p = Pool(nproc)
             prob = np.fromiter(p.map(prob_fun, fake_data), dtype=float)
             p.terminate()
@@ -1118,7 +1128,11 @@ class LikelihoodMachine(object):
             return r # difference because log
 
         if nproc >= 1:
-            from multiprocess import Pool
+            # Load multiprocess on demand
+            global Pool
+            if Pool is None:
+                from multiprocess import Pool as _Pool
+                Pool = _Pool
             p = Pool(nproc)
             ratio = np.fromiter(p.map(ratio_fun, fake_data), dtype=float)
             p.terminate()
@@ -1143,6 +1157,12 @@ class LikelihoodMachine(object):
 
         See documentation of PyMC.
         """
+
+        # Load pymc on demand
+        global pymc
+        if pymc is None:
+            import pymc as _pymc
+            pymc = _pymc
 
         priors = composite_hypothesis.parameter_priors
 
@@ -1259,6 +1279,12 @@ class LikelihoodMachine(object):
         Also plots bin truth limits if `plot_limits` is `True`.
         """
 
+        # Load matplotlib on demand
+        global plt
+        if plt is None:
+            from matplotlib import pyplot as _plt
+            plt = _plt
+
         eff = self.response_matrix.sum(axis=-2)
         eff.shape = (np.prod(eff.shape[:-1], dtype=int), eff.shape[-1])
         if eff.shape[0] == 1:
@@ -1287,6 +1313,12 @@ class LikelihoodMachine(object):
         to the string 'relative', the values are divided by the limit before
         plotting.
         """
+
+        # Load matplotlib on demand
+        global plt
+        if plt is None:
+            from matplotlib import pyplot as _plt
+            plt = _plt
 
         trace = trace.reshape( (np.prod(trace.shape[:-1], dtype=int), trace.shape[-1]) )
         if trace.shape[0] == 1:
@@ -1319,6 +1351,12 @@ class LikelihoodMachine(object):
         Also plots bin data if `plot_data` is `True`.  If it is set to the
         string 'relative', the values are divided by the data before plotting.
         """
+
+        # Load matplotlib on demand
+        global plt
+        if plt is None:
+            from matplotlib import pyplot as _plt
+            plt = _plt
 
         resp = self._reduced_response_matrix
         if toy_index is not None:
