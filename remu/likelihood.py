@@ -429,17 +429,21 @@ class LikelihoodMachine(object):
         return reco
 
     @staticmethod
-    def _poisson_logpmf_shifted(k, mu, cupy=True):
+    def _poisson_logpmf(k, mu, cupy=True):
         """Replacement for SciPy's log PMF, as it does not support CuPY."""
-
-        return cp.asarray(poisson.logpmf(k.get(), mu.get()))
 
         if cupy:
             _np = cp
         else:
             _np = np
 
-        return (k * _np.log(mu)) - mu #- _np.log(_np.factorial(k))  !!! Not a true pmf! The likelihood is shifted, but that shift remains constant for a given set of reco events
+        # Stirling's approximation ln(k!) = k*ln(k) - k + 0.5*ln(2*pi*k)
+        # Valid for k >= 1
+        # For k = 0, ln(0!) = ln(1) = 0
+
+        return _np.where(k >= 1,
+                        k*_np.log(mu) - mu - (k*_np.log(k) - k + 0.5*_np.log(2*np.pi*k)),
+                        - mu)
 
     @staticmethod
     def log_probability(data_vector, response_matrix, truth_vector, cupy=True, _constant=None):
@@ -481,7 +485,7 @@ class LikelihoodMachine(object):
         data = np.moveaxis(data, len(data_shape)-1, -1)
 
         # Calculate the log probabilities and sum over the axis `n_data`.
-        lp = _np.sum(LikelihoodMachine._poisson_logpmf_shifted(data, reco), axis=-1)
+        lp = _np.sum(LikelihoodMachine._poisson_logpmf(data, reco), axis=-1)
         # Catch NaNs.
         lp = _np.where(_np.isfinite(lp), lp, -np.inf)
 
