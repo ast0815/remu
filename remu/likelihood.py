@@ -6,6 +6,7 @@ from scipy import optimize
 from scipy.misc import derivative
 import inspect
 from warnings import warn
+import cupy as cp
 
 # Load multiprocess, matplotlib, and pymc on demand
 #rom multiprocess import Pool
@@ -76,7 +77,7 @@ class CompositeHypothesis(object):
 class LinearHypothesis(CompositeHypothesis):
     """Special case of CompositeHypothesis for linear combinations."""
 
-    def __init__(self, M, b=None, *args, **kwargs):
+    def __init__(self, M, b=None, cupy=True, **kwargs):
         """Initialise the LinearHypothesis.
 
         Arguments
@@ -90,26 +91,33 @@ class LinearHypothesis(CompositeHypothesis):
 
                 truth = M.dot(parameters) + b
 
+        cupy : Use CuPy instead of NumPy.
+
         Other arguments are passed on to the CompositeHypothesis init method.
         """
 
-        self.M = np.array(M, dtype=float)
+        if cupy:
+            _np = cp
+        else:
+            _np = np
+
+        self.M = _np.array(M, dtype=float)
         if b is None:
             self.b = None
         else:
-            self.b = np.array(b, dtype=float)
+            self.b = _np.array(b, dtype=float)
 
         if b is None:
-            translate = lambda par: np.tensordot(self.M, par, axes=(-1,-1))
+            translate = lambda par: _np.tensordot(self.M, par, axes=(-1,-1))
         else:
-            translate = lambda par: np.tensordot(self.M, par, axes=(-1,-1)) + self.b
+            translate = lambda par: _np.tensordot(self.M, par, axes=(-1,-1)) + self.b
 
-        CompositeHypothesis.__init__(self, translate, *args, **kwargs)
+        CompositeHypothesis.__init__(self, translate, **kwargs)
 
 class TemplateHypothesis(LinearHypothesis):
     """Convenience class to turn truth templates into a CompositeHypothesis."""
 
-    def __init__(self, templates, constant=None, parameter_limits=None, *args, **kwargs):
+    def __init__(self, templates, constant=None, parameter_limits=None, cupy=True, **kwargs):
         """Initialise the TemplateHypothesis.
 
         Arguments
@@ -123,11 +131,16 @@ class TemplateHypothesis(LinearHypothesis):
         Other arguments are passed to the LinearHypothesis init method.
         """
 
-        M = np.array(templates, dtype=float).T
+        if cupy:
+            _np = cp
+        else:
+            _np = np
+
+        M = _np.array(templates, dtype=float).T
         if parameter_limits is None:
             parameter_limits = [(0,None)]*M.shape[-1]
 
-        LinearHypothesis.__init__(self, M, constant, parameter_limits, *args, **kwargs)
+        LinearHypothesis.__init__(self, M, constant, cupy=cupy, parameter_limits=parameter_limits, **kwargs)
 
 class JeffreysPrior(object):
     """Universal non-informative prior for use in Bayesian MCMC analysis."""
@@ -250,7 +263,7 @@ class JeffreysPrior(object):
 class LikelihoodMachine(object):
     """Class that calculates likelihoods for truth vectors."""
 
-    def __init__(self, data_vector, response_matrix, truth_limits=None, limit_method='raise', eff_threshold=0., eff_indices=None, is_sparse=False):
+    def __init__(self, data_vector, response_matrix, truth_limits=None, limit_method='raise', eff_threshold=0., eff_indices=None, is_sparse=False, cupy=True):
         """Initialize the LikelihoodMachine with the given data and response matrix.
 
         The optional `truth_limits` tells the LikelihoodMachine up to which
@@ -286,32 +299,42 @@ class LikelihoodMachine(object):
         Its length must be that of the non-sparse response matrix, i.e. the
         number of truth bins irrespective of efficient indices.
 
+        If `cupy` is `True`, the supplied data and response matrix will be
+        converted to CuPy arrays and calculation will happen with CUDA.
+
         """
 
-        self.data_vector = np.array(data_vector)
-        self.response_matrix = np.array(response_matrix)
-        if truth_limits is None:
-            self.truth_limits = np.full(self.response_matrix.shape[-1], np.inf)
+        self.cupy = cupy
+        if cupy:
+            _np = cp
         else:
-            self.truth_limits = np.array(truth_limits)
+            _np = np
+
+        self.data_vector = _np.array(data_vector)
+        self.response_matrix = _np.array(response_matrix)
+
+        if truth_limits is None:
+            self.truth_limits = _np.full(self.response_matrix.shape[-1], _np.inf)
+        else:
+            self.truth_limits = _np.array(truth_limits)
         self.limit_method = limit_method
 
         # Calculate the reduced response matrix for speedier calculations
         if eff_indices is None:
             self._reduced_response_matrix, self._i_eff = LikelihoodMachine._reduce_response_matrix(self.response_matrix, threshold=eff_threshold)
-            self._n_eff = np.size(self._i_eff)
+            self._n_eff = self._i_eff.size
         else:
-            self._i_eff = np.array(eff_indices)
-            self._n_eff = np.size(self._i_eff)
+            self._i_eff = _np.array(eff_indices)
+            self._n_eff = self._i_eff.size
             if is_sparse:
                 if truth_limits is None:
                     raise ValueError("Must provide truth limits for sparse arrays.")
                 self._reduced_response_matrix = self.response_matrix
             else:
-                self._reduced_response_matrix = np.array(self.response_matrix[...,self._i_eff])
+                self._reduced_response_matrix = _np.array(self.response_matrix[...,self._i_eff])
 
     @staticmethod
-    def _reduce_response_matrix(response_matrix, threshold=0.):
+    def _reduce_response_matrix(response_matrix, threshold=0., cupy=True):
         """Calculate a reduced response matrix, eliminating columns with 0. efficiency.
 
         Returns
@@ -326,18 +349,23 @@ class LikelihoodMachine(object):
 
         """
 
+        if cupy:
+            _np = cp
+        else:
+            _np = np
+
         # Only deal with truth bins that have a efficiency > 0 in any of the response matrices
-        eff = np.sum(response_matrix, axis=-2)
+        eff = _np.sum(response_matrix, axis=-2)
         if eff.ndim > 1:
-            eff = np.max(eff, axis=tuple(range(eff.ndim-1)))
-        eff = np.argwhere( eff > threshold ).flatten()
+            eff = _np.max(eff, axis=tuple(range(eff.ndim-1)))
+        eff = _np.argwhere( eff > threshold ).flatten()
 
         reduced_response_matrix = response_matrix[...,eff]
 
         return reduced_response_matrix, eff
 
     @staticmethod
-    def _create_vector_array(vector, shape, append=True):
+    def _create_vector_array(vector, shape, append=True, cupy=True):
         """Create an array of `shape` containing n `vector`s.
 
         The resulting shape depends on the `append` parameter.
@@ -355,16 +383,26 @@ class LikelihoodMachine(object):
 
         """
 
-        if append:
-            arr = np.broadcast_to(vector, list(shape) + list(vector.shape))
+        if cupy:
+            bc = cp.broadcast_to
         else:
-            arr = np.broadcast_to(vector.T, list(shape[::-1]) + list(vector.shape)[::-1]).T
+            bc = np.broadcast_to
+
+        if append:
+            arr = bc(vector, list(shape) + list(vector.shape))
+        else:
+            arr = bc(vector.T, list(shape[::-1]) + list(vector.shape)[::-1]).T
 
         return arr
 
     @staticmethod
-    def _translate(response_matrix, truth_vector):
+    def _translate(response_matrix, truth_vector, cupy=True):
         """Use the response matrix to translate the truth values into reco values."""
+
+        if cupy:
+            _np = cp
+        else:
+            _np = np
 
         # We need to set the terms of the einstein sum according to the number of axes.
         # N-dimensional case: 'a...dkl,e...fl->a...de...fk'
@@ -386,12 +424,25 @@ class LikelihoodMachine(object):
             ein_truth = 'ef'
         elif ax_truth > 3:
             ein_truth = 'e...f'
-        reco = np.einsum(ein_resp+'kl,'+ein_truth+'l->'+ein_resp+ein_truth+'k', response_matrix, truth_vector)
+        reco = _np.einsum(ein_resp+'kl,'+ein_truth+'l->'+ein_resp+ein_truth+'k', response_matrix, truth_vector)
 
         return reco
 
     @staticmethod
-    def log_probability(data_vector, response_matrix, truth_vector, _constant=None):
+    def _poisson_logpmf_shifted(k, mu, cupy=True):
+        """Replacement for SciPy's log PMF, as it does not support CuPY."""
+
+        return cp.asarray(poisson.logpmf(k.get(), mu.get()))
+
+        if cupy:
+            _np = cp
+        else:
+            _np = np
+
+        return (k * _np.log(mu)) - mu #- _np.log(_np.factorial(k))  !!! Not a true pmf! The likelihood is shifted, but that shift remains constant for a given set of reco events
+
+    @staticmethod
+    def log_probability(data_vector, response_matrix, truth_vector, cupy=True, _constant=None):
         """Calculate the log probabilty of measuring `data_vector`, given `response_matrix` and `truth_vector`.
 
         Each of the three objects can actually be an array of vectors/matrices:
@@ -405,6 +456,11 @@ class LikelihoodMachine(object):
             p.shape = (a,b,...,c,d,...,e,f,...)
 
         """
+
+        if cupy:
+            _np = cp
+        else:
+            _np = np
 
         data_shape = data_vector.shape
         response_shape = response_matrix.shape
@@ -425,35 +481,40 @@ class LikelihoodMachine(object):
         data = np.moveaxis(data, len(data_shape)-1, -1)
 
         # Calculate the log probabilities and sum over the axis `n_data`.
-        lp = np.sum(poisson.logpmf(data, reco), axis=-1)
+        lp = _np.sum(LikelihoodMachine._poisson_logpmf_shifted(data, reco), axis=-1)
         # Catch NaNs.
-        lp = np.where(np.isfinite(lp), lp, -np.inf)
+        lp = _np.where(_np.isfinite(lp), lp, -np.inf)
 
         return lp
 
     @staticmethod
-    def _collapse_systematics_axes(ll, systaxis, systematics):
+    def _collapse_systematics_axes(ll, systaxis, systematics, cupy=True):
         """Collapse the given axes according to the systematics mode."""
+
+        if cupy:
+            _np = cp
+        else:
+            _np = np
 
         if type(systematics) is tuple:
             # Return specific result
             index = tuple([ slice(None) ] * min(systaxis) + list(systematics) + [Ellipsis])
             ll = ll[index]
-        elif isinstance(systematics, np.ndarray):
+        elif isinstance(systematics, _np.ndarray):
             # Return specific result for each non-systematics index
             # The shape of `systematics` must match the shape of the non-systemtic axes:
             #
             #     systematics.shape = (a,b,c,...,len(systaxis))
-            oi = np.indices(systematics.shape[:-1])
+            oi = _np.indices(systematics.shape[:-1])
             index = tuple([ i for i in oi[:min(systaxis)] ] + [ systematics[...,i] for i in range(len(systaxis)) ] + [ i for i in oi[min(systaxis):] ])
             ll = ll[index]
         elif systematics == 'profile' or systematics == 'maximum':
             # Return maximum
-            ll = np.max(ll, axis=systaxis)
+            ll = _np.max(ll, axis=systaxis)
         elif systematics == 'marginal' or systematics == 'average':
             # Return average
-            N = np.prod(np.array(ll.shape)[np.array(systaxis, dtype=int)])
-            ll = np.logaddexp.reduce(ll, axis=systaxis) - np.log(N)
+            N = _np.prod(_np.array(ll.shape)[_np.array(systaxis, dtype=int)])
+            ll = _np.logaddexp.reduce(ll, axis=systaxis) - _np.log(N)
         else:
             raise ValueError("Unknown systematics method!")
 
@@ -472,11 +533,23 @@ class LikelihoodMachine(object):
 
     def _reduce_truth_vector(self, truth_vector):
         """Return a reduced truth vector view."""
-        return np.array(np.asarray(truth_vector)[...,self._i_eff])
+
+        if self.cupy:
+            _np = cp
+        else:
+            _np = np
+
+        return _np.array(_np.asarray(truth_vector)[...,self._i_eff])
 
     def _reduce_matrix(self, truth_vector):
         """Return a reduced matrix view."""
-        return np.array(np.asarray(truth_vector)[...,self._i_eff,:])
+
+        if self.cupy:
+            _np = cp
+        else:
+            _np = np
+
+        return _np.array(_np.asarray(truth_vector)[...,self._i_eff,:])
 
     def log_likelihood(self, truth_vector, systematics='marginal'):
         """Calculate the log likelihood of a vector of truth expectation values.
@@ -497,9 +570,14 @@ class LikelihoodMachine(object):
                       Defaults to `marginal`.
         """
 
-        if np.any(truth_vector > self.truth_limits):
+        if self.cupy:
+            _np = cp
+        else:
+            _np = np
+
+        if _np.any(truth_vector > self.truth_limits):
             if self.limit_method == 'raise':
-                i = np.argwhere(truth_vector > self.truth_limits)[0,-1]
+                i = _np.argwhere(truth_vector > self.truth_limits)[0,-1]
                 raise RuntimeError("Truth value %d is above allowed limits!"%(i,))
             elif self.limit_method == 'prohibit':
                 return -np.inf
@@ -514,7 +592,7 @@ class LikelihoodMachine(object):
         return ll
 
     @staticmethod
-    def max_log_probability(data_vector, response_matrix, composite_hypothesis, systematics='marginal', disp=False, method='basinhopping', kwargs={}):
+    def max_log_probability(data_vector, response_matrix, composite_hypothesis, systematics='marginal', disp=False, method='basinhopping', kwargs={}, cupy=True):
         """Calculate the maximum possible probability in the given CompositeHypothesis, given `response_matrix` and `data_vector`.
 
         Arguments
@@ -534,6 +612,7 @@ class LikelihoodMachine(object):
                  Default: 'basinhopping'
         kwargs : Keyword arguments to be passed to the minimizer.
                  If empty, reasonable default values will be used.
+        cupy : Use `CuPy` to speed up calculations with CUDA.
 
         Returns
         -------
@@ -543,12 +622,18 @@ class LikelihoodMachine(object):
               the response matrix that yielded the maximum likelihood `res.i`
         """
 
+        if cupy:
+            _np = cp
+        else:
+            _np = np
+
+
         if isinstance(composite_hypothesis, LinearHypothesis):
             # Special case!
             # Since the parameter translation is just a matrix multiplication,
             # we can save a lot of computing time by pre-calculating the combined
             # matrix.
-            R = np.tensordot(response_matrix, composite_hypothesis.M, axes=(-1,-2))
+            R = _np.tensordot(response_matrix, composite_hypothesis.M, axes=(-1,-2))
             b = composite_hypothesis.b
             if b is None:
                 likfun = lambda x : LikelihoodMachine.log_probability(data_vector, R, x)
@@ -560,10 +645,11 @@ class LikelihoodMachine(object):
 
         # Negative log probability function
         if systematics == 'profile' or systematics == 'maximum':
-            nll = lambda x: -np.max(likfun(x))
+            nll = lambda x: -_np.max(likfun(x)).get()
         elif systematics == 'marginal' or systematics == 'average':
-            N_resp = np.prod(response_matrix.shape[:-2])
-            nll = lambda x: -(np.logaddexp.reduce(likfun(x)) - np.log(N_resp))
+            N_resp = _np.prod(np.asarray(response_matrix.shape[:-2]))
+            #nll = lambda x: -(_np.logaddexp.reduce(likfun(x)) - _np.log(N_resp))
+            nll = lambda x: -(_np.log(_np.sum(_np.exp((likfun(x))))) - _np.log(N_resp)).get()
         else:
             raise ValueError("Unknown systematics method!")
 
@@ -638,9 +724,11 @@ class LikelihoodMachine(object):
 
                 # Make sure the new values are within bounds
                 ret = x + dx
-                with np.errstate(invalid='ignore'):
-                    ret = np.where(ret > limits[1], limits[1]-((ret-limits[1]) % ranges), ret)
-                    ret = np.where(ret < limits[0], limits[0]+((limits[0]-ret) % ranges), ret)
+                #with _np.errstate(invalid='ignore'):
+                #    ret = _np.where(ret > limits[1], limits[1]-((ret-limits[1]) % ranges), ret)
+                #    ret = _np.where(ret < limits[0], limits[0]+((limits[0]-ret) % ranges), ret)
+                ret = np.where(ret > limits[1], limits[1]-((ret-limits[1]) % ranges), ret)
+                ret = np.where(ret < limits[0], limits[0]+((limits[0]-ret) % ranges), ret)
 
                 return ret
 
@@ -659,14 +747,15 @@ class LikelihoodMachine(object):
                 }
             }
             kw.update(kwargs)
-            with np.errstate(invalid='ignore'):
-                res = optimize.basinhopping(nll, x0, disp=disp, **kw)
+            #with _np.errstate(invalid='ignore'):
+            #    res = optimize.basinhopping(nll, x0, disp=disp, **kw)
+            res = optimize.basinhopping(nll, x0, disp=disp, **kw)
         else:
             raise ValueError("Unknown method: %s"%(method,))
 
         res.P = -res.fun
         if systematics == 'profile' or systematics == 'maximum':
-            res.i = np.argmax(LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(res.x)))
+            res.i = _np.argmax(LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(res.x)))
 
         return res
 
@@ -748,10 +837,15 @@ class LikelihoodMachine(object):
         res : OptimizeResult object containing the maximum likelihood `res.L`.
         """
 
+        if self.cupy:
+            _np = cp
+        else:
+            _np = np
+
         # Create a CompositeHypothesis that uses only the efficient truth values
         n = self._n_eff
         bounds = [(0,None)]*n
-        eff_to_all = np.eye(self.response_matrix.shape[-1])[:,self._i_eff]
+        eff_to_all = _np.eye(self.response_matrix.shape[-1])[:,self._i_eff]
         translate = lambda x: eff_to_all.dot(x)
         super_hypothesis = CompositeHypothesis(translate, bounds)
 
@@ -762,13 +856,18 @@ class LikelihoodMachine(object):
         return res
 
     @staticmethod
-    def generate_random_data_sample(response_matrix, truth_vector, size=None, each=False):
+    def generate_random_data_sample(response_matrix, truth_vector, size=None, each=False, cupy=True):
         """Generate random data samples from the provided truth_vector.
 
         If `each` is `True`, the data is generated for each matrix in
         `response_matrix`.  Otherwise `size` determines the total number of
         generated data sets.
         """
+
+        if cupy:
+            _np = cp
+        else:
+            _np = np
 
         mu = response_matrix.dot(truth_vector)
 
@@ -783,12 +882,12 @@ class LikelihoodMachine(object):
                 shape.extend(mu.shape)
                 size = shape
 
-            return np.random.poisson(mu, size=size)
+            return _np.random.poisson(mu, size=size)
         else:
             # Randomly choose matrices
             # Flatten expectation values
             if mu.ndim > 1:
-                mu.shape = (np.prod(mu.shape[:-1]), mu.shape[-1])
+                mu.shape = (_np.prod(mu.shape[:-1]), mu.shape[-1])
             else:
                 mu.shape = (1, mu.shape[-1])
 
@@ -798,13 +897,13 @@ class LikelihoodMachine(object):
                     shape = list(size)
                 except TypeError:
                     shape = [size]
-                i = np.random.randint(mu.shape[0], size=shape)
+                i = _np.random.randint(mu.shape[0], size=shape)
                 mu = mu[i,...]
             else:
-                i = np.random.randint(mu.shape[0])
+                i = _np.random.randint(mu.shape[0])
                 mu = mu[i,...]
 
-            return np.random.poisson(mu)
+            return _np.random.poisson(mu)
 
     def likelihood_p_value(self, truth_vector, N=2500, generator_matrix_index=None, systematics='marginal', **kwargs):
         """Calculate the likelihood p-value of a truth vector given the measured data.
@@ -927,6 +1026,11 @@ class LikelihoodMachine(object):
         appropriate number of evaluations.
         """
 
+        if self.cupy:
+            _np = cp
+        else:
+            _np = np
+
         # Get truth vector from assumed true hypothesis
         if parameters is None:
             parameters = self.max_log_likelihood(composite_hypothesis, **kwargs).x
@@ -944,7 +1048,7 @@ class LikelihoodMachine(object):
         # shape = N, resp_shape-2, data_shape
         # Flatten the fake data sets from possibly multiple response matrices
         fake_shape = fake_data.shape
-        fake_data.shape = (np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
+        fake_data.shape = (_np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
         # shape = N * resp_shape-2, data_shape
 
         # Wrapping composite hypothesis to produce reduced truth vectors
@@ -965,12 +1069,12 @@ class LikelihoodMachine(object):
                 from multiprocess import Pool as _Pool
                 Pool = _Pool
             p = Pool(nproc)
-            prob = np.fromiter(p.map(prob_fun, fake_data), dtype=float)
+            prob = _np.fromiter(p.map(prob_fun, fake_data), dtype=float)
             p.terminate()
             p.join()
             del p
         else:
-            prob = np.fromiter(map(prob_fun, fake_data), dtype=float)
+            prob = _np.fromiter(map(prob_fun, fake_data), dtype=float)
         # shape = N*resp_shape-2
         prob.shape = fake_shape[0:-1] + prob.shape[1:]
         # shape = N, resp_shape-2
@@ -979,7 +1083,7 @@ class LikelihoodMachine(object):
         p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
-        n = np.sum(prob <= p0, axis=0, dtype=float)
+        n = _np.sum(prob <= p0, axis=0, dtype=float)
 
         # Return the quotient
         return n / N
@@ -1039,6 +1143,11 @@ class LikelihoodMachine(object):
         appropriate number of evaluations.
         """
 
+        if self.cupy:
+            _np = cp
+        else:
+            _np = np
+
         # Get truth vector from assumed true hypothesis
         if par0 is None:
             par0 = self.max_log_likelihood(H0, systematics=systematics, **kwargs).x
@@ -1059,8 +1168,8 @@ class LikelihoodMachine(object):
             ttl = 10
             while r0 > nested_tolerance and ttl > 0:
                 try:
-                    p0 = np.maximum(p0, self.max_log_likelihood(H0, systematics=systematics, **kwargs).L)
-                    p1 = np.maximum(p1, self.max_log_likelihood(H1, systematics=systematics, **kwargs).L)
+                    p0 = _np.maximum(p0, self.max_log_likelihood(H0, systematics=systematics, **kwargs).L)
+                    p1 = _np.maximum(p1, self.max_log_likelihood(H1, systematics=systematics, **kwargs).L)
                 except KeyboardInterrupt:
                     raise Exception("Terminated.")
                 r0 = p0 - p1
@@ -1083,7 +1192,7 @@ class LikelihoodMachine(object):
         # shape = N, resp_shape-2, data_shape
         # Flatten the fake data sets from possibly multiple response matrices
         fake_shape = fake_data.shape
-        fake_data.shape = (np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
+        fake_data.shape = (_np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
         # shape = N * resp_shape-2, data_shape
 
         # Wrapping composite hypothesis to produce reduced truth vectors
@@ -1115,8 +1224,8 @@ class LikelihoodMachine(object):
             # If we assume a nested hypothesis, we should try to fix impossible likelihood ratios
             while r > nested_tolerance and ttl > 0:
                 try:
-                    p0 = np.maximum(p0, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, kwargs=kwargs0, **kwargs).P)
-                    p1 = np.maximum(p1, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, kwargs=kwargs1, **kwargs).P)
+                    p0 = _np.maximum(p0, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, kwargs=kwargs0, **kwargs).P)
+                    p1 = _np.maximum(p1, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, kwargs=kwargs1, **kwargs).P)
                 except KeyboardInterrupt:
                     raise Exception("Terminated.")
                 r = p0 - p1
@@ -1134,18 +1243,18 @@ class LikelihoodMachine(object):
                 from multiprocess import Pool as _Pool
                 Pool = _Pool
             p = Pool(nproc)
-            ratio = np.fromiter(p.map(ratio_fun, fake_data), dtype=float)
+            ratio = _np.fromiter(p.map(ratio_fun, fake_data), dtype=float)
             p.terminate()
             p.join()
             del p
         else:
-            ratio = np.fromiter(map(ratio_fun, fake_data), dtype=float)
+            ratio = _np.fromiter(map(ratio_fun, fake_data), dtype=float)
         # shape = N*resp_shape-2
         ratio.shape = fake_shape[0:-1] + ratio.shape[1:]
         # shape = N, resp_shape-2
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
-        n = np.sum(ratio <= r0, axis=0, dtype=float)
+        n = _np.sum(ratio <= r0, axis=0, dtype=float)
 
         # Return the quotient
         return n / N
