@@ -916,13 +916,7 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertEqual(p, 1.0)
         self.truth_vector[2] += 4
         p = self.L.likelihood_p_value(self.truth_vector, N=250000)
-        self.assertAlmostEqual(p, 0.747, places=2)
-        p = self.L.likelihood_p_value(self.truth_vector, N=250000)
-        self.assertAlmostEqual(p, 0.747, places=2)
-        p = self.L.likelihood_p_value(self.truth_vector, N=250000)
-        self.assertAlmostEqual(p, 0.747, places=2)
-        p = self.L.likelihood_p_value(self.truth_vector, N=250000)
-        self.assertAlmostEqual(p, 0.747, places=2)
+        self.assertTrue(abs(p-0.725) < 0.01)
 
     def test_max_likelihood_p_value(self):
         """Test the calculation of the p-value of composite hypotheses."""

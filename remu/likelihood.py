@@ -1,7 +1,7 @@
 from __future__ import division
 from six.moves import map, zip
 import numpy as np
-from scipy.stats import poisson
+from scipy import stats
 from scipy import optimize
 from scipy.misc import derivative
 import inspect
@@ -390,6 +390,67 @@ class LikelihoodMachine(object):
 
         return reco
 
+    class _LazyLogProbabilityCalculator(object):
+        """Class for lazy probability computations.
+
+        Assumes that data and response matrix do not change to avoid re-calculating things.
+
+            Poisson PMF:
+            p(k, mu) = (mu^k / k!) * exp(-mu)
+            ln(p(k, mu)) = k*ln(mu) - mu - ln(k!)
+            ln(k!) = -ln(p(k,mu)) + k*ln(mu) - mu = -ln(p(k,1.)) - 1.
+
+        """
+
+        def __init__(self, data_vector, response_matrix, _constant=None):
+            self.data_shape = data_vector.shape
+            self.response_shape = response_matrix.shape
+            self._constant = _constant
+
+            # Extend response_matrix to shape (a,b,...,c,d,...,n_data,n_truth)
+            self.resp = LikelihoodMachine._create_vector_array(response_matrix, self.data_shape[:-1])
+
+            # Save constants for PMF calculation
+            with np.errstate(divide='ignore', invalid='ignore'):
+                self.k = data_vector
+                self.k0 = (data_vector == 0)
+                self.ln_k_factorial = -(stats.poisson.logpmf(self.k, np.ones_like(self.k, dtype=float)) + 1.)
+
+        @staticmethod
+        def _poisson_logpmf(k, k0, ln_k_factorial, mu):
+            with np.errstate(divide='ignore', invalid='ignore'):
+                pmf = k*np.log(mu) - ln_k_factorial - mu
+            # Need to take care of special case mu=0:  k=0 -> logpmf=0,  k>=1 -> logpmf=-inf
+            mu0 = (mu==0)
+            pmf[mu0 & k0] = 0
+            pmf[mu0 & ~k0] = -np.inf
+            pmf[~np.isfinite(pmf)] = -np.inf
+            pmf = np.sum(pmf, axis=-1)
+            return pmf
+
+        def __call__(self, truth_vector):
+            truth_shape = truth_vector.shape
+
+            # Reco expectation values of shape (a,b,...,c,d,...,e,f,...,n_data)
+            if self._constant is None:
+                reco = LikelihoodMachine._translate(self.resp, truth_vector)
+            else:
+                reco = LikelihoodMachine._translate(self.resp, truth_vector) + self._constant
+
+            # Create a data vector of the shape (a,b,...,n_data,c,d,...,e,f,...)
+            shape = list(self.response_shape[:-2])+list(truth_shape[:-1])
+            k              = LikelihoodMachine._create_vector_array(self.k,              shape, append=False)
+            k0             = LikelihoodMachine._create_vector_array(self.k0,             shape, append=False)
+            ln_k_factorial = LikelihoodMachine._create_vector_array(self.ln_k_factorial, shape, append=False)
+            # Move axis so we get (a,b,...,c,d,...,e,f,...,n_data)
+            shape = len(self.data_shape)-1
+            k              = np.moveaxis(k,              shape, -1)
+            k0             = np.moveaxis(k0,             shape, -1)
+            ln_k_factorial = np.moveaxis(ln_k_factorial, shape, -1)
+
+            # Calculate the log probabilities and sum over the axis `n_data`.
+            return self._poisson_logpmf(k, k0, ln_k_factorial, reco)
+
     @staticmethod
     def log_probability(data_vector, response_matrix, truth_vector, _constant=None):
         """Calculate the log probabilty of measuring `data_vector`, given `response_matrix` and `truth_vector`.
@@ -406,30 +467,7 @@ class LikelihoodMachine(object):
 
         """
 
-        data_shape = data_vector.shape
-        response_shape = response_matrix.shape
-        truth_shape = truth_vector.shape
-
-        # Extend response_matrix to shape (a,b,...,c,d,...,n_data,n_truth)
-        resp = LikelihoodMachine._create_vector_array(response_matrix, data_shape[:-1])
-
-        # Reco expectation values of shape (a,b,...,c,d,...,e,f,...,n_data)
-        if _constant is None:
-            reco = LikelihoodMachine._translate(resp, truth_vector)
-        else:
-            reco = LikelihoodMachine._translate(resp, truth_vector) + _constant
-
-        # Create a data vector of the shape (a,b,...,n_data,c,d,...,e,f,...)
-        data = LikelihoodMachine._create_vector_array(data_vector, list(response_shape[:-2])+list(truth_shape[:-1]), append=False)
-        # Move axis so we get (a,b,...,c,d,...,e,f,...,n_data)
-        data = np.moveaxis(data, len(data_shape)-1, -1)
-
-        # Calculate the log probabilities and sum over the axis `n_data`.
-        lp = np.sum(poisson.logpmf(data, reco), axis=-1)
-        # Catch NaNs.
-        lp = np.where(np.isfinite(lp), lp, -np.inf)
-
-        return lp
+        return LikelihoodMachine._LazyLogProbabilityCalculator(data_vector, response_matrix, _constant)(truth_vector)
 
     @staticmethod
     def _collapse_systematics_axes(ll, systaxis, systematics):
@@ -551,12 +589,13 @@ class LikelihoodMachine(object):
             R = np.tensordot(response_matrix, composite_hypothesis.M, axes=(-1,-2))
             b = composite_hypothesis.b
             if b is None:
-                likfun = lambda x : LikelihoodMachine.log_probability(data_vector, R, x)
+                likfun = LikelihoodMachine._LazyLogProbabilityCalculator(data_vector, R)
             else:
                 const = LikelihoodMachine._translate(response_matrix, b)
-                likfun = lambda x : LikelihoodMachine.log_probability(data_vector, R, x, _constant=const)
+                likfun = LikelihoodMachine._LazyLogProbabilityCalculator(data_vector, R, _constant=const)
         else:
-            likfun = lambda x : LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(x))
+            probfun = LikelihoodMachine._LazyLogProbabilityCalculator(data_vector, response_matrix)
+            likfun = lambda x : probfun(composite_hypothesis.translate(x))
 
         # Negative log probability function
         if systematics == 'profile' or systematics == 'maximum':
