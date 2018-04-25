@@ -424,6 +424,8 @@ class LikelihoodMachine(object):
             ein_truth = 'ef'
         elif ax_truth > 3:
             ein_truth = 'e...f'
+
+        truth_vector = _np.asarray(truth_vector)
         reco = _np.einsum(ein_resp+'kl,'+ein_truth+'l->'+ein_resp+ein_truth+'k', response_matrix, truth_vector)
 
         return reco
@@ -437,13 +439,23 @@ class LikelihoodMachine(object):
         else:
             _np = np
 
+        # Poisson PMF:  P = (mu^k / k!) * exp(-mu)
+        #               ln(P) = -mu + k*ln(mu) - ln(k!)
+
         # Stirling's approximation ln(k!) = k*ln(k) - k + 0.5*ln(2*pi*k)
         # Valid for k >= 1
         # For k = 0, ln(0!) = ln(1) = 0
 
-        return _np.where(k >= 1,
-                        k*_np.log(mu) - mu - (k*_np.log(k) - k + 0.5*_np.log(2*np.pi*k)),
-                        - mu)
+        logpmf= _np.where(k >= 1,
+                k*_np.log(mu) - mu - (k*_np.log(k) - k + 0.5*_np.log(2*np.pi*k)),
+                -mu
+                )
+        if _np.any(~_np.isfinite(logpmf)):
+            print logpmf
+            print k
+            print mu
+            raise Exception()
+        return logpmf
 
     @staticmethod
     def log_probability(data_vector, response_matrix, truth_vector, cupy=True, _constant=None):
@@ -472,12 +484,21 @@ class LikelihoodMachine(object):
 
         # Extend response_matrix to shape (a,b,...,c,d,...,n_data,n_truth)
         resp = LikelihoodMachine._create_vector_array(response_matrix, data_shape[:-1])
+        if _np.any(~_np.isfinite(resp)):
+            print resp
+            raise Exception()
+        if _np.any(~_np.isfinite(_np.asarray(truth_vector))):
+            print truth_vector
+            raise Exception()
 
         # Reco expectation values of shape (a,b,...,c,d,...,e,f,...,n_data)
         if _constant is None:
             reco = LikelihoodMachine._translate(resp, truth_vector)
         else:
             reco = LikelihoodMachine._translate(resp, truth_vector) + _constant
+        if _np.any(~_np.isfinite(reco)):
+            print recp
+            raise Exception()
 
         # Create a data vector of the shape (a,b,...,n_data,c,d,...,e,f,...)
         data = LikelihoodMachine._create_vector_array(data_vector, list(response_shape[:-2])+list(truth_shape[:-1]), append=False)
@@ -596,6 +617,117 @@ class LikelihoodMachine(object):
         return ll
 
     @staticmethod
+    def _randmin(fun, x0, args, **kwargs):
+        """Custom minimising function to replace L-BFGS-B when working with cupy arrays."""
+
+        _np = cp
+        Npar = x0.size
+        Ntest = Npar*5
+        Nmax = 10000
+        sigma_factor = 1.
+        x_tol = 1
+        f_tol = 0.01
+        bounds = kwargs.pop('bounds', None)
+        disp = kwargs.pop('disp', False)
+        if bounds is None:
+            bounds = _np.array([(-np.inf, +np.inf)]*Npar)
+        else:
+            bounds = _np.asarray(bounds)
+
+        calc = lambda x: fun(x, *args)
+
+        x0 = _np.asarray(x0)
+        f = calc(x0)
+
+        sigma = _np.abs(x0)
+        s_max = _np.max(sigma)
+        df = f_tol * 2.
+        Nloop = 0
+        while Nloop < Nmax and s_max > x_tol and df > f_tol:
+            Nloop += 1
+            x_test = _np.random.randn(Ntest, Npar)*sigma + x0
+            f_test = calc(x_test)
+            i_best = _np.argmin(f_test)
+            #print i_best, i_best.shape
+            #print f_test.shape
+            #print x_test.shape
+            x_best = x_test[i_best]
+            f_best = f_test[i_best]
+            if _np.isfinite(df):
+                df = 0.5*df + 0.5*_np.abs(f_best-f)
+            else:
+                df = _np.abs(f_best-f)
+            sigma = 0.5*(sigma + _np.abs(x_best - x0) * sigma_factor)
+            s_max = _np.max(sigma)
+            if disp:
+                print("N=%8d, s_max=%8e, df=%8e, f_best=%8e, f=%8e"%(Nloop,s_max,df,f_best,f))
+            if f_best < f:
+                f = f_best
+                x0 = x_best
+
+        return optimize.OptimizeResult(
+                x = x0.get(),
+                fun = f.get(),
+                success = Nloop < Nmax,
+                )
+
+    @staticmethod
+    def _simplemin(fun, x0, args, **kwargs):
+        """Custom minimising function to replace L-BFGS-B when working with cupy arrays."""
+
+        _np = cp
+        Npar = x0.size
+        Ntest = Npar*5
+        Nmax = 10000
+        sigma_factor = 1.
+        x_tol = 1
+        f_tol = 0.01
+        bounds = kwargs.pop('bounds', None)
+        disp = kwargs.pop('disp', False)
+        if bounds is None:
+            bounds = _np.array([(-np.inf, +np.inf)]*Npar)
+        else:
+            bounds = _np.asarray(bounds)
+
+        calc = lambda x: fun(x, *args)
+
+        x0 = _np.asarray(x0)
+        f = calc(x0)
+
+        sigma = _np.abs(x0)
+        s_max = _np.max(sigma)
+        df = f_tol * 2.
+        Nloop = 0
+        while Nloop < Nmax and s_max > x_tol and df > f_tol:
+            Nloop += 1
+            x_test = _np.random.randn(Ntest, Npar)*sigma + x0
+            f_test = calc(x_test)
+            i_best = _np.argmin(f_test)
+            #print i_best, i_best.shape
+            #print f_test.shape
+            #print x_test.shape
+            x_best = x_test[i_best]
+            f_best = f_test[i_best]
+            if _np.isfinite(df):
+                df = 0.5*df + 0.5*_np.abs(f_best-f)
+            else:
+                df = _np.abs(f_best-f)
+            sigma = 0.5*(sigma + _np.abs(x_best - x0) * sigma_factor)
+            s_max = _np.max(sigma)
+            if disp:
+                print("N=%8d, s_max=%8e, df=%8e, f_best=%8e, f=%8e"%(Nloop,s_max,df,f_best,f))
+            if f_best < f:
+                f = f_best
+                x0 = x_best
+
+        return optimize.OptimizeResult(
+                x = x0.get(),
+                fun = f.get(),
+                success = Nloop < Nmax,
+                )
+
+
+    @staticmethod
     def max_log_probability(data_vector, response_matrix, composite_hypothesis, systematics='marginal', disp=False, method='basinhopping', kwargs={}, cupy=True):
         """Calculate the maximum possible probability in the given CompositeHypothesis, given `response_matrix` and `data_vector`.
 
@@ -638,22 +770,47 @@ class LikelihoodMachine(object):
             # we can save a lot of computing time by pre-calculating the combined
             # matrix.
             R = _np.tensordot(response_matrix, composite_hypothesis.M, axes=(-1,-2))
+            if _np.any(~_np.isfinite(R)):
+                print R
+                raise Exception()
             b = composite_hypothesis.b
             if b is None:
                 likfun = lambda x : LikelihoodMachine.log_probability(data_vector, R, x)
             else:
+                if _np.any(~_np.isfinite(b)):
+                    print b
+                    raise Exception()
                 const = LikelihoodMachine._translate(response_matrix, b)
+                if _np.any(~_np.isfinite(const)):
+                    print const
+                    raise Exception()
                 likfun = lambda x : LikelihoodMachine.log_probability(data_vector, R, x, _constant=const)
         else:
             likfun = lambda x : LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(x))
 
         # Negative log probability function
         if systematics == 'profile' or systematics == 'maximum':
-            nll = lambda x: -_np.max(likfun(x)).get()
+            nll = lambda x: -_np.max(likfun(x))
         elif systematics == 'marginal' or systematics == 'average':
             N_resp = _np.prod(np.asarray(response_matrix.shape[:-2]))
             #nll = lambda x: -(_np.logaddexp.reduce(likfun(x)) - _np.log(N_resp))
-            nll = lambda x: -(_np.log(_np.sum(_np.exp((likfun(x))))) - _np.log(N_resp)).get()
+            def nll(x):
+                ll = likfun(x)
+                ll0 = _np.max(ll)
+                ll = ll - ll0
+                if _np.any(~_np.isfinite(ll)):
+                    print ll
+                    raise Exception()
+                sumax = tuple(range(ll.ndim - x.ndim + 1))
+                nll = -(ll0 + _np.log(_np.sum(_np.exp(ll), axis=sumax)) - _np.log(N_resp)).get()
+                if not _np.isfinite(nll):
+                    print ll
+                    print _np.exp(ll)
+                    print _np.sum(_np.exp(ll), axis=sumax)
+                    print _np.log(_np.sum(_np.exp(ll), axis=sumax))
+                    print _np.log(N_resp)
+                    raise Exception()
+                return nll
         else:
             raise ValueError("Unknown systematics method!")
 
@@ -724,7 +881,13 @@ class LikelihoodMachine(object):
             def step_fun(x):
                 # Vary parameters according to their distance from the expectation,
                 # but at least by a minimum amount.
+                if np.any(~np.isfinite(x)):
+                    print x
+                    raise Exception()
                 dx = np.random.randn(n) * np.maximum(np.abs(x - x0) / 2., step)
+                if np.any(~np.isfinite(dx)):
+                    print dx
+                    raise Exception()
 
                 # Make sure the new values are within bounds
                 ret = x + dx
@@ -743,6 +906,7 @@ class LikelihoodMachine(object):
                 'niter': 100,
                 'minimizer_kwargs': {
                     'method': 'L-BFGS-B',
+                    #'method': LikelihoodMachine._randmin,
                     'bounds': bounds,
                     'options': {
                         #'disp': True,
@@ -753,6 +917,7 @@ class LikelihoodMachine(object):
             kw.update(kwargs)
             #with _np.errstate(invalid='ignore'):
             #    res = optimize.basinhopping(nll, x0, disp=disp, **kw)
+            print(x0, nll(x0))
             res = optimize.basinhopping(nll, x0, disp=disp, **kw)
         else:
             raise ValueError("Unknown method: %s"%(method,))
