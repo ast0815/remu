@@ -1,0 +1,23 @@
+!RecBinning
+binedges:
+- - true_x
+  - [-.inf,
+    -3.0,
+    -2.0,
+    -1.0,
+    0.0,
+    1.0,
+    2.0,
+    3.0,
+    +.inf]
+- - true_y
+  - [-.inf,
+    -3.0,
+    -2.0,
+    -1.0,
+    0.0,
+    1.0,
+    2.0,
+    3.0,
+    +.inf]
+include_upper: false

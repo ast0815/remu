@@ -1,6 +1,6 @@
-=========
+==========
 likelihood
-=========
+==========
 
 .. automodule:: remu.likelihood
 

@@ -76,16 +76,10 @@ Run all test cases of the framework::
     $ pip install -r test-requirements.txt
     $ ./run_tests.sh
 
-Examples
-========
-
-The folder ``examples`` contains example analyses that show how one can use this
-software.
-
 Documentation
 =============
 
-Online documentation can be found on the projects readthedocs page:
+Online documentation including examples can be found on the projects readthedocs page:
 
     `<https://remu.readthedocs.io>`_
 

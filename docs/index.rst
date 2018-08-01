@@ -3,20 +3,11 @@
 
 .. include:: ../README.rst
 
-References
-==========
+Table of contents
+=================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Module references:
+    :maxdepth: 2
 
-   modules/binning
-   modules/migration
-   modules/likelihood
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+    examples/README
+    modules/README
