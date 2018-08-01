@@ -1,4 +1,6 @@
 # Ignore virtualenv
 /ENV
-rebil.egg-info
+remu.egg-info
 dist
+.coverage
+*.pyc
