@@ -74,14 +74,7 @@ Examples
 --------
 
 The folder `examples` contains example analyses that show how one can use this
-software. The examples need some additional packages to run:
-
-    $ pip install -r example-requirements.txt
-
-They can be run like this:
-
-    $ cd examples
-    $ python example_analysis.py
+software.
 
 Citing
 ======
