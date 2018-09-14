@@ -518,6 +518,10 @@ class ResponseMatrix(object):
             except TypeError:
                 total_size = tuple(list([size]) + [len(alpha)])
 
+        if len(params) == 1:
+            # Special case for response matrices with only one reco bin
+            return np.ones(total_size)
+
         xs = np.zeros(total_size)
 
         xs[...,0] = np.random.beta(params[0], np.sum(params[1:]), size=size)
