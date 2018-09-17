@@ -89,7 +89,7 @@ class ResponseMatrix(object):
 
         resp = self.get_response_values_as_ndarray()
         truth = self.get_truth_values_as_ndarray()
-        resp.shape=(resp.size // truth.size, truth.size)
+        resp = resp.reshape((resp.size // truth.size, truth.size), order='C')
         resp = np.sum(resp, axis=0)
         diff = truth-resp
 
@@ -392,7 +392,7 @@ class ResponseMatrix(object):
         MM = ResponseMatrix._normalize_matrix(MM)
 
         if shape is not None:
-            MM.shape = shape
+            MM = MM.reshape(shape, order='C')
 
         return MM
 
@@ -462,7 +462,7 @@ class ResponseMatrix(object):
 
         beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, impossible_indices=impossible_indices, truth_indices=truth_indices)
 
-        # Unweighted binomial reconstructed probability (efficiency)
+        # Unweighted binomial reconstruction probability (efficiency)
         # Posterior mean estimate = beta1 / (beta1 + beta2)
         beta0 = beta1 + beta2
         effj = beta1 / beta0
@@ -497,7 +497,7 @@ class ResponseMatrix(object):
         MM = mij2 * pij2 * effj_var + mij2 * pij_var * effj2 + mij_var * pij2 * effj2
 
         if shape is not None:
-            MM.shape = shape
+            MM = MM.reshape(shape, order='C')
 
         return MM
 
@@ -600,7 +600,7 @@ class ResponseMatrix(object):
                 shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
             else:
                 shape = (len(self.reco_binning.bins), len(truth_indices))
-        response = response.reshape(list(response.shape[:-2]) + list(shape))
+        response = response.reshape(list(response.shape[:-2])+list(shape), order='C')
 
         return response
 
@@ -704,7 +704,7 @@ class ResponseMatrix(object):
             # Get maximum difference
             ret = np.maximum(ret, np.abs(resp - shifted_resp) / np.sqrt(stat + shifted_stat))
 
-        ret.shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
+        ret = ret.reshape((len(self.reco_binning.bins), len(self.truth_binning.bins)), order='C')
 
         # Slice the truth bins
         if truth_indices is not None:
@@ -712,7 +712,7 @@ class ResponseMatrix(object):
 
         # Adjust shape
         if shape is not None:
-            ret.shape = shape
+            ret = ret.reshape(shape, order='C')
 
         return ret
 
