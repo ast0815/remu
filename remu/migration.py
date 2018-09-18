@@ -1,4 +1,6 @@
 import numpy as np
+from scipy.spatial.distance import cdist
+from scipy import stats
 from copy import copy, deepcopy
 from warnings import warn
 
@@ -815,6 +817,132 @@ class ResponseMatrix(object):
 
         return last_resp
 
+    def calculate_compatibility(self, other, N=2, return_all=False, truth_indices=None):
+        """Calculate the compatibility between this and another response matrix.
+
+        Basically, this checks whether the point of "the matrices are
+        identical" is an outlier in the distribution of matrix differences as
+        defined by the statistical uncertainties of the matrix elements. This
+        is done using the Mahalanobis distance as the test statistic. If the
+        point "the matrices are identical" is not a reasonable part of the
+        distribution, it is not reasonable to assume that the true matrices are
+        identical.
+
+        Parameters
+        ----------
+
+        other : ResponseMatrix
+            The other response matrix.
+        N : int, optional
+            Number of random matrices to be generated for the calculation.
+            This is multiplied by the number of considered matrix elements!
+        return_all : bool, optional
+            If ``True``, return `zero_prob_count`, `zero_prob_chi2`, `zero_distance`,
+            `distances`, and `df`. Else, return only `zero_prob_count`,
+            and `zero_prob_chi2`.
+        truth_indices : list of ints, optional
+            Only use the given truth indices to calculate the compatibility.
+            If this is not specified, only the indices with at least one entry
+            in *both* matrices are used.
+
+        Returns
+        -------
+
+        null_prob_count : float
+            The Bayesian p-value evaluated by counting the number of more extreme
+            random matrix differences.
+        null_prob_chi2 : float
+            The Bayesian p values evaluated by assuming a chi-square distribution
+            of the squares of Mahalanobis distances.
+        null_distance : float
+            The Mahalanobis distance of the null hypothesis from the distribution
+            of matrix differences.
+        distances : ndarray
+            The set of randomly generated Mahalanobis distances that define the
+            distribution of distances.
+        df : int
+            Degrees of freedom of the assumed chi-squared distribution of the
+            squared Mahalanobis distances. This is equal to the number of matrix
+            elements that are considered for the calculation:
+            ``df = len(truth_indices) * len(reco_bins in matrix)``.
+
+        Notes
+        -----
+
+        The distribution of matrix differences is evaluated by generating
+        ``N * #(considered matrix elements)`` random response matrices from both
+        compared matrices and calculating the differences. The resulting set of
+        matrix differences defines the mean ``mean(differences)`` and the
+        covariance matrix ``cov(differences)``. These two in turn define the
+        Mahalanobis distance ``D`` of any point ``x`` from that distribution::
+
+            differences = random_matrices_of_self - random_matrices_of_other
+            D_M(x) = mahalanobis_distance(x, mean(differences), cov(differences))
+
+        A distance of 0 corresponds to the mean difference between the
+        matrices. The distribution of distances can be calculated directly from
+        the differences::
+
+            distances = D_M(differences)
+
+        The difference that describes the Null hypothesis "the two matrices are
+        identical" is ``(0,0,0,...)``. Its distance is called
+        ``null_distance``::
+
+            null_distance = D_M((0,0,0,...))
+
+        The compatibility between the two matrices is now defined as the
+        probability of the true difference between the two matrices having a
+        larger Mahalanobis distance than the Null hypothesis::
+
+            null_prob_count = np.sum(distances >= null_distance) / distances.size
+
+        In the case of normal distributed differences, the distribution of
+        squared Mahalanobis distances becomes chi-squared distributed. The
+        numbers of degrees of freedom of that distribution is the number of
+        variates, i.e. the number of response matrix elements that are being
+        considered. This can be used to calculate a theoretical value for the
+        compatibility::
+
+            df = len(truth_indices) * #(reco_bins)
+            null_prob_chi2 = chi2.sf(null_distance**2, df)
+
+        Since the distribution of differences is not necessarily Gaussian, this
+        is only an estimate. Its advantage is that it is less dependent on the
+        number of randomly drawn matrices.
+
+        """
+
+        if truth_indices is None:
+            # If nothing else is specified, only consider truth bins that have at least one event in them in both matrices.
+            # Empty bins hold no information.
+            truth_indices = list(sorted(set(self.filled_truth_indices) & set(other.filled_truth_indices)))
+        n_bins = len(truth_indices) * len(self.reco_binning.bins)
+
+        self_matrices = self.generate_random_response_matrices(size=N*n_bins, shape=(n_bins,), truth_indices=truth_indices)
+
+        other_matrices = other.generate_random_response_matrices(size=N*n_bins, shape=(n_bins,), truth_indices=truth_indices)
+        differences = self_matrices - other_matrices
+        null = np.zeros(n_bins)
+        mean = (self.get_mean_response_matrix_as_ndarray(shape=(n_bins,), truth_indices=truth_indices)
+            - other.get_mean_response_matrix_as_ndarray(shape=(n_bins,), truth_indices=truth_indices))
+        cov = np.cov(differences, rowvar=False)
+        if cov.ndim == 0:
+            # Catch special case of degenerate matrix with only one element
+            cov.shape = (1,1)
+        inv_cov = np.linalg.inv(cov)
+        null_distance = cdist([null], [mean], metric='mahalanobis', VI=inv_cov)
+        null_distance.shape = ()
+        distances = cdist(differences, [mean], metric='mahalanobis', VI=inv_cov)
+        distances.shape = (N*n_bins,)
+
+        null_prob_chi2 = stats.chi2.sf(null_distance**2, n_bins)
+        null_prob_count = float(np.sum(distances >= null_distance)) / distances.size
+
+        if return_all:
+            return null_prob_count, null_prob_chi2, null_distance, distances, n_bins
+        else:
+            return null_prob_count, null_prob_chi2
 
     def plot_values(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
         """Plot the values of the response binning.

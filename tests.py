@@ -6,6 +6,7 @@ from remu.binning import *
 from remu.migration import *
 from remu.likelihood import *
 import numpy as np
+from copy import deepcopy
 
 if __name__ == '__main__':
     # Parse arguments for skipping tests
@@ -701,6 +702,19 @@ class TestResponseMatrices(unittest.TestCase):
         self.assertEqual(np.sum(ret.get_truth_entries_as_ndarray()), np.sum(self.rm.get_truth_entries_as_ndarray()))
         ret = self.rm.maximize_stats_by_rebinning(variable_slices={'x_truth': slice(0,None)}, select='in-bin_sum')
         self.assertEqual(np.sum(ret.get_truth_entries_as_ndarray()), np.sum(self.rm.get_truth_entries_as_ndarray()))
+
+    def test_calculate_compatibility(self):
+        rA = self.rm
+        rB = deepcopy(rA)
+        rA.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        p_count, p_chi2, zero_distance, distances, n_bins = rA.calculate_compatibility(rB, N=2, return_all=True)
+        self.assertTrue(p_count >= 0. and p_count <= 1.)
+        self.assertTrue(p_chi2 >= 0. and p_count <= 1.)
+        self.assertTrue(zero_distance >= 0.)
+        self.assertTrue(n_bins == 16)
+        self.assertTrue(distances.size == 32)
 
 class TestResponseMatrixArrayBuilders(unittest.TestCase):
     def setUp(self):
