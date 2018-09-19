@@ -1,6 +1,6 @@
 import numpy as np
-from scipy.spatial.distance import cdist
 from scipy import stats
+from scipy import linalg
 from copy import copy, deepcopy
 from warnings import warn
 
@@ -817,7 +817,47 @@ class ResponseMatrix(object):
 
         return last_resp
 
-    def calculate_compatibility(self, other, N=2, return_all=False, truth_indices=None):
+    @staticmethod
+    def _block_mahalanobis(X, mu, inv_cov, argmax=False):
+        """Efficiently calculate Mahalanobis distance for diagonal block matrix covariances.
+
+        Parameters
+        ----------
+
+        X : array_like
+            The objects of which the Mahalanobis distance will be calculated.
+            Must be of shape ``(n, a, b)``.
+        mu : array_like
+            The mean values of the distribution. The Mahalanobis distance is
+            calculated with respect to these.
+            Must be of shape ``(a, b)``.
+        inv_cov : array_like
+            The inverse of the covariance matrix of the distribution.
+            It must be a diagonal block matrix of ``a`` blocks with each block
+            of the shape ``(b, b)``. To save space, the off-diagonal 0s are not stored.
+            Must be of shape ``(a, b, b)``.
+        argmax : bool, optional
+            Determine the index ``i_max`` of ``a`` that contributes the most to the distance.
+
+        Returns
+        -------
+
+        D_M : ndarray
+            The 1D array of Mahalanobis distances of length ``n``.
+        i_max : ndarray
+            Indices of ``a`` that contribute most to the distance.
+            Only returned if `argmax` is ``True``.
+
+        """
+
+        diff = np.asfarray(X) - np.asfarray(mu)
+        inv_cov = np.asfarray(inv_cov)
+        D_M = np.einsum('...b,...bc,...c', diff, inv_cov, diff)
+        i_max = np.argmax(D_M, axis=-1)
+        D_M = np.sqrt(np.sum(D_M, axis=-1))
+        return D_M, i_max
+
+    def calculate_compatibility(self, other, N=None, return_all=False, truth_indices=None):
         """Calculate the compatibility between this and another response matrix.
 
         Basically, this checks whether the point of "the matrices are
@@ -835,11 +875,11 @@ class ResponseMatrix(object):
             The other response matrix.
         N : int, optional
             Number of random matrices to be generated for the calculation.
-            This is multiplied by the number of considered matrix elements!
+            This number must be larger than the number of *reco* bins!
+            Otherwise the covariances cannot be calculated correctly.
+            Defaults to ``#(reco bins) + 100)``.
         return_all : bool, optional
-            If ``True``, return `zero_prob_count`, `zero_prob_chi2`, `zero_distance`,
-            `distances`, and `df`. Else, return only `zero_prob_count`,
-            and `zero_prob_chi2`.
+            If ``False``, return only `null_prob_count`, and `null_prob_chi2`.
         truth_indices : list of ints, optional
             Only use the given truth indices to calculate the compatibility.
             If this is not specified, only the indices with at least one entry
@@ -857,6 +897,8 @@ class ResponseMatrix(object):
         null_distance : float
             The Mahalanobis distance of the null hypothesis from the distribution
             of matrix differences.
+        worst_index : int
+            The index of the truth bin with the largest Mahalanobis distance.
         distances : ndarray
             The set of randomly generated Mahalanobis distances that define the
             distribution of distances.
@@ -917,30 +959,43 @@ class ResponseMatrix(object):
             # If nothing else is specified, only consider truth bins that have at least one event in them in both matrices.
             # Empty bins hold no information.
             truth_indices = list(sorted(set(self.filled_truth_indices) & set(other.filled_truth_indices)))
-        n_bins = len(truth_indices) * len(self.reco_binning.bins)
 
-        self_matrices = self.generate_random_response_matrices(size=N*n_bins, shape=(n_bins,), truth_indices=truth_indices)
+        n_reco = len(self.reco_binning.bins)
+        n_truth = len(truth_indices)
+        n_bins = n_truth * n_reco
+        if N is None:
+            N = n_reco + 100
 
-        other_matrices = other.generate_random_response_matrices(size=N*n_bins, shape=(n_bins,), truth_indices=truth_indices)
+        # Get the *transposed* set of matrices
+        self_matrices = self.generate_random_response_matrices(size=N, truth_indices=truth_indices).T
+
+        other_matrices = other.generate_random_response_matrices(size=N, truth_indices=truth_indices).T
         differences = self_matrices - other_matrices
-        null = np.zeros(n_bins)
-        mean = (self.get_mean_response_matrix_as_ndarray(shape=(n_bins,), truth_indices=truth_indices)
-            - other.get_mean_response_matrix_as_ndarray(shape=(n_bins,), truth_indices=truth_indices))
-        cov = np.cov(differences, rowvar=False)
-        if cov.ndim == 0:
-            # Catch special case of degenerate matrix with only one element
-            cov.shape = (1,1)
-        inv_cov = np.linalg.inv(cov)
-        null_distance = cdist([null], [mean], metric='mahalanobis', VI=inv_cov)
+
+        # Since the detector response is handled completely independently for each truth index,
+        # we can calculate the covariance matrices and distances for each one individually.
+        inv_cov_list = []
+        for i in range(n_truth):
+            cov = np.cov(differences[i])
+            inv_cov_list.append(np.linalg.inv(cov))
+
+        null = np.zeros((n_truth, n_reco))
+        mean = (self.get_mean_response_matrix_as_ndarray(truth_indices=truth_indices)
+            - other.get_mean_response_matrix_as_ndarray(truth_indices=truth_indices)).T
+
+        # n_truth, n_reco, N -> N, n_truth, n_reco
+        differences = differences.transpose((2,0,1))
+
+        null_distance, worst_index = self._block_mahalanobis([null], mean, inv_cov_list)
         null_distance.shape = ()
-        distances = cdist(differences, [mean], metric='mahalanobis', VI=inv_cov)
-        distances.shape = (N*n_bins,)
+        worst_index = truth_indices[worst_index]
+        distances, _ = self._block_mahalanobis(differences, mean, inv_cov_list)
 
         null_prob_chi2 = stats.chi2.sf(null_distance**2, n_bins)
         null_prob_count = float(np.sum(distances >= null_distance)) / distances.size
 
         if return_all:
-            return null_prob_count, null_prob_chi2, null_distance, distances, n_bins
+            return null_prob_count, null_prob_chi2, null_distance, worst_index, distances, n_bins
         else:
             return null_prob_count, null_prob_chi2
 

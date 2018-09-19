@@ -709,12 +709,13 @@ class TestResponseMatrices(unittest.TestCase):
         rA.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        p_count, p_chi2, zero_distance, distances, n_bins = rA.calculate_compatibility(rB, N=2, return_all=True)
+        p_count, p_chi2, zero_distance, i_bad, distances, n_bins = rA.calculate_compatibility(rB, return_all=True)
         self.assertTrue(p_count >= 0. and p_count <= 1.)
         self.assertTrue(p_chi2 >= 0. and p_count <= 1.)
         self.assertTrue(zero_distance >= 0.)
+        self.assertTrue(i_bad >= 0 and i_bad <= 4)
         self.assertTrue(n_bins == 16)
-        self.assertTrue(distances.size == 32)
+        self.assertTrue(distances.size == 104)
 
 class TestResponseMatrixArrayBuilders(unittest.TestCase):
     def setUp(self):
