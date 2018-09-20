@@ -548,11 +548,14 @@ class TestResponseMatrices(unittest.TestCase):
     def test_plots(self):
         """Test plots."""
         with open('/dev/null', 'wb') as f:
+            self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
             self.rm.plot_entries(f)
             self.rm.plot_values(f)
             self.rm.plot_in_bin_variation(f)
             self.rm.plot_statistical_variation(f)
             self.rm.plot_expected_efficiency(f)
+            self.rm.plot_distance(f, self.rm)
+            self.rm.plot_compatibility(f, self.rm)
 
     def test_rebin(self):
         """Test ResponseMatrix rebinning."""
@@ -703,17 +706,28 @@ class TestResponseMatrices(unittest.TestCase):
         ret = self.rm.maximize_stats_by_rebinning(variable_slices={'x_truth': slice(0,None)}, select='in-bin_sum')
         self.assertEqual(np.sum(ret.get_truth_entries_as_ndarray()), np.sum(self.rm.get_truth_entries_as_ndarray()))
 
-    def test_calculate_compatibility(self):
+    def test_distance(self):
         rA = self.rm
         rB = deepcopy(rA)
         rA.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
         rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        p_count, p_chi2, zero_distance, i_bad, distances, n_bins = rA.calculate_compatibility(rB, return_all=True)
+        null_distance, distances = rA.distance_as_ndarray(rB, return_distances_from_mean=True)
+        self.assertTrue(null_distance.shape == (4,))
+        self.assertTrue(distances.shape == (104,4))
+        self.assertTrue(np.all(null_distance >= 0.))
+        self.assertTrue(np.all(distances >= 0.))
+
+    def test_compatibility(self):
+        rA = self.rm
+        rB = deepcopy(rA)
+        rA.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        p_count, p_chi2, null_distance, distances, n_bins = rA.compatibility(rB, return_all=True)
         self.assertTrue(p_count >= 0. and p_count <= 1.)
         self.assertTrue(p_chi2 >= 0. and p_count <= 1.)
-        self.assertTrue(zero_distance >= 0.)
-        self.assertTrue(i_bad >= 0 and i_bad <= 4)
+        self.assertTrue(null_distance >= 0.)
         self.assertTrue(n_bins == 16)
         self.assertTrue(distances.size == 104)
 

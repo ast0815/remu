@@ -4,6 +4,10 @@ from scipy import linalg
 from copy import copy, deepcopy
 from warnings import warn
 
+# Load matplotlib only on demand
+# from matplotlib import pyplot as plt
+plt = None
+
 from .binning import Binning
 
 class ResponseMatrix(object):
@@ -850,8 +854,11 @@ class ResponseMatrix(object):
         return last_resp
 
     @staticmethod
-    def _block_mahalanobis(X, mu, inv_cov, argmax=False):
-        """Efficiently calculate Mahalanobis distance for diagonal block matrix covariances.
+    def _block_mahalanobis2(X, mu, inv_cov):
+        """Efficiently calculate squared Mahalanobis distance for diagonal block matrix covariances.
+
+        It returns the squared Mahalanobis distance of each block separately.
+        To get the total distance, one must sum over these numbers.
 
         Parameters
         ----------
@@ -868,28 +875,141 @@ class ResponseMatrix(object):
             It must be a diagonal block matrix of ``a`` blocks with each block
             of the shape ``(b, b)``. To save space, the off-diagonal 0s are not stored.
             Must be of shape ``(a, b, b)``.
-        argmax : bool, optional
-            Determine the index ``i_max`` of ``a`` that contributes the most to the distance.
 
         Returns
         -------
 
         D_M : ndarray
-            The 1D array of Mahalanobis distances of length ``n``.
-        i_max : ndarray
-            Indices of ``a`` that contribute most to the distance.
-            Only returned if `argmax` is ``True``.
+            The array of squared Mahalanobis distances of shape ``(n, a)``.
 
         """
 
         diff = np.asfarray(X) - np.asfarray(mu)
         inv_cov = np.asfarray(inv_cov)
         D_M = np.einsum('...b,...bc,...c', diff, inv_cov, diff)
-        i_max = np.argmax(D_M, axis=-1)
-        D_M = np.sqrt(np.sum(D_M, axis=-1))
-        return D_M, i_max
+        return D_M
 
-    def calculate_compatibility(self, other, N=None, return_all=False, truth_indices=None):
+    def distance_as_ndarray(self, other, shape=None, N=None, return_distances_from_mean=False, **kwargs):
+        """Calculate the squared Mahalanobis distance of the two matrices for each truth bin.
+
+        Parameters
+        ----------
+
+        other : ResponseMatrix
+            The other ResponseMatrix for the comparison.
+        shape : tuple of ints, optional
+            The shape of the returned matrix.
+            Defaults to ``(#(truth bins),)``.
+        N : int, optional
+            Number of random matrices to be generated for the calculation.
+            This number must be larger than the number of *reco* bins!
+            Otherwise the covariances cannot be calculated correctly.
+            Defaults to ``#(reco bins) + 100)``.
+        return_distances_from_mean : bool, optional
+            Also return the ndarray ``distances_from_mean``.
+        kwargs
+            Additional keyword arguments are passed through to
+            `generate_random_response_matrices`.
+
+        Returns
+        -------
+
+        distance : ndarray
+            Array of shape `shape` with the squared Mahalanobis distance
+            of the mean difference between the matrices for each truth bin:
+            ``D^2( mean(self.random_matrices - other.random_matrices) )``
+        distances_from_mean : ndarray
+            Array of shape ``(N,)+shape`` with the squared Mahalanobis
+            distances between the randomly generated matrix differences
+            and the mean matrix difference for each truth bin:
+            ``D^2( (self.random_matrices - other.random_matrices)
+            - mean(self.random_matrices - other.random_matrices) )``
+
+        """
+
+        n_reco = len(self.reco_binning.bins)
+        if 'truth_indices' in kwargs:
+            n_truth = len(kwargs['truth_indices'])
+        else:
+            n_truth = len(self.truth_binning.bins)
+        n_bins = n_truth * n_reco
+        if N is None:
+            N = n_reco + 100
+
+        # Get the *transposed* set of matrices
+        self_matrices = self.generate_random_response_matrices(size=N, **kwargs).T
+
+        other_matrices = other.generate_random_response_matrices(size=N, **kwargs).T
+        differences = self_matrices - other_matrices
+
+        # Since the detector response is handled completely independently for each truth index,
+        # we can calculate the covariance matrices and distances for each one individually.
+        inv_cov_list = []
+        for i in range(n_truth):
+            cov = np.cov(differences[i])
+            inv_cov_list.append(np.linalg.inv(cov))
+
+        null = np.zeros((n_truth, n_reco))
+        mean = (self.get_mean_response_matrix_as_ndarray(**kwargs)
+            - other.get_mean_response_matrix_as_ndarray(**kwargs)).T
+
+        distance = self._block_mahalanobis2([null], mean, inv_cov_list)[0]
+
+        if shape is not None:
+            distance = distance.reshape(shape, order='C')
+
+        if return_distances_from_mean:
+            differences = differences.transpose((2,0,1)) # (truth, reco, N) -> (N, truth, reco)
+            distances_from_mean = self._block_mahalanobis2(differences, mean, inv_cov_list)
+            return distance, distances_from_mean
+        else:
+            return distance
+
+    def distance(self, other, N=None, return_distances_from_mean=False, **kwargs):
+        """Return the overall squared Mahalanobis distance between the two matrices.
+
+        Parameters
+        ----------
+
+        other : ResponseMatrix
+            The other ResponseMatrix for the comparison.
+        N : int, optional
+            Number of random matrices to be generated for the calculation.
+            This number must be larger than the number of *reco* bins!
+            Otherwise the covariances cannot be calculated correctly.
+            Defaults to ``#(reco bins) + 100)``.
+        return_distances_from_mean : bool, optional
+            Also return the ndarray ``distances_from_mean``.
+        kwargs
+            Additional keyword arguments are passed through to
+            `generate_random_response_matrices`.
+
+        Returns
+        -------
+
+        distance : flaot
+            The squared Mahalanobis distance of the mean difference
+            between the matrices:
+            ``D^2( mean(self.random_matrices - other.random_matrices) )``
+        distances_from_mean : ndarray
+            Array of shape ``(N,)`` with the squared Mahalanobis
+            distances between the randomly generated matrix differences
+            and the mean matrix difference:
+            ``D^2( (self.random_matrices - other.random_matrices)
+            - mean(self.random_matrices - other.random_matrices) )``
+
+        """
+
+        if return_distances_from_mean:
+            null_distance, distances = self.distance_as_ndarray(other, N=N, return_distances_from_mean=True, **kwargs)
+            null_distance = np.sum(null_distance, axis=-1)
+            distances = np.sum(distances, axis=-1)
+            return null_distance, distances
+        else:
+            null_distance = self.distance_as_ndarray(other, N=N, **kwargs)
+            return np.sum(null_distance, axis=-1)
+
+    def compatibility(self, other, N=None, return_all=False, truth_indices=None, **kwargs):
         """Calculate the compatibility between this and another response matrix.
 
         Basically, this checks whether the point of "the matrices are
@@ -921,19 +1041,17 @@ class ResponseMatrix(object):
         -------
 
         null_prob_count : float
-            The Bayesian p-value evaluated by counting the number of more extreme
-            random matrix differences.
+            The Bayesian p-value evaluated by counting the expected number of
+            random matrix differences more extreme than the mean difference.
         null_prob_chi2 : float
-            The Bayesian p values evaluated by assuming a chi-square distribution
+            The Bayesian p-value evaluated by assuming a chi-square distribution
             of the squares of Mahalanobis distances.
         null_distance : float
-            The Mahalanobis distance of the null hypothesis from the distribution
-            of matrix differences.
-        worst_index : int
-            The index of the truth bin with the largest Mahalanobis distance.
+            The squared Mahalanobis distance of the mean differences between the
+            two matrices.
         distances : ndarray
-            The set of randomly generated Mahalanobis distances that define the
-            distribution of distances.
+            The set of squared Mahalanobis distances between randomly generated
+            matrix differences and the mean matrix difference.
         df : int
             Degrees of freedom of the assumed chi-squared distribution of the
             squared Mahalanobis distances. This is equal to the number of matrix
@@ -943,33 +1061,32 @@ class ResponseMatrix(object):
         Notes
         -----
 
-        The distribution of matrix differences is evaluated by generating
-        ``N * #(considered matrix elements)`` random response matrices from both
-        compared matrices and calculating the differences. The resulting set of
-        matrix differences defines the mean ``mean(differences)`` and the
-        covariance matrix ``cov(differences)``. These two in turn define the
-        Mahalanobis distance ``D`` of any point ``x`` from that distribution::
+        The distribution of matrix differences is evaluated by generating ``N``
+        random response matrices from both compared matrices and calculating
+        the (n-dimensional) differences. The resulting set of matrix
+        differences defines the mean ``mean(differences)`` and the covariance
+        matrix ``cov(differences)``. The covariance in turn defines a metric
+        for the Mahalanobis distance ``D_M(x)`` on the space of matrix
+        differences, where ``x`` is a set of matrix element differences.
 
-            differences = random_matrices_of_self - random_matrices_of_other
-            D_M(x) = mahalanobis_distance(x, mean(differences), cov(differences))
+        The distance between the mean difference and the Null hypothesis, that
+        the two true matrices are identical, is the ``null_distance``::
 
-        A distance of 0 corresponds to the mean difference between the
-        matrices. The distribution of distances can be calculated directly from
-        the differences::
+            null_distance = D_M(0 - mean(differences))
 
-            distances = D_M(differences)
+        The compatibility between the matrices is now defined as the Bayesian
+        probability that the true difference between the matrices is more
+        extreme (has a larger distance from the mean difference) than the
+        Null hypothesis. For this, we can just evaluate the set of
+        matrix differences that was used to calculate the covariance matrix::
 
-        The difference that describes the Null hypothesis "the two matrices are
-        identical" is ``(0,0,0,...)``. Its distance is called
-        ``null_distance``::
-
-            null_distance = D_M((0,0,0,...))
-
-        The compatibility between the two matrices is now defined as the
-        probability of the true difference between the two matrices having a
-        larger Mahalanobis distance than the Null hypothesis::
-
+            distances = D_M(differences - mean(differences))
             null_prob_count = np.sum(distances >= null_distance) / distances.size
+
+        It will be 1 if the mean difference between the matrices is 0, and tend
+        to 0 when the mean difference between the matrices is far from 0. "Far"
+        in this case is determined by the uncertainty, i.e. the covariance, of
+        the difference determination.
 
         In the case of normal distributed differences, the distribution of
         squared Mahalanobis distances becomes chi-squared distributed. The
@@ -995,41 +1112,97 @@ class ResponseMatrix(object):
         n_reco = len(self.reco_binning.bins)
         n_truth = len(truth_indices)
         n_bins = n_truth * n_reco
-        if N is None:
-            N = n_reco + 100
 
-        # Get the *transposed* set of matrices
-        self_matrices = self.generate_random_response_matrices(size=N, truth_indices=truth_indices).T
+        null_distance, distances = self.distance(other, N=N, truth_indices=truth_indices, return_distances_from_mean=True, **kwargs)
 
-        other_matrices = other.generate_random_response_matrices(size=N, truth_indices=truth_indices).T
-        differences = self_matrices - other_matrices
-
-        # Since the detector response is handled completely independently for each truth index,
-        # we can calculate the covariance matrices and distances for each one individually.
-        inv_cov_list = []
-        for i in range(n_truth):
-            cov = np.cov(differences[i])
-            inv_cov_list.append(np.linalg.inv(cov))
-
-        null = np.zeros((n_truth, n_reco))
-        mean = (self.get_mean_response_matrix_as_ndarray(truth_indices=truth_indices)
-            - other.get_mean_response_matrix_as_ndarray(truth_indices=truth_indices)).T
-
-        # n_truth, n_reco, N -> N, n_truth, n_reco
-        differences = differences.transpose((2,0,1))
-
-        null_distance, worst_index = self._block_mahalanobis([null], mean, inv_cov_list)
-        null_distance.shape = ()
-        worst_index = truth_indices[worst_index]
-        distances, _ = self._block_mahalanobis(differences, mean, inv_cov_list)
-
-        null_prob_chi2 = stats.chi2.sf(null_distance**2, n_bins)
+        null_prob_chi2 = stats.chi2.sf(null_distance, n_bins)
         null_prob_count = float(np.sum(distances >= null_distance)) / distances.size
 
         if return_all:
-            return null_prob_count, null_prob_chi2, null_distance, worst_index, distances, n_bins
+            return null_prob_count, null_prob_chi2, null_distance, distances, n_bins
         else:
             return null_prob_count, null_prob_chi2
+
+    def plot_compatibility(self, filename, other):
+        """Plot the compatibility of the two matrices.
+
+        Parameters
+        ----------
+
+        filename : string
+            The filename where the plot will be stored.
+        other : ResponseMatrix
+            The other Response Matrix for the comparison.
+
+        """
+
+        # Load matplotlib on demand
+        global plt
+        if plt is None:
+            from matplotlib import pyplot as _pyplot
+            plt = _pyplot
+
+        prob_count, prob_chi2, dist, distances, df = self.compatibility(other, return_all=True)
+
+        fig, ax = plt.subplots()
+        ax.set_xlabel(r"$D_M^2$")
+        nbins = max(min(distances.size // 100, 100), 5)
+        ax.hist(distances, nbins, normed=True, histtype='stepfilled', label="actual distribution, C=%.3f"%(prob_count,))
+        x = np.linspace(df-3*np.sqrt(2*df), df+5*np.sqrt(2*df), 50)
+        ax.plot(x, stats.chi2.pdf(x, df), label="$\chi^2$ distribution, C=%.3f"%(prob_chi2,))
+        ax.axvline(dist, color='r', label="null distance")
+        ax.legend(loc='best', framealpha=0.5)
+        fig.savefig(filename)
+
+    def plot_distance(self, filename, other, expectation=True, variables=None, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, **kwargs):
+        """Plot the squared mahalanobis distance between two matrices.
+
+        Parameters
+        ----------
+
+        filename : string
+            The filename of the plot to be stored.
+        other : ResponseMatrix
+            The other ResponseMatrix for the comparison
+        expectation : bool, optional
+            Plot an approximation of the expected values for identical matrices in the 1D histograms.
+        variables : {None, (None, None), list, (list, list)}, optional
+            ``None``, plot marginal histograms for all variables.
+            ``(None, None)``, plot 2D histograms of all possible variable combinations.
+            ``list``, plot marginal histograms for these variables.
+            ``(list, list)``, plot 2D histograms of the Cartesian product of the two variable lists.
+            2D histograms where both variables are identical are plotted as 1D histograms.
+        kwargs1d, kwargs2d : dict, optional
+            Additional keyword arguments for the 1D/2D histograms.
+             If the key `label` is present, a legend will be drawn.
+        figax : (figure, axes), optional
+            Pair of figure and axes to be used for plotting.
+            Can be used to plot multiple binnings on top of one another.
+            Default: Create new figure and axes.
+        reduction_function : function, optional
+            Use this function to marginalize out variables.
+        kwargs
+            Additional `kwargs` will be passed to `calculate_squared_mahalanobis_distance`.
+
+        Returns
+        -------
+
+        fig : Figure
+            The Figure that was drawn on.
+        ax : Axis
+            The axes objects.
+
+        """
+
+        truth_binning = self.truth_binning
+        distances = self.distance_as_ndarray(other, **kwargs)
+
+        figax = truth_binning.plot_ndarray(filename, distances, variables=variables, divide=False, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, reduction_function=reduction_function)
+        if expectation:
+            any_entries = (self.get_truth_entries_as_ndarray() > 0)
+            any_entries &= (other.get_truth_entries_as_ndarray() > 0)
+            expect = np.where(any_entries, len(self.reco_binning.bins), 0)
+            truth_binning.plot_ndarray(filename, expect, variables=variables, divide=False, kwargs1d={'linestyle': 'dashed'}, kwargs2d={'alpha': 0.}, figax=figax, reduction_function=reduction_function)
 
     def plot_values(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
         """Plot the values of the response binning.
