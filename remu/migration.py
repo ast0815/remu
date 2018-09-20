@@ -49,7 +49,7 @@ class ResponseMatrix(object):
         Arguments
         ---------
 
-        remove_binedges : A dictionary specifying the bin edge indeices of each
+        remove_binedges : A dictionary specifying the bin edge indices of each
                           variable that should be removed. Binning variables that are not part of the
                           dictionary are kept as is.  E.g. if you want to remove
                           bin edge 2 in `var_A` and bin edges 3, 4 and 7 in `var_C`:
