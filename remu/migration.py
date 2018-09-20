@@ -358,20 +358,25 @@ class ResponseMatrix(object):
 
         return beta1, beta2, alpha, mu, sigma
 
-    def get_mean_response_matrix_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None, impossible_indices=None, truth_indices=None):
+    def get_mean_response_matrix_as_ndarray(self, shape=None, **kwargs):
         """Return the means of the posterior distributions of the response matrix elements.
 
         This is different from the "raw" matrix one gets from
         `get_response_matrix_as_ndarray`. The latter simply divides the sum of
         weights in the respective bins.
 
-        If no shape is specified, it will be set to `(N_reco, N_truth)`.
+        Parameters
+        ----------
 
-        If `truth_indices` are provided, a sliced matrix with only the given
-        columns will be returned.
+        shape : tuple of ints, optional
+            The shape of the returned matrices.
+            Defaults to ``(#(reco bins), #(truth bins))``.
+        kwargs
+            Additional keyword arguments are passed through to `_get_stat_error_parameters`.
+
         """
 
-        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, impossible_indices=impossible_indices, truth_indices=truth_indices)
+        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(**kwargs)
 
         # Unweighted binomial reconstructed probability (efficiency)
         # Posterior mean estimate = beta1 / (beta1 + beta2)
@@ -398,18 +403,30 @@ class ResponseMatrix(object):
 
         return MM
 
-    def get_statistical_variance_as_ndarray(self, shape=None, expected_weight=1., nuisance_indices=None, impossible_indices=None, truth_indices=None):
+    def get_statistical_variance_as_ndarray(self, shape=None, **kwargs):
         """Return the statistical variance of the single ResponseMatrix elements as ndarray.
 
         The variance is estimated from the actual bin contents in a Bayesian
         motivated way.
 
+        Parameters
+        ----------
+
+        shape : tuple of ints, optional
+            The shape of the returned matrix.
+            Defaults to ``(#(reco bins), #(truth bins))``.
+        kwargs
+            Additional keyword arguments are passed through to `_get_stat_error_parameters`.
+
+        Notes
+        -----
+
         The response matrix creation is modeled as a three step process:
 
         1.  Reconstruction efficiency according to a binomial process.
-        1.  Distribution of truth events among the reco bins according to a
+        2.  Distribution of truth events among the reco bins according to a
             multinomial distribution.
-        2.  Correction of the categorical probabilities according to the mean
+        3.  Correction of the categorical probabilities according to the mean
             weights of the events in each bin.
 
         So the response matrix element can be written like this:
@@ -422,7 +439,7 @@ class ResponseMatrix(object):
         estimating the variances of these values separately.
 
         The variance of eff_j is estimated by using the Bayesian conjugate
-        prior for biinomial distributions: the Bets distribution. We assume a
+        prior for biinomial distributions: the Beta distribution. We assume a
         prior that is uniform in the reconstruction efficiency. We then update
         it with the simulated events. The variance of the posterior
         distribution is taken as the variance of the efficiency.
@@ -462,7 +479,7 @@ class ResponseMatrix(object):
         columns will be returned.
         """
 
-        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, impossible_indices=impossible_indices, truth_indices=truth_indices)
+        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(**kwargs)
 
         # Unweighted binomial reconstruction probability (efficiency)
         # Posterior mean estimate = beta1 / (beta1 + beta2)
@@ -537,8 +554,22 @@ class ResponseMatrix(object):
 
         return xs
 
-    def generate_random_response_matrices(self, size=None, shape=None, expected_weight=1., nuisance_indices=None, impossible_indices=None, truth_indices=None):
+    def generate_random_response_matrices(self, size=None, shape=None, **kwargs):
         """Generate random response matrices according to the estimated variance.
+
+        Parameters
+        ----------
+
+        size : int or tuple of ints, optional
+            How many random matrices should be generated.
+        shape : tuple of ints, optional
+            The shape of the returned matrices.
+            Defaults to ``(#(reco bins), #(truth bins))``.
+        kwargs
+            Additional keyword arguments are passed through to `_get_stat_error_parameters`.
+
+        Notes
+        -----
 
         This is a three step process:
 
@@ -553,7 +584,7 @@ class ResponseMatrix(object):
         columns will be returned.
         """
 
-        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(expected_weight=expected_weight, nuisance_indices=nuisance_indices, impossible_indices=impossible_indices, truth_indices=truth_indices)
+        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(**kwargs)
 
         # Generate efficiencies
         if size is None:
@@ -598,6 +629,7 @@ class ResponseMatrix(object):
 
         # Adjust shape
         if shape is None:
+            truth_indices = kwargs.pop('truth_indices', None)
             if truth_indices is None:
                 shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
             else:
