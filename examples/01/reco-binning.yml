@@ -1,15 +1,10 @@
 !RecBinning
 binedges:
-- - reco_costheta
-  - [-1.0,
-    -0.5,
-    0.0,
-    0.5,
-    1.0001]
 - - reco_momentum
-  - [0.0,
+  - [50.,
+    100.,
+    150.,
     200.,
     400.,
-    600.,
     .inf]
 include_upper: false

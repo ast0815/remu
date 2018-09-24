@@ -8,15 +8,8 @@ binedges:
     1.0001]
 - - true_momentum
   - [0.0,
-    100.,
     200.,
-    300.,
     400.,
-    500.,
     600.,
-    700.,
-    800.,
-    900.,
-    1000.,
     .inf]
 include_upper: false

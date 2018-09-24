@@ -36,7 +36,7 @@ with open(args.truthfilename, 'wt') as f:
         writer.writerow({k: event[k] for k in event.dtype.names})
 
 # Reconstruct events
-detector = experiment.Detector(momentum_threshold=50., momentum_turnon=10., cap_efficiency=0.50, barrel_efficiency=0.90, gap_costheta=0.7, gap_width=0.03, gap_turnon=0.02, momentum_resolution=0.01, angular_resolution=0.01)
+detector = experiment.Detector(momentum_threshold=50., momentum_turnon=10., cap_efficiency=0.50, barrel_efficiency=0.90, gap_costheta=0.7, gap_width=0.03, gap_turnon=0.02, momentum_resolution=0.001, angular_resolution=0.01)
 reco_events = detector.reconstruct(true_events, keep_truth=True)
 
 csvfields = reco_events.dtype.names

@@ -73,28 +73,29 @@ class ModelAGenerator(Generator):
     costheta ~ uniform(min=-1, max=1)
     """
 
-    def __init__(self, mean_momentum=50., **kwargs):
+    def __init__(self, mean_momentum=100., **kwargs):
         self.mean_momentum = mean_momentum
         super(ModelAGenerator, self).__init__(**kwargs)
 
-    def generate_unboosted(self, n, mean_momentum=100.):
-        momentum = np.random.exponential(scale=mean_momentum, size=n)
+    def generate_unboosted(self, n):
+        momentum = np.random.exponential(scale=self.mean_momentum, size=n)
         costheta = np.random.uniform(low=-1.0, high=+1.0, size=n)
         return build_array({'true_momentum': momentum, 'true_costheta': costheta})
 
 class ModelBGenerator(Generator):
     """Model B
 
-    p ~ |normal(mean=100, sigma=100)|
+    p ~ Gamma(shape=2, scale=mean_momentum/shape)
     costheta ~ uniform(min=-1, max=1)
     """
 
-    def __init__(self, mean_momentum=50., **kwargs):
+    def __init__(self, mean_momentum=100., shape=2, **kwargs):
         self.mean_momentum = mean_momentum
+        self.shape = shape
         super(ModelBGenerator, self).__init__(**kwargs)
 
-    def generate_unboosted(self, n, mean_momentum=100.):
-        momentum = np.random.normal(loc=mean_momentum, scale=mean_momentum, size=n)
+    def generate_unboosted(self, n):
+        momentum = np.random.gamma(shape=self.shape, scale=self.mean_momentum/self.shape, size=n)
         costheta = np.random.uniform(low=-1.0, high=+1.0, size=n)
         return build_array({'true_momentum': momentum, 'true_costheta': costheta})
 
@@ -107,11 +108,12 @@ class Detector(object):
     The maximal efficiency depends whether the event is in the cap or barrel region.
     In between those two is a gap that is not instrumented.
     Momentum is measured in the transverse direction.
-    The transverse momentum resolution is proportional to the momentum and given in %/MeV.
+    The transverse momentum resolution is proportional to the momentum and given in 1./(MeV/c),
+    e.g. a value of 0.01 means that the momentum of 50 MeV/c is smeared by 0.5 = 50%.
     Angular resolution is absolute in rad.
     """
 
-    def __init__(self, momentum_threshold=50., momentum_turnon=10., cap_efficiency=0.5, barrel_efficiency=0.9, gap_costheta=0.7, gap_width=0.03, gap_turnon=0.01, momentum_resolution=0.01, angular_resolution=0.01):
+    def __init__(self, momentum_threshold=50., momentum_turnon=10., cap_efficiency=0.5, barrel_efficiency=0.9, gap_costheta=0.7, gap_width=0.03, gap_turnon=0.01, momentum_resolution=0.001, angular_resolution=0.01):
         self.momentum_threshold = momentum_threshold
         self.momentum_turnon = momentum_turnon
         self.cap_efficiency = cap_efficiency
@@ -151,8 +153,11 @@ class Detector(object):
         n = len(theta)
         theta += np.random.normal(loc=0, scale=self.angular_resolution, size=n)
         costheta = np.cos(theta)
-        momentum = np.array(events['true_momentum'])
-        momentum *= 1 + np.random.normal(loc=0, scale=self.momentum_resolution*momentum, size=n)
+        momentum = events['true_momentum'] * np.sqrt(1 - events['true_costheta']**2)
+        momentum = 1. / momentum
+        momentum *= (1 + np.random.normal(loc=0, scale=self.momentum_resolution*momentum, size=n))
+        momentum = 1. / momentum
+        momentum /= np.sqrt(1 - costheta**2)
         dic = {'reco_momentum': momentum, 'reco_costheta': costheta}
         if keep_truth:
             dic.update({'true_momentum': events['true_momentum'], 'true_costheta': events['true_costheta']})
