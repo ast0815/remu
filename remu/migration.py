@@ -407,6 +407,38 @@ class ResponseMatrix(object):
 
         return MM
 
+    def log_likelihood(self, response_matrix, **kwargs):
+        """Calculate the log likelihood of a response matrix given as ndarray.
+
+        Parameters
+        ----------
+
+        response_matrix : (...,R,T) ndarray
+            One or more possible response matrices as an ndarray.
+            The shape of the matrices must be ``(#(reco_bins), #(truth_bins))``.
+        kwargs : optional
+            Additional keyword arguments are passed through to `_get_stat_error_parameters`.
+
+        Returns
+        -------
+
+        log_likelihood : (...,T) ndarray
+            The likelihood of each response matrix.
+
+        """
+        raise NotImplementedError("WIP")
+
+        beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(**kwargs)
+
+        # Step one: Likelihoods of efficiencies
+        eff = response_matrix.sum(axis=-2)
+        lik = stats.beta.logpdf(eff, beta1, beta2)
+
+        # Step two: Likelihood of smearing
+        smear = response_matrix / eff[...,np.newaxis,:]
+
+        return lik
+
     def get_statistical_variance_as_ndarray(self, shape=None, **kwargs):
         """Return the statistical variance of the single ResponseMatrix elements as ndarray.
 

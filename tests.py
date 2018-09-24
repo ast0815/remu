@@ -642,6 +642,14 @@ class TestResponseMatrices(unittest.TestCase):
         resp = self.rm.get_response_matrix_as_ndarray()
         self.assertTrue(np.all(reco == resp.dot(truth)))
 
+    def test_log_likelihood(self):
+        """Test the likelihood calculation."""
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        mat = self.rm.generate_random_response_matrices(10)
+        lik = self.rm.log_likelihood(mat)
+        print lik
+        print lik.shape
+
     def test_variance(self):
         """Test the variance calculation."""
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
