@@ -375,7 +375,7 @@ class ResponseMatrix(object):
         shape : tuple of ints, optional
             The shape of the returned matrices.
             Defaults to ``(#(reco bins), #(truth bins))``.
-        kwargs
+        kwargs : optional
             Additional keyword arguments are passed through to `_get_stat_error_parameters`.
 
         """
@@ -419,7 +419,7 @@ class ResponseMatrix(object):
         shape : tuple of ints, optional
             The shape of the returned matrix.
             Defaults to ``(#(reco bins), #(truth bins))``.
-        kwargs
+        kwargs : optional
             Additional keyword arguments are passed through to `_get_stat_error_parameters`.
 
         Notes
@@ -569,7 +569,7 @@ class ResponseMatrix(object):
         shape : tuple of ints, optional
             The shape of the returned matrices.
             Defaults to ``(#(reco bins), #(truth bins))``.
-        kwargs
+        kwargs : optional
             Additional keyword arguments are passed through to `_get_stat_error_parameters`.
 
         Notes
@@ -907,7 +907,7 @@ class ResponseMatrix(object):
             Defaults to ``#(reco bins) + 100)``.
         return_distances_from_mean : bool, optional
             Also return the ndarray ``distances_from_mean``.
-        kwargs
+        kwargs : optional
             Additional keyword arguments are passed through to
             `generate_random_response_matrices`.
 
@@ -980,7 +980,7 @@ class ResponseMatrix(object):
             Defaults to ``#(reco bins) + 100)``.
         return_distances_from_mean : bool, optional
             Also return the ndarray ``distances_from_mean``.
-        kwargs
+        kwargs : optional
             Additional keyword arguments are passed through to
             `generate_random_response_matrices`.
 
@@ -1181,7 +1181,7 @@ class ResponseMatrix(object):
             Default: Create new figure and axes.
         reduction_function : function, optional
             Use this function to marginalize out variables.
-        kwargs
+        kwargs : optional
             Additional `kwargs` will be passed to `calculate_squared_mahalanobis_distance`.
 
         Returns
