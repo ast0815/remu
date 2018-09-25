@@ -1,21 +1,26 @@
+================================
 ReMU - Response Matrix Utilities
 ================================
 
 A framework for likelihood calculations and hypothesis testing using binned events and response matrices.
 
-[![Build Status](https://travis-ci.org/ast0815/remu.svg?branch=master)](https://travis-ci.org/ast0815/remu)
-[![Coverage Status](https://coveralls.io/repos/github/ast0815/remu/badge.svg?branch=master)](https://coveralls.io/github/ast0815/remu?branch=master)
-[![DOI](https://zenodo.org/badge/77051099.svg)](https://zenodo.org/badge/latestdoi/77051099)
+.. image:: https://travis-ci.org/ast0815/remu.svg?branch=master
+    :target: https://travis-ci.org/ast0815/remu
+.. image:: https://coveralls.io/repos/github/ast0815/remu/badge.svg?branch=master
+    :target: https://coveralls.io/github/ast0815/remu?branch=master
+.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1217572.svg
+    :target: https://doi.org/10.5281/zenodo.1217572
 
 Setup
------
+=====
 
-### Installing development version from source
+Installing development version from source
+------------------------------------------
 
 It is recommended to run this software in a virtual Python environment
-(virtualenv).  This ensures that all required packages are present in the
+(virtualenv). This ensures that all required packages are present in the
 tested version and do not interfere with other packages installed on the
-system.
+system::
 
     $ # Create a new virtual environment
     $ virtualenv ENV
@@ -39,13 +44,14 @@ parallel computing respectively.
 
 ReMU requires Python 2.7 or >=3.4 for best functionality. Python 2.6 is
 supported, but a lot of required packages have dropped support for Python 2.6
-in newer releases. The file `requirements26.txt` can be used instead of
-`requirements.txt` in the instructions above to install the packages in
+in newer releases. The file ``requirements26.txt`` can be used instead of
+``requirements.txt`` in the instructions above to install the packages in
 versions that still support Python 2.6.
 
-### Installing official releases with `pip`
+Installing official releases with ``pip``
+-----------------------------------------
 
-Alternatively you can install official releases directly with `pip`:
+Alternatively you can install official releases directly with ``pip``::
 
     $ # Create a new virtual environment
     $ virtualenv ENV
@@ -57,13 +63,13 @@ Alternatively you can install official releases directly with `pip`:
     $ pip install remu==1.0.0
 
 If you want to make sure the optional dependencies are also installed,
-use pip's 'Extras' syntax:
+use pip's 'Extras' syntax::
 
     $ # install remu including all optional dependencies
     $ pip install remu[mcmc,plotting,parallel]==1.0.0
 
 Tests
------
+=====
 
 Run all test cases of the framework:
 
@@ -71,25 +77,18 @@ Run all test cases of the framework:
     $ ./run_tests.sh
 
 Examples
---------
+========
 
-The folder `examples` contains example analyses that show how one can use this
-software. The examples need some additional packages to run:
-
-    $ pip install -r example-requirements.txt
-
-They can be run like this:
-
-    $ cd examples
-    $ python example_analysis.py
+The folder ``examples`` contains example analyses that show how one can use this
+software.
 
 Citing
 ======
 
-If you use ReMU in a publication, please cite it as follows:
+If you use ReMU in a publication, please cite it as follows::
 
     L. Koch, ReMU - Response Matrix Utilities, http://github.com/ast0815/remu, doi:10.5281/zenodo.1217572
 
-The DOI is different from the one shown in the badge at the top of this page.
-The DOI in the citation does not change and always refers to the latest release,
-while the displayed DOI in the badge refers to a specific version and changes with every release.
+Or just use the DOI and let your bibliography manager handle the rest for you.
+You can cite specififc versions of the software too. Just follow the link
+behind the DOI badge and choose the DOI specific for the release.
