@@ -453,29 +453,25 @@ class Binning(object):
     def fill(self, event, weight=1, raise_error=False, rename={}):
         """Fill the events into their respective bins.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        event: The event(s) to be filled into the binning.
-               Can be either a single event or an iterable of multiple events.
-        weight: The weight of the event(s).
-                Can be either a scalar which is then used for all events
-                or an iterable of weights for the single events.
-                Default: 1
-        raise_error: Raise a ValueError if an event is not in the binning.
-                     Otherwise ignore the event.
-                     Default: False
-        rename: Dict for translating event variable names to binning variable names.
-                Default: `{}`, i.e. no translation
+        event : [iterable of] dict like or Numpy structured array
+            The event(s) to be filled into the binning.
+        weight : float or iterable of floats, optional
+            The weight of the event(s).
+            Can be either a scalar which is then used for all events
+            or an iterable of weights for the single events.
+            Default: 1.
+        raise_error : bool, optional
+            Raise a ValueError if an event is not in the binning.
+            Otherwise ignore the event.
+            Default: False
+        rename : dict, optional
+            Dict for translating event variable names to binning variable names.
+            Default: `{}`, i.e. no translation
+
         """
-
-        try:
-            # Numpy array?
-            event = rename_fields(event, rename)
-        except AttributeError:
-            # Dict?
-            for name in rename:
-                event[rename[name]] = event[name]
 
         try:
             if len(event) == 0:
@@ -483,7 +479,17 @@ class Binning(object):
                 return
         except TypeError:
             # Not an iterable
-            pass
+            event = [event]
+
+        if len(rename) > 0:
+            try:
+                # Numpy array?
+                event = rename_fields(event, rename)
+            except AttributeError:
+                # Dict?
+                for e in event:
+                    for name in rename:
+                        e[rename[name]] = e[name]
 
         try:
             # Try to get bin numbers from structured numpy array
