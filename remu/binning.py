@@ -1,3 +1,7 @@
+"""Module for dealing with binned data
+
+"""
+
 from __future__ import division
 from six.moves import map, zip
 from copy import copy, deepcopy
@@ -17,40 +21,47 @@ LogNorm = None
 class PhaseSpace(object):
     """A PhaseSpace defines the possible combinations of variables that characterize an event.
 
-    It can be seen as the carthesian product of those variables.
+    Parameters
+    ----------
+
+    variables : iterable of strings
+        The set of variables that define the phase space.
+
+    Notes
+    -----
+
+    A PhaseSpace can be seen as the carthesian product of its `variables`::
 
         >>> ps = PhaseSpace(variables=['a', 'b', 'c'])
         >>> print ps
         ('a' X 'c' X 'b')
 
-    You can check whether a variable is part of a phase space:
+    You can check whether a variable is part of a phase space::
 
         >>> 'a' in ps
         True
 
     Phase spaces can be compared to one another.
 
-    Check whether two phase spaces are identical:
+    Check whether two phase spaces are identical::
 
-        ('a' X 'b') == ('a' X 'b')
-        ('a' X 'b') != ('a' X 'c')
+        >>> PhaseSpace(['a','b']) == PhaseSpace(['b', 'a'])
+        True
+        >>> PhaseSpace(['a', 'b']) == PhaseSpace(['a', 'c'])
+        False
+        >>> PhaseSpace(['a', 'b']) != PhaseSpace(['a', 'c'])
+        True
 
-    Check whether one phase space is a sub-space of the other:
+    Check whether one phase space is a sub-space of the other::
 
-        ('a' X 'b' X 'c') > ('a' X 'b')
-        ('a' X 'c') < ('a' X 'b' X 'c')
+        >>> PhaseSpace(['a', 'b','c')] > PhaseSpace(['a', 'b'])
+        True
+        >>> PhaseSpace(['a', 'c']) < PhaseSpace(['a', 'b','c'])
+        True
 
     """
 
     def __init__(self, variables):
-        """Create a PhaseSpace object.
-
-        Arguments
-        ---------
-
-        variables: The set of variables that define the phase space.
-        """
-
         self.variables = set(variables)
 
     def __contains__(self, var):
@@ -123,26 +134,32 @@ yaml.add_representer(PhaseSpace, PhaseSpace._yaml_representer)
 yaml.add_constructor(u'!PhaseSpace', PhaseSpace._yaml_constructor)
 
 class Bin(object):
-    """A Bin is container for a value that is defined on a subset of an n-dimensional phase space."""
+    """A Bin is a container for a value that is defined on a subset of an n-dimensional phase space.
+
+    Parameters
+    ----------
+
+    phasespace : PhaseSpace
+        The :class:`PhaseSpace` the `Bin` resides in.
+    value : float, optional
+        The initialization value of the bin. Default: 0.0
+    entries : int, optional
+        The initialization value of the number of entries. Default: 0
+    sumw2 : float, optional
+        The initialization value of the sum of squared weights. Default: ``value**2``
+    value_array : slice of ndarray, optional
+        A slice of a numpy array, where the value of the bin will be stored.
+        Default: ``None``
+    entries_array : slice of ndarray, optional
+        A slice of a numpy array, where the number entries will be stored.
+        Default: ``None``
+    sumw2_array : slice of ndarray, optional
+        A slice of a numpy array, where the squared weights will be stored.
+        Default: ``None``
+
+    """
 
     def __init__(self, **kwargs):
-        """Create basic bin.
-
-        kwargs
-        ------
-
-        phasespace : The phase space the Bin resides in.
-        value : The initialization value of the bin. Default: 0.0
-        entries : The initialization value of the number of entries. Default: 0
-        sumw2 : The initialization value of the sum of squared weights. Default: value**2
-        value_array : A slice of a numpy array, where the value of the bin will be stored.
-                      Default: None
-        entries_array : A slice of a numpy array, where the number entries will be stored.
-                        Default: None
-        sumw2_array : A slice of a numpy array, where the squared weights will be stored.
-                      Default: None
-        """
-
         self.phasespace = kwargs.pop('phasespace', None)
         if self.phasespace is None:
             raise TypeError("Undefined phase space!")
@@ -164,6 +181,10 @@ class Bin(object):
 
     @property
     def value(self):
+        """The value of the bin.
+
+        The sum of weights.
+        """
         return self._value_array[0]
 
     @value.setter
@@ -172,6 +193,7 @@ class Bin(object):
 
     @property
     def entries(self):
+        """The number of entries in the bin."""
         return self._entries_array[0]
 
     @entries.setter
@@ -180,6 +202,7 @@ class Bin(object):
 
     @property
     def sumw2(self):
+        """The sum of squared weights in the bin."""
         return self._sumw2_array[0]
 
     @sumw2.setter
@@ -187,12 +210,39 @@ class Bin(object):
         self._sumw2_array[0] = v
 
     def event_in_bin(self, event):
-        """Return True if the variable combination falls within the bin."""
+        """Check whether the variable combination falls within the bin.
+
+        Parameters
+        ----------
+
+        event : dict like
+            A dictionary (or similar object) with one value of each variable
+            in the binning, e.g.::
+
+                {'x': 1.4, 'y': -7.47}
+
+        Returns
+        -------
+
+        bool
+            Whether or not the variable combination lies within the bin.
+
+        """
 
         raise NotImplementedError("This method must be defined in an inheriting class.")
 
     def fill(self, weight=1.):
-        """Add the weight(s) to the bin."""
+        """Add the weight(s) to the bin.
+
+        Also increases the number of entries and sum of squared weights accordingly.
+
+        Parameters
+        ----------
+
+        weight : float or iterable of floats, topional
+            Weight(s) to be added to the value of the bin.
+
+        """
 
         try:
             # Does the weight have a length?
@@ -276,19 +326,21 @@ yaml.add_representer(Bin, Bin._yaml_representer)
 yaml.add_constructor(u'!Bin', Bin._yaml_constructor)
 
 class RectangularBin(Bin):
-    """A bin defined by min and max values in all variables."""
+    """A Bin defined by min and max values in all variables.
+
+    Parameters
+    ----------
+
+    edges : dict
+        A `dict` of ``{'varname': (lower_edge, upper_edge)}``
+    include_lower : bool, optional
+        Does the bin include the lower edges? Default: ``True``
+    include_upper: bool, optional
+        Does the bin include the upper edges? Default: ``False``
+
+    """
 
     def __init__(self, **kwargs):
-        """Initialize a rectangular bin with bin edges.
-
-        kwargs
-        ------
-
-        edges: A dict of {'varname': (lower_edge, upper_edge)}
-        include_lower: Does the bin include the lower edges? Default: True
-        include_upper: Does the bin include the upper edges? Default: False
-        """
-
         self.include_lower = kwargs.pop('include_lower', True)
         self.include_upper = kwargs.pop('include_upper', False)
         self.edges = kwargs.pop('edges', None)
@@ -315,7 +367,24 @@ class RectangularBin(Bin):
             self.edges[var] = (mi, ma)
 
     def event_in_bin(self, event):
-        """Check whether an event is within all bin edges."""
+        """Check whether an event is within all bin edges.
+
+        Parameters
+        ----------
+
+        event : dict like
+            A dictionary (or similar object) with one value of each variable
+            in the binning, e.g.::
+
+                {'x': 1.4, 'y': -7.47}
+
+        Returns
+        -------
+
+        bool
+            Whether or not the variable combination lies within the bin.
+
+        """
 
         inside = True
 
@@ -342,7 +411,15 @@ class RectangularBin(Bin):
         return inside
 
     def get_center(self):
-        """Return the bin center coordinates."""
+        """Return the bin center coordinates.
+
+        Returns
+        -------
+
+        dict
+            The center coordinates for each variable.
+
+        """
         center = {}
         for key, (mi, ma) in self.edges.items():
             center[key] = (float(mi) + float(ma)) / 2.
@@ -397,21 +474,19 @@ yaml.add_representer(RectangularBin, RectangularBin._yaml_representer)
 yaml.add_constructor(u'!RecBin', RectangularBin._yaml_constructor)
 
 class Binning(object):
-    """A Binning is a set of Bins.
+    """A Binning is a set of disjunct Bins.
 
-    It translates variable values to bin numbers and vice versa.
+    Parameters
+    ----------
+
+    phasespace : PhaseSpace
+        The :class:`PhaseSpace` the Binning resides in.
+    bins : list of :class:`Bin`s
+        The list of disjoint bins on that PhaseSpace.
+
     """
 
     def __init__(self, **kwargs):
-        """Create basic Binning.
-
-        kwargs
-        ------
-
-        phasespace : The PhaseSpace the Binning resides in.
-        bins : The list of disjoint bins on that PhaseSpace.
-        """
-
         self.phasespace = kwargs.pop('phasespace', None)
         if self.phasespace is None:
             raise TypeError("Undefined phase space!")
@@ -424,12 +499,32 @@ class Binning(object):
             raise TypeError("Unknown kwargs: %s"%(kwargs,))
 
     def get_event_bin_number(self, event):
-        """Returns the bin number of the given event.
+        """Get the bin number of the given event.
 
         Returns `None` if the event does not belong to any bin.
 
+        Parameters
+        ----------
+
+        event : dict like
+            A dictionary (or similar object) with one value of each variable
+
+            in the binning, e.g.::
+
+                {'x': 1.4, 'y': -7.47}
+
+        Returns
+        -------
+
+        int or None
+            The bin number
+
+        Notes
+        -----
+
         This is a dumb method that just loops over all bins until it finds a fitting one.
         It should be replaced with something smarter for more specifig binning classes.
+
         """
 
         for i in range(len(self.bins)):
@@ -439,9 +534,26 @@ class Binning(object):
         return None
 
     def get_event_bin(self, event):
-        """Return the bin of the event.
+        """Get the bin of the event.
 
         Returns `None` if the event does not fit in any bin.
+
+        Parameters
+        ----------
+
+        event : dict like
+            A dictionary (or similar object) with one value of each variable
+
+            in the binning, e.g.::
+
+                {'x': 1.4, 'y': -7.47}
+
+        Returns
+        -------
+
+        Bin or None
+            The :class:`Bin` object the event fits into.
+
         """
 
         nr = self.get_event_bin_number(event)
@@ -571,10 +683,11 @@ class Binning(object):
     def fill_multiple_from_csv_file(cls, binnings, filename, weightfield=None, weight=1.0, rename={}, cut_function=lambda x: x, buffer_csv_files=False, chunksize=10000, **kwargs):
         """Fill multiple Binnings from the same csv file(s).
 
-        This saves time, because the numpy array only has to be generated once.
-        Other than the list of binnings to be filled, the (keyword) arguments
-        are identical to the ones used by the instance method
-        `fill_from_csv_file`.
+        This method saves time, because the numpy array only has to be
+        generated once. Other than the list of binnings to be filled, the
+        (keyword) arguments are identical to the ones used by the instance
+        method :meth:`fill_from_csv_file`.
+
         """
 
         # Handle lists recursively
@@ -603,31 +716,42 @@ class Binning(object):
     def fill_from_csv_file(self, *args, **kwargs):
         """Fill the binning with events from a CSV file.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        filename : The csv file with the data. Can be a list of filenames.
-        weightfield : Optional. The column with the event weights.
-        weight : Optional. A single weight that will be applied to all events in the file.
-                 Can be an iterable with one weight for each file if `filename` is a list.
-        rename : Optional. A dict with columns that should be renamed before filling.
+        filename : string or list of strings
+            The csv file with the data. Can be a list of filenames.
+        weightfield : string, optional
+            The column with the event weights.
+        weight : float or iterable of floats, optional
+            A single weight that will be applied to all events in the file.
+            Can be an iterable with one weight for each file if `filename` is a list.
+        rename : dict, optional
+            A dict with columns that should be renamed before filling::
 
-                    {'csv_name': 'binning_name'}
+                {'csv_name': 'binning_name'}
 
-        cut_function : Optional. A function that modifies the loaded data before filling into the binning.
+        cut_function : function, optional
+            A function that modifies the loaded data before filling into the binning,
+            e.g.::
 
-                            cut_function(data) = data[ data['binning_name'] > some_threshold ]
+                cut_function(data) = data[ data['binning_name'] > some_threshold ]
 
-                       This is done *after* the optional renaming.
-        buffer_csv_files : Optional. Save the results of loading CSV files in temporary files
-                           that can be recovered if the same CSV file is loaded again. This
-                           speeds up filling multiple Binnings with the same CSV-files considerably!
-                           Default: False
-        chunksize : Optional. Load csv file in chunks of <chunksize> rows. This reduces the memory
-                    footprint of the loading operation, but can slow it down.
-                    Default: 10000
+            This is done *after* the optional renaming.
+        buffer_csv_files : bool, optional
+            Save the results of loading CSV files in temporary files
+            that can be recovered if the same CSV file is loaded again. This
+            speeds up filling multiple Binnings with the same CSV-files considerably!
+            Default: False
+        chunksize : int, optional
+            Load csv file in chunks of <chunksize> rows. This reduces the memory
+            footprint of the loading operation, but can slow it down.
+            Default: 10000
 
-        The file must be formated like this:
+        Notes
+        -----
+
+        The file must be formated like this::
 
             first_varname,second_varname,...
             <first_value>,<second_value>,...
@@ -635,7 +759,7 @@ class Binning(object):
             <first_value>,<second_value>,...
             ...
 
-        For example:
+        For example::
 
             x,y,z
             1.0,2.1,3.2
@@ -644,7 +768,7 @@ class Binning(object):
 
         All values are interpreted as floats. If `weightfield` is given, that
         field will be used as weigts for the event. Other keyword arguments
-        are passed on to the Binning's `fill` method. If filename is a list,
+        are passed on to the Binning's :meth:`fill` method. If filename is a list,
         all elemets are handled recursively.
 
         """
@@ -653,24 +777,44 @@ class Binning(object):
         Binning.fill_multiple_from_csv_file([self], *args, **kwargs)
 
     def reset(self, value=0., entries=0, sumw2=0.):
-        """Reset all bin values."""
+        """Reset all bin values to 0.
+
+        Parameters
+        ----------
+
+        value : float, optional
+            Set the bin values to this value.
+        entries : int, optional
+            Set the number of entries in each bin to this value.
+        sumw2 : float, optional
+            Set the sum of squared weights in each bin to this value.
+
+        """
         for b in self.bins:
             b.value=value
             b.entries=entries
             b.sumw2=sumw2
 
     def get_values_as_ndarray(self, shape=None, indices=None):
-        """Return the bin values as nd array.
+        """Return the bin values as ndarray.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        shape: Shape of the resulting array.
-               Default: len(bins)
-        indices: Only return the given bins.
-                 Default: Return all bins.
+        shape: tuple of ints
+            Shape of the resulting array.
+            Default: ``(len(bins),)``
+        indices: list of ints
+            Only return the given bins.
+            Default: Return all bins.
+
+        Returns
+        -------
+
+        ndarray
+            An ndarray with the values of the bins.
+
         """
-
         l = len(self.bins)
         if indices is None:
             indices = list(range(l))
@@ -689,17 +833,25 @@ class Binning(object):
         return arr
 
     def get_entries_as_ndarray(self, shape=None, indices=None):
-        """Return the number of bin entries as nd array.
+        """Return the number of entries in the bins as ndarray.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        shape: Shape of the resulting array.
-               Default: len(bins)
-        indices: Only return the given bins.
-                 Default: Return all bins.
+        shape: tuple of ints
+            Shape of the resulting array.
+            Default: ``(len(bins),)``
+        indices: list of ints
+            Only return the given bins.
+            Default: Return all bins.
+
+        Returns
+        -------
+
+        ndarray
+            An ndarray with the numbers of entries of the bins.
+
         """
-
         l = len(self.bins)
         if indices is None:
             indices = list(range(l))
@@ -718,17 +870,25 @@ class Binning(object):
         return arr
 
     def get_sumw2_as_ndarray(self, shape=None, indices=None):
-        """Return the sums of squared weights as nd array.
+        """Return the sum of squared weights in the bins as ndarray.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        shape: Shape of the resulting array.
-               Default: len(bins)
-        indices: Only return the given bins.
-                 Default: Return all bins.
+        shape: tuple of ints
+            Shape of the resulting array.
+            Default: ``(len(bins),)``
+        indices: list of ints
+            Only return the given bins.
+            Default: Return all bins.
+
+        Returns
+        -------
+
+        ndarray
+            An ndarray with the sum of squared weights of the bins.
+
         """
-
         l = len(self.bins)
         if indices is None:
             indices = list(range(l))
@@ -856,20 +1016,29 @@ class _RecBinProxy(object):
         return self.binning == other.binning
 
 class RectangularBinning(Binning):
-    """Binning made exclusively out of RectangularBins"""
+    """Binning made exclusively out of RectangularBins
+
+    Parameters
+    ----------
+    binedges : dict
+        Dictionary of bin edges for rectangular binning, e.g.::
+
+            {
+                'x': [0, 1, 2, 50],
+                'y': (-float('inf'), 0, float('inf')),
+                'z': np.linspace(0,77,55),
+            }
+
+    include_upper : bool, optional
+        Make bins include upper edges instead of lower edges.
+        Default: False
+    variables : list of strings, optional
+        List that determines the order of the variables.
+        Will be generated from binedges if not provided.
+
+    """
 
     def __init__(self, **kwargs):
-        """Initialize RectangularBinning.
-
-        kwargs
-        ------
-        binedges: Dictionary of bin edges for rectangular binning.
-        include_upper: Make bins include upper edges instead of lower edges.
-                       Default: False
-        variables: List that determines the order of the variables.
-                   Will be generated from binedges if not given.
-        """
-
         self.binedges = kwargs.pop('binedges', None)
         if self.binedges is None:
             raise TypeError("Undefined bin edges!")
@@ -919,16 +1088,20 @@ class RectangularBinning(Binning):
     def get_tuple_bin_number(self, i_var):
         """Translate a tuple of variable bin numbers to the linear bin number of the event.
 
-        Turns this:
+        Turns this::
 
             (i_x, i_y, i_z)
 
-        into this:
+        into this::
 
             i_bin
 
-        The order of the indices in the tuple must conform to the order of `self.variables`.
-        The the bins are ordered row-major (C-style).
+        The order of the indices in the tuple must conform to the order of
+        `variables`. The bins are ordered row-major (C-style), i.e. increasing
+        the bin number of the last variable by one increases the overall bin
+        number also by one. The increments of the other variables depend on the
+        number of bins in each variable.
+
         """
 
         if None in i_var:
@@ -943,16 +1116,20 @@ class RectangularBinning(Binning):
     def get_bin_number_tuple(self, i_bin):
         """Translate the linear bin number of the event to a tuple of single variable bin numbers.
 
-        Turns this:
+        Turns this::
 
             i_bin
 
-        into this:
+        into this::
 
             (i_x, i_y, i_z)
 
-        The order of the indices in the tuple conforms to the order of `self.variables`.
-        The bins are ordered row-major (C-style).
+        The order of the indices in the tuple conforms to the order of `variables`.
+        The bins are ordered row-major (C-style), i.e. increasing
+        the bin number of the last variable by one increases the overall bin
+        number also by one. The increments of the other variables depend on the
+        number of bins in each variable.
+
         """
 
         if i_bin is None or i_bin < 0 or i_bin >= self._totbins:
@@ -987,6 +1164,17 @@ class RectangularBinning(Binning):
         The two binnings must not share any variables.
         The two binnings must have the same value of `include_upper`.
         The resulting binning is in the the variables of both binnings with the respective edges.
+
+        Parameters
+        ----------
+
+        other : RectangularBinning
+
+        Returns
+        -------
+
+        RectangularBinning
+
         """
 
         if self._include_upper != other._include_upper:
@@ -1007,14 +1195,15 @@ class RectangularBinning(Binning):
     def marginalize(self, variables, reduction_function=np.sum):
         """Marginalize out the given variables and return a new RectangularBinning.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        variables : Iterable of variable names to be marginalized out.
-        reduction_function : Use this function to marginalize out the entries
-                             over the specified variables. Must support the
-                             `axis` keyword argument.
-                             Default: numpy.sum
+        variables : iterable of strings
+            Iterable of variable names to be marginalized out.
+        reduction_function : function
+            Use this function to marginalize out the entries over the specified variables.
+            Must support the `axis` keyword argument.
+            Default: numpy.sum
 
         """
 
@@ -1046,12 +1235,18 @@ class RectangularBinning(Binning):
 
         The variable order of the original binning is preserved.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        variables : Iterable of variable names on which to project the binning.
+        variables : iterable of strings
+            Iterable of variable names on which to project the binning.
+        kwargs : optional
+            Additional keyword arguments are passed on to :meth:`marginalize`.
 
-        Additional keyword arguments are passed on to `marginalize`.
+        Returns
+        -------
+
+        RectangularBinning
 
         """
 
@@ -1064,25 +1259,34 @@ class RectangularBinning(Binning):
     def slice(self, variable_slices, return_indices=False):
         """Return a new RectangularBinning containing the given variable slices
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        variable_slices : A dictionary specifying the bin slices of each
-                          variable. Binning variables that are not part of the
-                          dictionary are kept as is.  E.g. if you want the
-                          slice of bin 2 in `var_A` and bins 1 through to the
-                          last in `var_C`:
+        variable_slices : dict of slices
 
-                              variable_slices = { 'var_A': slice(2,3),
-                                                'var_C': slice(1,None) }
+            A dictionary specifying the bin slices of each variable. Binning
+            variables that are not part of the dictionary are kept as is.  E.g.
+            if you want the slice of bin 2 in ``var_A`` and bins 1 through to the
+            last in ``var_C``::
 
-                          Please note that strides other than 1 are *not*
-                          supported.
+                variable_slices = { 'var_A': slice(2,3), 'var_C': slice(1,None) }
 
-        return_indices : If `True`, also return the indices of the new binning:
+            Please note that strides other than 1 are *not* supported.
 
-                             new_values = binning.get_values_as_ndarray(
+        return_indices : bool, optional
+            If ``True``, also return the indices of the new binning::
+
+                new_values = binning.get_values_as_ndarray(
                                             shape=binning.nbins)[indices]
+
+        Returns
+        -------
+
+        sliced_binning : RectangularBinning
+            A Rectangular binning consisting of the specified slices.
+        indices : list of ints, optional
+            The indices of the bins of the new RectangularBinning in the *original* Binning.
+
         """
 
         # Create new binning
@@ -1114,21 +1318,22 @@ class RectangularBinning(Binning):
     def rebin(self, remove_binedges):
         """Return a new RectangularBinning with the given bin edges removed.
 
-        Arguments
-        ---------
+        The values of the bins adjacent to the removed bin edges will be
+        summed up in the resulting larger bin. Please note that bin values
+        are lost if the first or last binedge of a variable are removed.
 
-        remove_binedges : A dictionary specifying the bin edge indeices of each
-                          variable that should be removed. Binning variables that are not part of the
-                          dictionary are kept as is.  E.g. if you want to remove
-                          bin edge 2 in `var_A` and bin edges 3, 4 and 7 in `var_C`:
+        Parameters
+        ----------
 
-                              remove_binedges = { 'var_A': [2],
-                                                  'var_B': [3, 4, 7] }
+        remove_binedges : dict of lists of integers
 
-                          The values of the bins adjacent to the removed bin edges
-                          will be summed up in the resulting larger bin.
-                          Please note that bin values are lost if the first or last
-                          binedge of a variable are removed.
+            A dictionary specifying the bin edge indeices of each variable that
+            should be removed. Binning variables that are not part of the
+            dictionary are kept as is.  E.g. if you want to remove bin edge 2
+            in ``var_A`` and bin edges 3, 4 and 7 in ``var_C``::
+
+                remove_binedges = { 'var_A': [2], 'var_B': [3, 4, 7] }
+
         """
 
         # Create new binning
@@ -1173,13 +1378,22 @@ class RectangularBinning(Binning):
     def get_values_as_ndarray(self, shape=None, indices=None):
         """Return the bin values as ndarray.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        shape: Shape of the resulting array.
-               Default: len(bins)
-        indices: Only return the given bins.
-                 Default: Return all bins.
+        shape: tuple of ints
+            Shape of the resulting array.
+            Default: ``(len(bins),)``
+        indices: list of ints
+            Only return the given bins.
+            Default: Return all bins.
+
+        Returns
+        -------
+
+        ndarray
+            An ndarray with the values of the bins.
+
         """
 
         if indices is None:
@@ -1193,29 +1407,30 @@ class RectangularBinning(Binning):
         return ret
 
     def set_values_from_ndarray(self, arr):
-        """Set the bin values from ndarray.
-
-        Arguments
-        ---------
-
-        arr: Numpy ndarray containing the values.
-
-        """
+        """Set the bin values to the values of the ndarray."""
 
         self.bins._value_array.flat[:] = arr.flat
 
     def get_entries_as_ndarray(self, shape=None, indices=None):
-        """Return the number of entries as ndarray.
+        """Return the number of entries in the bins as ndarray.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        shape: Shape of the resulting array.
-               Default: len(bins)
-        indices: Only return the given bins.
-                 Default: Return all bins.
+        shape: tuple of ints
+            Shape of the resulting array.
+            Default: ``(len(bins),)``
+        indices: list of ints
+            Only return the given bins.
+            Default: Return all bins.
+
+        Returns
+        -------
+
+        ndarray
+            An ndarray with the numbers of entries of the bins.
+
         """
-
         if indices is None:
             indices = slice(None, None, None)
 
@@ -1227,29 +1442,30 @@ class RectangularBinning(Binning):
         return ret
 
     def set_entries_from_ndarray(self, arr):
-        """Set the bin entries from ndarray.
-
-        Arguments
-        ---------
-
-        arr: Numpy ndarray containing the values.
-
-        """
+        """Set the number of bin entries to the values of the ndarray."""
 
         self.bins._entries_array.flat[:] = arr.flat
 
     def get_sumw2_as_ndarray(self, shape=None, indices=None):
-        """Return the sums of squared weights as ndarray.
+        """Return the sum of squared weights in the bins as ndarray.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        shape: Shape of the resulting array.
-               Default: len(bins)
-        indices: Only return the given bins.
-                 Default: Return all bins.
+        shape: tuple of ints
+            Shape of the resulting array.
+            Default: ``(len(bins),)``
+        indices: list of ints
+            Only return the given bins.
+            Default: Return all bins.
+
+        Returns
+        -------
+
+        ndarray
+            An ndarray with the sum of squared weights of the bins.
+
         """
-
         if indices is None:
             indices = slice(None, None, None)
 
@@ -1261,53 +1477,63 @@ class RectangularBinning(Binning):
         return ret
 
     def set_sumw2_from_ndarray(self, arr):
-        """Set the bin sums of squared weights from ndarray.
-
-        Arguments
-        ---------
-
-        arr: Numpy ndarray containing the values.
-
-        """
+        """Set the sums of squared weights to the values of the ndarray."""
 
         self.bins._sumw2_array.flat[:] = arr.flat
 
     def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, denominator=None, sqrt_errors=False, no_plot=False):
         """Plot a visual representation of an array containing the entries or values of the binning.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        filename : The target filename of the plot.
-                   If `None`, the plot fill not be saved to disk.
-                   This is only useful with the `figax` option.
-        arr : The array containing the data to be plotted.
-        variables : `list`, list of variables to plot marginal histograms for.
-                    `None`, plor marginal histograms for all variables.
-                    `(list, list)`, plot 2D histograms of the cartesian product of the two variable lists.
-                    `(None, None)`, plot 2D histograms of all possible variable combinations.
-                    2D histograms where both variables are identical are plotted as 1D histograms.
-                    Default: `None`
-        divide : Divide the bin content by the bin size before plotting.
-                 Default: True
-        kwargs1d, kwargs2d : Additional keyword arguments for the 1D/2D histograms.
-                             If the key `label` is present, a legend will be drawn.
-        figax : Pair of figure and axes to be used for plotting.
-                Can be used to plot multiple binnings on top of one another.
-                Default: Create new figure and axes.
-        reduction_function : Use this function to marginalize out variables.
-                             Default: numpy.sum
-        denominator : A second array can be provided as a denominator.
-                      It is projected the same way `arr` is prior to dividing.
-        sqrt_errors : Plot sqrt(n) error bars.
-                      Default: `False`
-        no_plot : Do not plot anything, just create the figure and axes.
-                  Default: `False`
+        filename : string or None
+            The target filename of the plot. If `None`, the plot fill not be
+            saved to disk. This is only useful with the `figax` option.
+        arr : ndarray
+            The array containing the data to be plotted.
+        variables : optional
+            One of the following:
+
+            `list of strings`
+                List of variables to plot marginal histograms for.
+            `None`
+                Plot marginal histograms for all variables.
+            `(list of strings, list of strings)`
+                Plot 2D histograms of the cartesian product of the two variable lists.
+                2D histograms where both variables are identical are plotted as 1D histograms.
+            `(None, None)`
+                Plot 2D histograms of all possible variable combinations.
+                2D histograms where both variables are identical are plotted as 1D histograms.
+
+            Default: `None`
+        divide : bool, optional
+            Divide the bin content by the bin size before plotting.
+        kwargs1d, kwargs2d : dict, optional
+            Additional keyword arguments for the 1D/2D histograms.
+            If the key `label` is present, a legend will be drawn.
+        figax : tuple of (Figure, list of list of Axis), optional
+            Pair of figure and axes to be used for plotting.
+            Can be used to plot multiple binnings on top of one another.
+            Default: Create new figure and axes.
+        reduction_function : function, optional
+            Use this function to marginalize out variables.
+            Default: `numpy.sum`
+        denominator : ndarray, optional
+            A second array can be provided as a denominator.
+            It is projected the same way `arr` is prior to dividing.
+        sqrt_errors : bool, optional
+            Plot sqrt(n) error bars.
+        no_plot : bool, optional
+            Do not plot anything, just create the figure and axes.
 
         Returns
         -------
 
-        fig, ax : The figure and axis objects.
+        fig : Figure
+            The Figure that was used for plotting.
+        ax : list of list of Axis
+            The axes that were used for plotting.
 
         """
 
@@ -1468,12 +1694,27 @@ class RectangularBinning(Binning):
         return fig, ax
 
     def plot_values(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
+        """Plot the binnings `values`.
+
+        See :meth:`plot_ndarray` for a description of possible parameters.
+
+        """
         return self.plot_ndarray(filename, self.bins._value_array, variables, divide, kwargs1d, kwargs2d, figax, **kwargs)
 
     def plot_entries(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
+        """Plot the binnings `entries`.
+
+        See :meth:`plot_ndarray` for a description of possible parameters.
+
+        """
         return self.plot_ndarray(filename, self.bins._entries_array, variables, divide, kwargs1d, kwargs2d, figax, **kwargs)
 
     def plot_sumw2(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
+        """Plot the binnings sum of squared weights `sumw2`.
+
+        See :meth:`plot_ndarray` for a description of possible parameters.
+
+        """
         return self.plot_ndarray(filename, self.bins._sumw2_array, variables, divide, kwargs1d, kwargs2d, figax, **kwargs)
 
     def __eq__(self, other):
