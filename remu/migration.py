@@ -1,3 +1,5 @@
+"""Module handling the creation and use of migration matrices."""
+
 import numpy as np
 from scipy import stats
 from scipy import linalg
@@ -11,32 +13,41 @@ plt = None
 from .binning import Binning
 
 class ResponseMatrix(object):
-    """Matrix that describes the detector response to true events."""
+    """Matrix that describes the detector response to true events.
+
+    Parameters
+    ----------
+
+    truth_binning : RectangularBinning
+        The Binning object describing the truth categorization.
+    reco_binning : RectangularBinning
+        The Binning object describing the reco categorization.
+    nuisance_indices : list of ints, optional
+        List of indices of nuisance truth bins.
+        These are treated like their efficiency is exactly 1.
+    impossible_indices :list of ints, optional
+        List of indices of impossible reco bins.
+        These are treated like their probability is exactly 0.
+    response_binning : RectangularBinning, optional
+        The Binning object describing the reco and truth categorization.
+        Usually this will be generated from the truth and reco binning using
+        their :meth:`RectangularBinning.cartesian_product` method.
+
+    Notes
+    -----
+
+    The truth and reco binnings will be combined with their
+    `cartesian_product` method.
+
+    The truth bins corresonding to the `nuisance_indices` will be treated
+    like they have a total efficiency of 1.
+
+    The reco bins corresonding to the `impossible_indices` will be treated
+    like they are filled with a probability of 0.
+
+    """
 
     def __init__(self, reco_binning, truth_binning, nuisance_indices=[], impossible_indices=[], response_binning=None):
-        """Initilize the Response Matrix.
-
-        Arguments
-        ---------
-
-        truth_binning: The Binning object describing the truth categorization.
-        reco_binning: The Binning object describing the reco categorization.
-        nuisance_indices: List of indices of nuisance truth bins.
-        impossible_indices: List of indices of impossible reco bins.
-        response_binning: Optional. The Binning object describing the reco and
-                          truth categorization. Usually this will be generated
-                          from the truth and reco binning using their
-                          `cartesian_product` method.
-
-        The binnings will be combined with `cartesian_product`.
-
-        The truth bins corresonding to the `nuisance_indices` will be treated
-        like they have a total efficiency of 1.
-
-        The reco bins corresonding to the `impossible_indices` will be treated
-        like they are filled with a probability of 0.
-        """
-
         self.truth_binning = truth_binning
         self.reco_binning = reco_binning
         if response_binning is None:
@@ -50,21 +61,30 @@ class ResponseMatrix(object):
     def rebin(self, remove_binedges):
         """Return a new ResponseMatrix with the given bin edges removed.
 
-        Arguments
-        ---------
+        The values of the bins adjacent to the removed bin edges will be
+        summed up in the resulting larger bin. Please note that bin values
+        are lost if the first or last binedge of a variable are removed.
 
-        remove_binedges : A dictionary specifying the bin edge indices of each
-                          variable that should be removed. Binning variables that are not part of the
-                          dictionary are kept as is.  E.g. if you want to remove
-                          bin edge 2 in `var_A` and bin edges 3, 4 and 7 in `var_C`:
+        Parameters
+        ----------
 
-                              remove_binedges = { 'var_A': [2],
-                                                  'var_B': [3, 4, 7] }
+        remove_binedges : dict of list of ints
 
-                          The values of the bins adjacent to the removed bin edges
-                          will be summed up in the resulting larger bin.
-                          Please note that bin values are lost if the first or last
-                          binedge of a variable are removed.
+            A dictionary specifying the bin edge indices of each variable that
+            should be removed. Binning variables that are not part of the
+            dictionary are kept as is.  E.g. if you want to remove bin edge 2
+            in ``var_A`` and bin edges 3, 4 and 7 in ``var_C``::
+
+                remove_binedges = { 'var_A': [2], 'var_C': [3, 4, 7] }
+
+        Returns
+        -------
+
+        ResponseMatrix
+            The new response matrix with the given bin edges removed.
+
+        Warnings
+        --------
 
         Please note that the `nuisance_indices` and `impossible_indices` of the new matrix are set to `[]`!
         """
@@ -114,17 +134,30 @@ class ResponseMatrix(object):
     def fill_from_csv_file(self, *args, **kwargs):
         """Fill binnings from csv file.
 
-        See the `Binning.fill_from_csv_file` method for a description of the arguments.
+        See :meth:`Binning.fill_from_csv_file
+        <remu.binning.Binning.fill_from_csv_file>`
+        for a description of the parameters.
+
+        See also
+        --------
+
+        fill_up_truth_from_csv_file : Re-fill only truth bins from different file.
+
         """
         Binning.fill_multiple_from_csv_file([self.truth_binning, self.reco_binning, self.response_binning], *args, **kwargs)
         self._fix_rounding_errors()
         self._update_filled_indices()
 
-    def fill_up_truth_from_csv_file(self, filename, **kwargs):
-        """Re fill the truth bins with the given csv file.
+    def fill_up_truth_from_csv_file(self, *args, **kwargs):
+        """Re-fill the truth bins with the given csv file.
 
         This can be used to get proper efficiencies if the true signal events
         are saved in a separate file from the reconstructed events.
+
+        It takes the same parameters as :meth:`fill_from_csv_file`.
+
+        Notes
+        -----
 
         A new truth binning is created and filled with the events from the
         provided file. Each bin is compared to the corresponding bin in the
@@ -136,25 +169,27 @@ class ResponseMatrix(object):
         For each truth bin, one of the following *must* be true for this
         operation to make sense:
 
-        * All events in the migration matrix are also present in the truth
-          file. In this case, the additional truth events lower the efficiency
-          of the truth bin. This is the case, for example, if not all true signal
-          events are reconstructed.
+        *   All events in the migration matrix are also present in the truth
+            file. In this case, the additional truth events lower the
+            efficiency of the truth bin. This is the case, for example, if not
+            all true signal events are reconstructed.
 
-        * All events in the truth file are also present in the migration
-          matrix. In this case, the events in the truth file have no influence
-          on the response matrix. This is the case, for example, if only a subset
-          of the reconstructed background is saved in the truth file.
+        *   All events in the truth file are also present in the migration
+            matrix. In this case, the events in the truth file have no
+            influence on the response matrix. This is the case, for example, if
+            only a subset of the reconstructed background is saved in the truth
+            file.
 
         If there are events in the response matrix that are not in the truth
         tree *and* there are events in the truth tree that are not in the
         response matrix, this method will lead to a *wrong* efficiency of the
         affected truth bin.
+
         """
 
         new_truth_binning = deepcopy(self.truth_binning)
         new_truth_binning.reset()
-        new_truth_binning.fill_from_csv_file(filename, **kwargs)
+        new_truth_binning.fill_from_csv_file(*args, **kwargs)
         new_values = new_truth_binning.get_values_as_ndarray()
         new_entries = new_truth_binning.get_entries_as_ndarray()
         new_sumw2 = new_truth_binning.get_sumw2_as_ndarray()
@@ -195,36 +230,44 @@ class ResponseMatrix(object):
         self._update_filled_indices()
 
     def get_truth_values_as_ndarray(self, *args, **kwargs):
+        """Get the values of the truth binning as `ndarray`."""
         return self.truth_binning.get_values_as_ndarray(*args, **kwargs)
 
     def get_truth_entries_as_ndarray(self, *args, **kwargs):
+        """Get the number of entries in the truth binning as `ndarray`."""
         return self.truth_binning.get_entries_as_ndarray(*args, **kwargs)
 
     def get_truth_sumw2_as_ndarray(self, *args, **kwargs):
+        """Get the sum of squared weights in the truth binning as `ndarray`."""
         return self.truth_binning.get_sumw2_as_ndarray(*args, **kwargs)
 
     def get_reco_values_as_ndarray(self, *args, **kwargs):
+        """Get the values of the reco binning as `ndarray`."""
         return self.reco_binning.get_values_as_ndarray(*args, **kwargs)
 
     def get_reco_entries_as_ndarray(self, *args, **kwargs):
+        """Get the number of entries in the reco binning as `ndarray`."""
         return self.reco_binning.get_entries_as_ndarray(*args, **kwargs)
 
     def get_reco_sumw2_as_ndarray(self, *args, **kwargs):
+        """Get the sum of squared weights in the reco binning as `ndarray`."""
         return self.reco_binning.get_sumw2_as_ndarray(*args, **kwargs)
 
     def get_response_values_as_ndarray(self, *args, **kwargs):
+        """Get the values of the response binning as `ndarray`."""
         return self.response_binning.get_values_as_ndarray(*args, **kwargs)
 
     def get_response_entries_as_ndarray(self, *args, **kwargs):
+        """Get the number of entries in the response binning as `ndarray`."""
         return self.response_binning.get_entries_as_ndarray(*args, **kwargs)
 
     def get_response_sumw2_as_ndarray(self, *args, **kwargs):
+        """Get the sum of squared weights in the response binning as `ndarray`."""
         return self.response_binning.get_sumw2_as_ndarray(*args, **kwargs)
 
     @staticmethod
     def _normalize_matrix(M):
         """Make sure all efficiencies are less than or equal to 1."""
-
         eff = np.sum(M, axis=-2)
         eff = np.where(eff < 1., 1., eff)[...,np.newaxis,:]
         return M / eff
@@ -232,13 +275,40 @@ class ResponseMatrix(object):
     def get_response_matrix_as_ndarray(self, shape=None, truth_indices=None):
         """Return the ResponseMatrix as a ndarray.
 
-        If no shape is specified, it will be set to `(N_reco, N_truth)`.
-        The expected response of a truth vector can then be calculated like this:
+        Uses the information in the truth and response binnings to calculate
+        the response matrix.
+
+        Parameters
+        ----------
+
+        shape : tuple of ints, optional
+            The shape of the returned ndarray.
+            Default: ``(#(reco bins), #(truth bins))``
+        truth_indices : list of ints, optional
+            Only return the response of the given truth bins.
+            Default: Return full matrix.
+
+        Returns
+        -------
+
+        ndarray
+
+        Notes
+        -----
+
+        If shape is `None`, it s set to ``(#(reco bins), #(truth bins))``. The
+        expected response of a truth vector can then be calculated like this::
 
             v_reco = response_matrix.dot(v_truth)
 
         If `truth_indices` are provided, a sliced matrix with only the given
         columns will be returned.
+
+        See also
+        --------
+
+        get_mean_response_matrix_as_ndarray
+
         """
 
         if truth_indices is None:
@@ -363,11 +433,11 @@ class ResponseMatrix(object):
         return beta1, beta2, alpha, mu, sigma
 
     def get_mean_response_matrix_as_ndarray(self, shape=None, **kwargs):
-        """Return the means of the posterior distributions of the response matrix elements.
+        """Get the means of the posterior distributions of the response matrix elements.
 
         This is different from the "raw" matrix one gets from
-        `get_response_matrix_as_ndarray`. The latter simply divides the sum of
-        weights in the respective bins.
+        :meth:`get_response_matrix_as_ndarray`. The latter simply divides the
+        sum of weights in the respective bins.
 
         Parameters
         ----------
@@ -375,8 +445,33 @@ class ResponseMatrix(object):
         shape : tuple of ints, optional
             The shape of the returned matrices.
             Defaults to ``(#(reco bins), #(truth bins))``.
-        kwargs : optional
-            Additional keyword arguments are passed through to `_get_stat_error_parameters`.
+        expected_weight : float, optional
+            The expected average weight of the events. This is used int the
+            calculation of the weight variance.
+            Default: 1.0
+        nuisance_indices : list of ints, optional
+            List of truth bin indices. These bins will be treated like their
+            efficiency is exactly 1.
+            Default: Use the `nuisance_indices` attribute of the ResponseMatrix.
+        impossible_indices : list of ints, optional
+            List of reco bin indices. These bins will be treated like their
+            their probability is exactly 0.
+            Default: Use the `impossible_indices` attribute of the ResponseMatrix.
+        truth_indices : list of ints, optional
+            List of truth bin indices. Only return the response of the given
+            truth bins. Default: Return full matrices.
+
+        Returns
+        -------
+
+        ndarray
+
+        See also
+        --------
+
+        get_response_matrix_as_ndarray
+        get_statistical_variance_as_ndarray
+        generate_random_response_matrices
 
         """
 
@@ -408,7 +503,7 @@ class ResponseMatrix(object):
         return MM
 
     def get_statistical_variance_as_ndarray(self, shape=None, **kwargs):
-        """Return the statistical variance of the single ResponseMatrix elements as ndarray.
+        """Get the statistical variance of the single ResponseMatrix elements as ndarray.
 
         The variance is estimated from the actual bin contents in a Bayesian
         motivated way.
@@ -420,7 +515,13 @@ class ResponseMatrix(object):
             The shape of the returned matrix.
             Defaults to ``(#(reco bins), #(truth bins))``.
         kwargs : optional
-            Additional keyword arguments are passed through to `_get_stat_error_parameters`.
+            See :meth:`get_mean_response_matrix_as_ndarray` for a description
+            of more optional `kwargs`.
+
+        Returns
+        -------
+
+        ndarray
 
         Notes
         -----
@@ -433,24 +534,25 @@ class ResponseMatrix(object):
         3.  Correction of the categorical probabilities according to the mean
             weights of the events in each bin.
 
-        So the response matrix element can be written like this:
+        So the response matrix element can be written like this::
 
             R_ij = m_ij * p_ij * eff_j
 
-        where eff_j is the total efficiency of events in truth bin j, p_ij is the
-        unweighted multinomial reconstruction probability in reco bin i and
-        m_ij the weight correction. The variance of R_ij is estimated by
-        estimating the variances of these values separately.
+        where ``eff_j`` is the total efficiency of events in truth bin ``j``,
+        ``p_ij`` is the unweighted multinomial reconstruction probability in
+        reco bin ``i`` and ``m_ij`` the weight correction. The variance of
+        ``R_ij`` is estimated by estimating the variances of these values
+        separately.
 
-        The variance of eff_j is estimated by using the Bayesian conjugate
+        The variance of ``eff_j`` is estimated by using the Bayesian conjugate
         prior for biinomial distributions: the Beta distribution. We assume a
         prior that is uniform in the reconstruction efficiency. We then update
         it with the simulated events. The variance of the posterior
         distribution is taken as the variance of the efficiency.
 
-        The variance of p_ij is estimated by using the Bayesian conjugate prior
-        for multinomial distributions: the Dirichlet distribution. We assume a
-        prior that is uniform in the ignorant about reconstruction
+        The variance of ``p_ij`` is estimated by using the Bayesian conjugate
+        prior for multinomial distributions: the Dirichlet distribution. We
+        assume a prior that is uniform in the ignorant about reconstruction
         probabilities. We then update it with the simulated events. The
         variance of the posterior distribution is taken as the variance of the
         transition probability.
@@ -481,6 +583,13 @@ class ResponseMatrix(object):
 
         If `truth_indices` are provided, a sliced matrix with only the given
         columns will be returned.
+
+        See also
+        --------
+
+        get_mean_response_matrix_as_ndarray
+        generate_random_response_matrices
+
         """
 
         beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(**kwargs)
@@ -529,6 +638,7 @@ class ResponseMatrix(object):
         """Reimplements np.random.dirichlet.
 
         The original implementation is not suitable for very low alphas.
+
         """
 
         params = np.asfarray(alpha)
@@ -570,7 +680,13 @@ class ResponseMatrix(object):
             The shape of the returned matrices.
             Defaults to ``(#(reco bins), #(truth bins))``.
         kwargs : optional
-            Additional keyword arguments are passed through to `_get_stat_error_parameters`.
+            See :meth:`get_mean_response_matrix_as_ndarray` for a description
+            of more optional `kwargs`.
+
+        Returns
+        -------
+
+        ndarray
 
         Notes
         -----
@@ -582,10 +698,17 @@ class ResponseMatrix(object):
             distribution.
         3.  Draw weight corrections from normal distributions.
 
-        If no shape is specified, it will be set to `(N_reco, N_truth)`.
+        If no shape is specified, it will be set to ``(#(reco bins, #(truth bins))``.
 
         If `truth_indices` are provided, a sliced matrix with only the given
         columns will be returned.
+
+        See also
+        --------
+
+        get_mean_response_matrix_as_ndarray
+        get_statistical_variance_as_ndarray
+
         """
 
         beta1, beta2, alpha, mu, sigma = self._get_stat_error_parameters(**kwargs)
@@ -643,25 +766,38 @@ class ResponseMatrix(object):
         return response
 
     def get_in_bin_variation_as_ndarray(self, shape=None, truth_only=True, ignore_variables=[], variable_slices={}, truth_indices=None):
-        """Returns an estimate for the variation of the response within a bin.
+        """Get an estimate for the variation of the response within a bin.
 
         The in-bin variation is estimated from the maximum difference to the
         surrounding bins. The differences are normalized to the estimated
         statistical errors, so values close to one indicate a statistically
         dominated variation.
 
-        If `truth_only` is true, only the neighbouring bins along the
-        truth-axes will be considered.
+        Parameters
+        ----------
 
-        Variables specified in `ignore_variables` will not be considered.  This
-        is useful to exclude categorical variables, where the response is not
-        expected to vary smoothly.
+        shape : tuple of ints, optional
+            The shape of the returned ndarray.
+            Default: ``(#(reco bins), #(truth bins))``
+        truth_only : bool, optional
+            Only consider the neighbouring bins along the truth-axes.
+        ignore_variables : list of strings, optional
+            These variables will not be considered. This is useful to exclude
+            categorical variables, where the response is not expected to vary
+            smoothly.
+        variable_slices : dict of slices, optional
+            For variables in `variable_slices` only the specified slice will be
+            used for comparison, e.g. `variable_slices = {'var_A': slice(1,5)}`.
+            Useful if the response is only expected to be smooth over a given
+            range of the variable.
+        truth_indices : list of ints, optional
+            Return a sliced matrix with only the given columns.
 
-        For variables in `variable_slices` only the specified slice will be rotated,
-        e.g. `variable_slices = {'var_A': slice(1,5)}`.
+        Returns
+        -------
 
-        If `truth_indices` are provided, a sliced matrix with only the given
-        columns will be returned.
+        ndarray
+
         """
 
         nbins = self.response_binning.nbins
@@ -826,18 +962,33 @@ class ResponseMatrix(object):
     def maximize_stats_by_rebinning(self, in_bin_variation_limit=5., select='entries', ignore_variables=[], variable_slices={}, **kwargs):
         """Maximize the number of events per bin by rebinning the matrix.
 
-        Bins will only be merged if the maximum in-bin variation of the
-        resulting matrix does not exceed the `in_bin_variation_limit`.
+        Parameters
+        ----------
 
-        The argument `select` determines how the merging candidate is selected:
+        in_bin_variation_limit : float, optional
+            Bins will only be merged if the maximum in-bin variation of the
+            resulting matrix does not exceed the `in_bin_variation_limit`.
+        select : {'entries', 'entries_sum', 'in-bin', 'in-bin_sum'}
+            Determines how the merging candidate is selected:
 
-            entries: the bin with the lowest number of truth entries
-            entries_sum: the pair of bins with the lowest number of truth entries
-            in-bin: the bin with the lowest maximum in-bin variation
-            in-bin_sum: the pair of bins with the lowest sum of maximum in-bin variations
+            entries
+                the bin with the lowest number of truth entries
+            entries_sum
+                the pair of bins with the lowest number of truth entries
+            in-bin
+                the bin with the lowest maximum in-bin variation
+            in-bin_sum
+                the pair of bins with the lowest sum of maximum in-bin variations
 
-        Additional keyword arguments will be passed to the method
-        `get_in_bin_variation_as_ndarray`.
+        kwargs : optional
+            Additional keyword arguments will be passed to the method
+            :meth:`get_in_bin_variation_as_ndarray`.
+
+        See also
+        --------
+
+        get_in_bin_variation_as_ndarray
+
         """
 
         resp = deepcopy(self)
@@ -918,7 +1069,7 @@ class ResponseMatrix(object):
             Array of shape `shape` with the squared Mahalanobis distance
             of the mean difference between the matrices for each truth bin:
             ``D^2( mean(self.random_matrices - other.random_matrices) )``
-        distances_from_mean : ndarray
+        distances_from_mean : ndarray, optional
             Array of shape ``(N,)+shape`` with the squared Mahalanobis
             distances between the randomly generated matrix differences
             and the mean matrix difference for each truth bin:
@@ -1134,6 +1285,14 @@ class ResponseMatrix(object):
         other : ResponseMatrix
             The other Response Matrix for the comparison.
 
+        Returns
+        -------
+
+        fig : Figure
+            The figure that was used for plotting.
+        ax : Axis
+            The axis that was used for plotting.
+
         """
 
         # Load matplotlib on demand
@@ -1153,6 +1312,8 @@ class ResponseMatrix(object):
         ax.axvline(dist, color='r', label="null distance")
         ax.legend(loc='best', framealpha=0.5)
         fig.savefig(filename)
+
+        return fig, ax
 
     def plot_distance(self, filename, other, expectation=True, variables=None, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, **kwargs):
         """Plot the squared mahalanobis distance between two matrices.
@@ -1202,60 +1363,197 @@ class ResponseMatrix(object):
             any_entries = (self.get_truth_entries_as_ndarray() > 0)
             any_entries &= (other.get_truth_entries_as_ndarray() > 0)
             expect = np.where(any_entries, len(self.reco_binning.bins), 0)
-            truth_binning.plot_ndarray(filename, expect, variables=variables, divide=False, kwargs1d={'linestyle': 'dashed'}, kwargs2d={'alpha': 0.}, figax=figax, reduction_function=reduction_function)
+            figax = truth_binning.plot_ndarray(filename, expect, variables=variables, divide=False, kwargs1d={'linestyle': 'dashed'}, kwargs2d={'alpha': 0.}, figax=figax, reduction_function=reduction_function)
+        return figax
 
-    def plot_values(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
+    def plot_values(self, *args, **kwargs):
         """Plot the values of the response binning.
 
         This plots the distribution of events that have *both* a truth and reco bin.
+
+        See also
+        --------
+
+        remu.Binning.RectangularBinning.plot_values
+
         """
 
-        return self.response_binning.plot_values(filename, variables, divide, kwargs1d, kwargs2d, figax)
+        return self.response_binning.plot_values(*args, **kwargs)
 
-    def plot_entries(self, filename, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None):
+    def plot_entries(self, *args, **kwargs):
         """Plot the entries of the response binning.
 
         This plots the distribution of events that have *both* a truth and reco bin.
+
+        See also
+        --------
+
+        remu.binning.RectangularBinning.plot_entries
+
         """
 
-        return self.response_binning.plot_entries(filename, variables, divide, kwargs1d, kwargs2d, figax)
+        return self.response_binning.plot_entries(*args, **kwargs)
 
     def plot_in_bin_variation(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
-        """Plot the maximum in-bin variation for projections on all truth variables.
+        """Plot the maximum in-bin variation.
 
-        Additional `kwargs` will be passed on to `get_in_bin_variation_as_ndarray`.
+        Parameters
+        ----------
+
+        filename : string or None
+            The target filename of the plot. If `None`, the plot fill not be
+            saved to disk. This is only useful with the `figax` option.
+        variables : optional
+            One of the following:
+
+            `list of strings`
+                List of variables to plot marginal histograms for.
+            `None`
+                Plot marginal histograms for all variables.
+            `(list of strings, list of strings)`
+                Plot 2D histograms of the cartesian product of the two variable lists.
+                2D histograms where both variables are identical are plotted as 1D histograms.
+            `(None, None)`
+                Plot 2D histograms of all possible variable combinations.
+                2D histograms where both variables are identical are plotted as 1D histograms.
+
+            Default: `None`
+        kwargs1d, kwargs2d : dict, optional
+            Additional keyword arguments for the 1D/2D histograms.
+            If the key `label` is present, a legend will be drawn.
+        figax : tuple of (Figure, list of list of Axis), optional
+            Pair of figure and axes to be used for plotting.
+            Can be used to plot multiple binnings on top of one another.
+            Default: Create new figure and axes.
+        kwargs : optional
+            Additional `kwargs` will be passed on to :meth:`get_in_bin_variation_as_ndarray`.
+
+        Returns
+        -------
+
+        fig : Figure
+            The Figure that was used for plotting.
+        ax : list of list of Axis
+            The axes that were used for plotting.
+
+        See also
+        --------
+
+        get_in_bin_variation_as_ndarray
+
         """
 
         truth_binning = self.truth_binning
         inbin = self.get_in_bin_variation_as_ndarray(**kwargs)
         inbin = np.max(inbin, axis=0)
 
-        truth_binning.plot_ndarray(filename, inbin, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.max)
+        return truth_binning.plot_ndarray(filename, inbin, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.max)
 
-    def plot_statistical_variation(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
+    def plot_statistical_variance(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
         """Plot the maximum statistical variation for projections on all truth variables.
 
-        Additional `kwargs` will be passed on to `get_statistical_variance_as_ndarray`.
+        Parameters
+        ----------
+
+        filename : string or None
+            The target filename of the plot. If `None`, the plot fill not be
+            saved to disk. This is only useful with the `figax` option.
+        variables : optional
+            One of the following:
+
+            `list of strings`
+                List of variables to plot marginal histograms for.
+            `None`
+                Plot marginal histograms for all variables.
+            `(list of strings, list of strings)`
+                Plot 2D histograms of the cartesian product of the two variable lists.
+                2D histograms where both variables are identical are plotted as 1D histograms.
+            `(None, None)`
+                Plot 2D histograms of all possible variable combinations.
+                2D histograms where both variables are identical are plotted as 1D histograms.
+
+            Default: `None`
+        kwargs1d, kwargs2d : dict, optional
+            Additional keyword arguments for the 1D/2D histograms.
+            If the key `label` is present, a legend will be drawn.
+        figax : tuple of (Figure, list of list of Axis), optional
+            Pair of figure and axes to be used for plotting.
+            Can be used to plot multiple binnings on top of one another.
+            Default: Create new figure and axes.
+        kwargs : optional
+            Additional `kwargs` will be passed on to :meth:`get_statistical_variance_as_ndarray`.
+
+        Returns
+        -------
+
+        fig : Figure
+            The Figure that was used for plotting.
+        ax : list of list of Axis
+            The axes that were used for plotting.
+
+        See also
+        --------
+
+        get_statistical_variance_as_ndarray
+
         """
 
         truth_binning = self.truth_binning
         stat = self.get_statistical_variance_as_ndarray(**kwargs)
         stat = np.sqrt(np.max(stat, axis=0))
 
-        truth_binning.plot_ndarray(filename, stat, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.max)
+        return truth_binning.plot_ndarray(filename, stat, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.max)
 
-    def plot_expected_efficiency(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, nuisance_indices=None, **kwargs):
+    def plot_expected_efficiency(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
         """Plot expected efficiencies for projections on all truth variables.
 
         This assumes the truth values are distributed like the generator data.
         This does *not* consider the statistical uncertainty of the matrix
         elements.
 
-        Additional `kwargs` will be passed on to `get_response/truth_values_as_ndarray`.
+        Parameters
+        ----------
+
+        filename : string or None
+            The target filename of the plot. If `None`, the plot fill not be
+            saved to disk. This is only useful with the `figax` option.
+        variables : optional
+            One of the following:
+
+            `list of strings`
+                List of variables to plot marginal histograms for.
+            `None`
+                Plot marginal histograms for all variables.
+            `(list of strings, list of strings)`
+                Plot 2D histograms of the cartesian product of the two variable lists.
+                2D histograms where both variables are identical are plotted as 1D histograms.
+            `(None, None)`
+                Plot 2D histograms of all possible variable combinations.
+                2D histograms where both variables are identical are plotted as 1D histograms.
+
+            Default: `None`
+        kwargs1d, kwargs2d : dict, optional
+            Additional keyword arguments for the 1D/2D histograms.
+            If the key `label` is present, a legend will be drawn.
+        figax : tuple of (Figure, list of list of Axis), optional
+            Pair of figure and axes to be used for plotting.
+            Can be used to plot multiple binnings on top of one another.
+            Default: Create new figure and axes.
+        kwargs : optional
+            Additional `kwargs` will be passed to :meth:`get_response_values_as_ndarray`
+            and :meth:`get_truth_values_as_ndarray`.
+
+        Returns
+        -------
+
+        fig : Figure
+            The Figure that was used for plotting.
+        ax : list of list of Axis
+            The axes that were used for plotting.
+
         """
 
-        if nuisance_indices is None:
-            nuisance_indices = self.nuisance_indices
+        nuisance_indices = self.nuisance_indices
 
         truth_binning = self.truth_binning
         shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
@@ -1266,16 +1564,51 @@ class ResponseMatrix(object):
         truth = np.where(truth > 0, truth, 1e-50)
         truth[nuisance_indices] = 1e-50
 
-        truth_binning.plot_ndarray(filename, eff, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.sum, denominator=truth)
+        return truth_binning.plot_ndarray(filename, eff, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.sum, denominator=truth)
 
 class ResponseMatrixArrayBuilder(object):
     """Class that generates consistent ndarrays from multiple response matrix objects.
 
-    To save space, it only stores the truth bins that were actually filled.
-    When creating the total ndarray, missing columns are filled with default values.
-    The matrices must have been built using the same truth information!
-    Their truth binnings may only differ in the nuisance bins!
-    These truth bins are handled such that the efficiency of the most efficient matrix in each of the nuisance bins is 100%.
+    Parameters
+    ----------
+
+    nstat : int
+        The number of random matrices to be generated for each ResponseMatrix.
+        If `nstat` is 0, no random matrices are generated. Instead the output
+        of :meth:`ResponseMatrix.get_response_matrix_as_ndarray` is used.
+
+    Notes
+    -----
+
+    This class is used to generate the random response matrices from multiple
+    toy simulations covering the detector uncertainties. Each toy simulation
+    yields one ResponseMatrix object. These ResponseMatrices are then combined
+    with a `ResponseMatrixArrayBuilder`.
+
+    The `ResponseMatrixArrayBuilder` is designed to use as little memory as
+    possible. It stores only the necessary information of the
+    `ResponseMatrices`, *not* the `ResponseMatrix` objects themselves. It only
+    stores the truth bins that were actually filled.
+
+    The matrices must have been built using the same truth information! The
+    filled bins may only differ in the nuisance bins. When creating the final
+    `ndarray`, missing nuisance columns are filled with default values (0).
+
+    The relative efficiencies of the nuisance bins are guaranteed to be
+    consistent between the different response matrices. The absolute value of
+    the efficiencies is not conserved. In fact, the efficiency for
+    nuisance bin ``j`` in ResponseMatrix ``t`` will be::
+
+        eff_tj = N_tj / sum_t( N_tj)
+
+    where ``N_tj`` is the value of nuisance truth bin ``j`` in ResponseMatrix
+    ``t``. This means the efficiency of the nuisance bins decreases with the
+    number of added matrices. This has to be taken into account when creating
+    truth templates for the nuisance bins. They should consist of the *sum* of
+    the selected nuisance events over the different toy simulations. This way,
+    the template multiplied with the ndarray will re-create the number of
+    selected nuisance events in each bin for all toy response matrices.
+
     """
 
     def __init__(self, nstat):
@@ -1284,6 +1617,7 @@ class ResponseMatrixArrayBuilder(object):
         self.reset()
 
     def reset(self):
+        """Reset everything to 0."""
         self.nmatrices = 0
         self._matrices = []
         self._mean_matrices = []
@@ -1294,7 +1628,25 @@ class ResponseMatrixArrayBuilder(object):
         self._nuisance_indices = None
 
     def add_matrix(self, response_matrix):
-        """Add a matrix to the collection."""
+        """Add a matrix to the collection.
+
+        Parameters
+        ----------
+
+        response_matrix : ResponseMatrix
+
+        Notes
+        -----
+
+        This immediately triggers the generation of `nstat` random variations
+        of `response_matrix`.
+
+        See also
+        --------
+
+        ResponseMatrix.generate_random_response_matrices
+
+        """
 
         # Check that the nuisance indices are identical
         nuisance_indices = response_matrix.nuisance_indices
@@ -1335,15 +1687,21 @@ class ResponseMatrixArrayBuilder(object):
         return all_indices
 
     def get_filled_truth_indices(self):
-        """Return the list of filled truth indices."""
+        """Return the list of filled truth indices.
+
+        This list contains the indices of all truth bins that have been filled
+        in at least one of the matrices that were added to the
+        `ResponseMatrixArrayBuilder`.
+
+        """
         return sorted(self._get_filled_truth_indices_set())
 
     def get_truth_entries_as_ndarray(self):
-        """Return the array of (maximum) entries in the truh bins."""
+        """Return the array of maximum entries in the truth bins."""
         return self._truth_entries
 
     def get_response_values_as_ndarray(self):
-        """Return the (mean) values of the response bins."""
+        """Return the mean values of the response bins."""
         return self._response_values / self.nmatrices
 
     def _get_truth_value_scale(self, tv):
@@ -1363,6 +1721,7 @@ class ResponseMatrixArrayBuilder(object):
         efficiency with the number of matrices, but that could lead to
         efficiencies >1, which can lead to mathematical problems further down
         the line.
+
         """
 
         all_indices = self._get_filled_truth_indices_set()
@@ -1375,8 +1734,34 @@ class ResponseMatrixArrayBuilder(object):
             scale[:,i] = tv[:,i] / max_tv[i] # Set scale of nuisance indices
         return scale
 
-    def get_response_matrices_as_ndarray(self):
-        """Get the response matrices as consistent ndarray."""
+    def get_random_response_matrices_as_ndarray(self):
+        """Get the response matrices as consistent ndarray.
+
+        Returns
+        -------
+
+        ndarray
+            A big `ndarray` containing `nstat` generated matrices for each
+            `ResponseMatrix` that has been added.
+
+        Notes
+        -----
+
+        The returned matrices will only contain the columns, i.e. truth bins,
+        that have been filled in at least one of the added ResponseMatrices.
+        The shape of the returned array will be::
+
+            (#(RepsonseMatrices), [nstat,] #(reco bins), #(filled truth bins))
+
+        The indices of the returned (filled) truth bins can be requested with
+        the :meth:`get_filled_truth_indices` method.
+
+        See also
+        --------
+
+        get_mean_response_matrices_as_ndarray
+
+        """
 
         M = []
         tv = []
@@ -1408,8 +1793,34 @@ class ResponseMatrixArrayBuilder(object):
 
         return M
 
-    def get_mean_response_matrix_as_ndarray(self):
-        """Get the mean response matrix as ndarray."""
+    def get_mean_response_matrices_as_ndarray(self):
+        """Get the mean response matrices as ndarray.
+
+        Returns
+        -------
+
+        ndarray
+            A big `ndarray` containing the mean matrix for each
+            `ResponseMatrix` that has been added.
+
+        Notes
+        -----
+
+        The returned matrices will only contain the columns, i.e. truth bins,
+        that have been filled in at least one of the added ResponseMatrices.
+        The shape of the returned array will be::
+
+            (#(RepsonseMatrices), #(reco bins), #(filled truth bins))
+
+        The indices of the returned (filled) truth bins can be requested with
+        the :meth:`get_filled_truth_indices` method.
+
+        See also
+        --------
+
+        get_random_response_matrices_as_ndarray
+
+        """
 
         M = []
         tv = []

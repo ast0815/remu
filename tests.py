@@ -561,7 +561,7 @@ class TestResponseMatrices(unittest.TestCase):
             self.rm.plot_entries(f)
             self.rm.plot_values(f)
             self.rm.plot_in_bin_variation(f)
-            self.rm.plot_statistical_variation(f)
+            self.rm.plot_statistical_variance(f)
             self.rm.plot_expected_efficiency(f)
             self.rm.plot_distance(f, self.rm)
             self.rm.plot_compatibility(f, self.rm)
@@ -756,7 +756,7 @@ class TestResponseMatrixArrayBuilders(unittest.TestCase):
         self.builder.add_matrix(self.rm)
         self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
         self.builder.add_matrix(self.rm)
-        M = self.builder.get_mean_response_matrix_as_ndarray()
+        M = self.builder.get_mean_response_matrices_as_ndarray()
         self.assertEqual(M.shape, (4,4))
 
     def test_norandom(self):
@@ -766,7 +766,7 @@ class TestResponseMatrixArrayBuilders(unittest.TestCase):
         self.builder.add_matrix(self.rm)
         self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
         self.builder.add_matrix(self.rm)
-        M = self.builder.get_response_matrices_as_ndarray()
+        M = self.builder.get_random_response_matrices_as_ndarray()
         self.assertEqual(M.shape, (2,4,4))
 
     def test_random(self):
@@ -775,7 +775,7 @@ class TestResponseMatrixArrayBuilders(unittest.TestCase):
         self.builder.add_matrix(self.rm)
         self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
         self.builder.add_matrix(self.rm)
-        M = self.builder.get_response_matrices_as_ndarray()
+        M = self.builder.get_random_response_matrices_as_ndarray()
         self.assertEqual(M.shape, (2,5,4,4))
 
     def test_truth_entries(self):
