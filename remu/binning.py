@@ -239,7 +239,7 @@ class Bin(object):
         Parameters
         ----------
 
-        weight : float or iterable of floats, topional
+        weight : float or iterable of floats, optional
             Weight(s) to be added to the value of the bin.
 
         """
