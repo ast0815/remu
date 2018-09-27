@@ -1,3 +1,5 @@
+"""Module that deals with the calculations of likelihoods."""
+
 from __future__ import division
 from six.moves import map, zip
 import numpy as np
@@ -16,51 +18,57 @@ plt = None
 pymc = None
 
 class CompositeHypothesis(object):
-    """A CompositeHypothesis translates a set of parameters into a truth vector."""
+    """A CompositeHypothesis translates a set of parameters into a truth vector.
+
+    Parameters
+    ----------
+
+    translation_function : function
+        The function to translate a vector of parameters into a vector of truth
+        expectation values::
+
+            truth_vector = translation_function(parameter_vector)
+
+        It must support translating arrays of parameter vectors into arrays of
+        truth vectors::
+
+            [truth_vector, ...] = translation_function([parameter_vector, ...])
+
+    parameter_limits : iterable of tuples of floats, optional
+        An iterable of lower and upper limits of the hypothesis' parameters.
+        The number of limits determines the number of parameters. Parameters
+        can be `None`. This sets no limit in that direction.
+        ::
+
+            [ (x1_min, x1_max), (x2_min, x2_max), ... ]
+
+        Parameter limits are used in likelihood maximization.
+
+    parameter_priors : iterable of functions, optional
+        An iterable of prior probability density functions. The number of
+        priors determines the number of parameters. Each function must return
+        the logarithmic probability density, given a value of the corresponding
+        parameter::
+
+            prior(value=default) = log( pdf(value) )
+
+        They should return ``-numpy.inf`` for excluded values. The function's
+        argument *must* be named `value` and a default *must* be provided.
+        Parameter priors are used in Marcov Chain Monte Carlo evaluations.
+
+    parameter_names : iterable of strings, optional
+        Iterable of the parameter names. These names will be used in some
+        plotting comvenience functions.
+
+    Notes
+    -----
+
+    Depending on the use case, one can provide `parameter_limits` and/or
+    `parameter_priors`, but they are *not* checked for consistency!
+
+    """
 
     def __init__(self, translation_function, parameter_limits=None, parameter_priors=None, parameter_names=None):
-        """Initialize the CompositeHypothesis.
-
-        Arguments
-        ---------
-
-        translation_function : The function to translate a vector of parameters into
-                               a vector of truth expectation values:
-
-                                   truth_vector = translation_function(parameter_vector)
-
-                               It must support translating arrays of parameter vectors into
-                               arrays of truth vectors:
-
-                                   [truth_vector, ...] = translation_function([parameter_vector, ...])
-
-        parameter_limits : An iterable of lower and upper limits of the hypothesis' parameters.
-                           The number of limits determines the number of parameters.
-                           Parameters can be `None`. This sets no limit in that direction.
-
-                               [ (x1_min, x1_max), (x2_min, x2_max), ... ]
-
-                           Parameter limits are used in likelihood maximization.
-
-        parameter_priors : An iterable of prior probability density functions.
-                           The number of priors determines the number of parameters.
-                           Each function must return the logarithmic probability density,
-                           given a value of the corresponding parameter.
-
-                               prior(value=default) = log( pdf(value) )
-
-                           They should return `-numpy.inf` for excluded values.
-                           The function's argument *must* be named `value` and a default *must* be provided.
-                           Parameter priors are used in Marcov Chain Monte Carlo evaluations.
-
-        parameter_names : Optional. Iterable of the parameter names.
-                          These names will be used in some plotting comvenience functions.
-
-        Depending on the use case, one can provide `parameter_limits` and/or `parameter_priors`,
-        but they are *not* checked for consistency!
-
-        """
-
         if parameter_limits is None and parameter_priors is None:
             raise TypeError("Must provide at least one of `parameter_lmits` and/or `parameter_priors`")
 
@@ -70,29 +78,50 @@ class CompositeHypothesis(object):
         self._translate = translation_function
 
     def translate(self, parameters):
-        """Translate the parameter vector to a truth vector."""
+        """Translate the parameter vector to a truth vector.
+
+        Parameters
+        ----------
+
+        parameters : ndarray like
+            Vector of the hypothesis parameters.
+
+        Returns
+        -------
+
+        ndarray
+            Vector of the corresponding truth space expectation values.
+
+        """
         return self._translate(parameters)
 
 class LinearHypothesis(CompositeHypothesis):
-    """Special case of CompositeHypothesis for linear combinations."""
+    """Special case of CompositeHypothesis for linear combinations.
+
+    Parameters
+    ----------
+
+    M : 2-dimensional ndarray
+        The matrix translating the parameter vector into a truth vector::
+
+            truth = M.dot(parameters)
+
+    b : ndarray, optional
+        A constant (vector) to be added to the truth vector::
+
+            truth = M.dot(parameters) + b
+
+    *args, **kwargs : optional
+        Other arguments are passed on to the `CompositeHypothesis` init method.
+
+    See also
+    --------
+
+    TemplateHypothesis
+
+    """
 
     def __init__(self, M, b=None, *args, **kwargs):
-        """Initialise the LinearHypothesis.
-
-        Arguments
-        ---------
-
-        M : The matrix translating the parameter vector into a truth vector:
-
-                truth = M.dot(parameters)
-
-        b : Optional. A constant (vector) to be added to the truth vector:
-
-                truth = M.dot(parameters) + b
-
-        Other arguments are passed on to the CompositeHypothesis init method.
-        """
-
         self.M = np.array(M, dtype=float)
         if b is None:
             self.b = None
@@ -107,22 +136,29 @@ class LinearHypothesis(CompositeHypothesis):
         CompositeHypothesis.__init__(self, translate, *args, **kwargs)
 
 class TemplateHypothesis(LinearHypothesis):
-    """Convenience class to turn truth templates into a CompositeHypothesis."""
+    """Convenience class to turn truth templates into a CompositeHypothesis.
+
+    Parameters
+    ----------
+
+    templates : iterable of ndarrays
+        Iterable of truth vector templates.
+    constant : ndarray, optional
+        Constant offset to be added to the truth vector.
+    parameter_limits : iterable of tuple of floats, optional
+        An iterable of lower and upper limits of the hypothesis' parameters.
+        Defaults to non-negative parameter values.
+    *args, **kwargs : optional
+        Other arguments are passed to the `LinearHypothesis` init method.
+
+    See also
+    --------
+
+    LinearHypothesis
+
+    """
 
     def __init__(self, templates, constant=None, parameter_limits=None, *args, **kwargs):
-        """Initialise the TemplateHypothesis.
-
-        Arguments
-        ---------
-
-        templates : Iterable of truth vector templates.
-        constant : Optional. Constant offset to be added to the truth vector.
-        parameter_limits : Optional. An iterable of lower and upper limits of the hypothesis' parameters.
-                           Defaults to non-negative parameter values.
-
-        Other arguments are passed to the LinearHypothesis init method.
-        """
-
         M = np.array(templates, dtype=float).T
         if parameter_limits is None:
             parameter_limits = [(0,None)]*M.shape[-1]
@@ -130,54 +166,69 @@ class TemplateHypothesis(LinearHypothesis):
         LinearHypothesis.__init__(self, M, constant, parameter_limits, *args, **kwargs)
 
 class JeffreysPrior(object):
-    """Universal non-informative prior for use in Bayesian MCMC analysis."""
+    """Universal non-informative prior for use in Bayesian MCMC analysis.
+
+    Parameters
+    ----------
+
+    response_matrix : ndarray
+        Response matrix that translates truth into reco bins.
+        Can be an array of matrices.
+
+    translation_function : function
+        The function to translate a vector of parameters into a vector of truth
+        expectation values::
+
+            truth_vector = translation_function(parameter_vector)
+
+        It must support translating arrays of parameter vectors into arrays of
+        truth vectors::
+
+            [truth_vector, ...] = translation_function([parameter_vector, ...])
+
+    parameter_limits : iterable of tuple of floats
+        An iterable of lower and upper limits of the hypothesis' parameters.
+        The number of limits determines the number of parameters. Parameters
+        can be `None`. This sets no limit in that direction.
+        ::
+
+            [ (x1_min, x1_max), (x2_min, x2_max), ... ]
+
+    default_values : iterable of floats
+        The default values of the parameters
+
+    dx : array like
+        Array of step sizes to be used in numerical differentiation.
+        Default: ``numpy.full(len(parameter_limits), 1e-3)``
+
+    total_truth_limit : float
+        Maximum total number of truth events to consider in the prior. This can
+        be used to make priors proper in a consistent way, since the limit is
+        defined in the truth space, rather than the prior parameter space.
+
+    Notes
+    -----
+
+    The `JeffreysPrior` object can be called like a function. It will return
+    the prior log-likliehood of the given set of parameters::
+
+        prior_likelihood = jeffreys_prior(parameter_vector)
+
+    If the prior was constructed with more than one response matrix,
+    the matrix to be used for the calculation can be chosen with the
+    `toy_index` argument::
+
+        jeffreys_prior(parameter_vector, toy_index=5)
+
+    By construction, the JeffreysPrior will return the log probability
+    `-inf`, a probability of 0, when the expected *reco* values do not
+    depend on one of the parameters. In this case the "useless" parameter
+    should be removed. It simply cannot be constrained with the given
+    detector response.
+
+    """
 
     def __init__(self, response_matrix, translation_function, parameter_limits, default_values, dx=None, total_truth_limit=None):
-        """Initilize a JeffreysPrior.
-
-        Arguments
-        ---------
-
-        response_matrix : Response matrix that translates truth into reco bins.
-                          Can be an array of matrices.
-
-        translation_function : The function to translate a vector of parameters into
-                               a vector of truth expectation values:
-
-                                   truth_vector = translation_function(parameter_vector)
-
-                               It must support translating arrays of parameter vectors into
-                               arrays of truth vectors:
-
-                                   [truth_vector, ...] = translation_function([parameter_vector, ...])
-
-        parameter_limits : An iterable of lower and upper limits of the hypothesis' parameters.
-                           The number of limits determines the number of parameters.
-                           Parameters can be `None`. This sets no limit in that direction.
-
-                               [ (x1_min, x1_max), (x2_min, x2_max), ... ]
-
-        default_values : The default values of the parameters
-
-        dx : Array of step sizes to be used in numerical differentiation.
-             Default: `numpy.full(len(parameter_limits), 1e-3)`
-
-        total_truth_limit : Maximum total number of truth events to consider in the prior.
-                            This can be used to make priors proper in a consistent way,
-                            since the limit is defined in the truth space, rather than
-                            the prior parameter space.
-
-        Pitfalls
-        --------
-
-        By construction, the JeffreysPrior will return the log probability
-        `-inf`, a probability of 0, when the expected *reco* values do not
-        depend on one of the parameters. In this case the "useless" parameter
-        should be removed. It simply cannot be constrained with the given
-        detector response.
-
-        """
-
         old_shape = response_matrix.shape
         new_shape = (int(np.prod(old_shape[:-2])), old_shape[-2], old_shape[-1])
         self.response_matrix = response_matrix.reshape(new_shape)
@@ -198,7 +249,23 @@ class JeffreysPrior(object):
         self.dx = dx or np.full(self._npar, 1e-3)
 
     def fisher_matrix(self, parameters, toy_index=0):
-        """Calculate the Fisher information matrix for the given parameters."""
+        """Calculate the Fisher information matrix for the given parameters.
+
+        Parameters
+        ----------
+
+        parameters : aray like
+            The parameters of the translation function.
+        toy_index : int, optional
+            The index of the response matrix to be used for the calculation
+
+        Returns
+        -------
+
+        ndarray
+            The Fisher information matrix.
+
+        """
 
         resp = self.response_matrix[toy_index]
         npar = self._npar
@@ -248,46 +315,69 @@ class JeffreysPrior(object):
         return 0.5*log_det
 
 class LikelihoodMachine(object):
-    """Class that calculates likelihoods for truth vectors."""
+    """Class that calculates likelihoods for truth vectors.
+
+    Parameters
+    ----------
+
+    data_vector : array like
+        The vector with the actual data
+    response_matrix : array like
+        One or more response matrices as ndarrays
+    truth_limits : array like, optional
+        The upper limits of the truth bins up to which the response matrix
+        stays valid.
+    limit_method : {'raise', 'prohibit'}, optional
+        How to handle truth values outside their limits.
+    eff_threshold : float, optional
+        Only consider truth bins with an efficienct above this threshold.
+    eff_indices : list of ints, optional
+        Use only these truth bins for likelihood calculations.
+    is_sparse : bool, optional
+        Assume that the response matrix is already a sparse matrix with only
+        the `eff_indices` being present.
+
+    Notes
+    -----
+
+    The optional `truth_limits` tells the LikelihoodMachine up to which
+    truth bin value the response matrix stays valid. If the machine is
+    asked to calculate the likelihood of an out-of-bounds truth vector, it
+    is handled according to `limit_method`:
+
+    'raise' (default)
+        An exception is raised.
+    'prohibit'
+        A likelihood of 0 (log likelihood of `-inf`)is returned.
+
+    This can be used to constrain the testable theories to events that have
+    been simulated enough times in the detector Monte Carlo data. I.e. if
+    one wants demands a 10x higher MC statistic::
+
+        truth_limits = generator_truth_vector / 10.
+
+    The `eff_threshold` determines above which total reconstruction
+    efficiency a truth bin counts as efficient. Is the total efficiency
+    equal to or below the threshold, the bin is ignored in all likelihood
+    calculations.
+
+    Alternatively, a list of `eff_indices` can be provided. Only the
+    specified truth bins are used for likelihood calculations in that case.
+    If the flag `is_sparse` is set to `True`, the provided
+    `response_matrix` is *not* sliced according to the `eff_indices`.
+    Instead it is assumed that the given matrix already only contains the
+    columns as indicated by the `eff_indices` array, i.e. it must fulfill
+    the following condition::
+
+        response_matrix.shape[-1] == len(eff_indixes)
+
+    If the matrix is sparse, the vector of truth limits *must* be provided.
+    Its length must be that of the non-sparse response matrix, i.e. the
+    number of truth bins irrespective of efficient indices.
+
+    """
 
     def __init__(self, data_vector, response_matrix, truth_limits=None, limit_method='raise', eff_threshold=0., eff_indices=None, is_sparse=False):
-        """Initialize the LikelihoodMachine with the given data and response matrix.
-
-        The optional `truth_limits` tells the LikelihoodMachine up to which
-        truth bin value the response matrix stays valid. If the machine is
-        asked to calculate the likelihood of an out-of-bounds truth vector, it
-        is handled according to `limit_method`.
-
-            'raise' (default) : An exception is raised.
-            'prohibit' : A likelihood of 0 is returned.
-
-        This can be used to constrain the testable theories to events that have
-        been simulated enough times in the detector Monte Carlo data. I.e. if
-        one wants demands a 10x higher MC statistic:
-
-            truth_limits = generator_truth_vector / 10.
-
-        The `eff_threshold` determines above which total reconstruction
-        efficiency a truth bin counts as efficient. Is the total efficiency
-        equal to or below the threshold, the bin is ignored in all likelihood
-        calculations.
-
-        Alternatively, a list of `eff_indices` can be provided. Only the
-        specified truth bins are used for likelihood calculations in that case.
-        If the flag `is_sparse` is set to `True`, the provided
-        `response_matrix` is *not* sliced according to the `eff_indices`.
-        Instead it is assumed that the given matrix already only contains the
-        columns as indicated by the `eff_indices` array, i.e. it must fulfill
-        the following condition:
-
-            response_matrix.shape[-1] == len(eff_indixes)
-
-        If the matrix is sparse, the vector of truth limits *must* be provided.
-        Its length must be that of the non-sparse response matrix, i.e. the
-        number of truth bins irrespective of efficient indices.
-
-        """
-
         self.data_vector = np.array(data_vector)
         self.response_matrix = np.array(response_matrix)
         if truth_limits is None:
@@ -314,18 +404,28 @@ class LikelihoodMachine(object):
     def _reduce_response_matrix(response_matrix, threshold=0.):
         """Calculate a reduced response matrix, eliminating columns with 0. efficiency.
 
+        Parameters
+        ----------
+
+        response_matrix : ndarray
+        threshold : float, optional
+
         Returns
         -------
 
-        reduced_response_matrix : A view of the matrix with reduced number of columns.
-        efficiency_vector : A vector of boolean values, describing which columns were kept.
+        reduced_response_matrix : view of ndarray
+            A view of the matrix with reduced number of columns.
+        efficiency_vector : ndarray
+            A vector of boolean values, describing which columns were kept.
+
+        Notes
+        -----
 
         How to use the reduced reposne matrix:
 
             reco = reduced_response_matrix.dot(truth_vector[efficiency_vector])
 
         """
-
         # Only deal with truth bins that have a efficiency > 0 in any of the response matrices
         eff = np.sum(response_matrix, axis=-2)
         if eff.ndim > 1:
@@ -338,18 +438,22 @@ class LikelihoodMachine(object):
 
     @staticmethod
     def _create_vector_array(vector, shape, append=True):
-        """Create an array of `shape` containing n `vector`s.
+        """Create an array containing multiple copies of a vector.
+
+        Notes
+        -----
 
         The resulting shape depends on the `append` parameter.
+        ::
 
             vector.shape = (a,b,...)
             shape = (c,d,...)
 
-        If `append` is `True`:
+        If `append` is `True`::
 
             ret.shape = (c,d,...,a,b,...)
 
-        If `append` is `False`:
+        If `append` is `False`::
 
             ret.shape = (a,b,...,c,d,...)
 
@@ -394,6 +498,7 @@ class LikelihoodMachine(object):
         """Class for lazy probability computations.
 
         Assumes that data and response matrix do not change to avoid re-calculating things.
+        ::
 
             Poisson PMF:
             p(k, mu) = (mu^k / k!) * exp(-mu)
@@ -439,9 +544,11 @@ class LikelihoodMachine(object):
 
             # Create a data vector of the shape (a,b,...,n_data,c,d,...,e,f,...)
             shape = list(self.response_shape[:-2])+list(truth_shape[:-1])
-            k              = LikelihoodMachine._create_vector_array(self.k,              shape, append=False)
-            k0             = LikelihoodMachine._create_vector_array(self.k0,             shape, append=False)
-            ln_k_factorial = LikelihoodMachine._create_vector_array(self.ln_k_factorial, shape, append=False)
+            k = LikelihoodMachine._create_vector_array(self.k, shape, append=False)
+            k0 = LikelihoodMachine._create_vector_array(self.k0, shape, append=False)
+            ln_k_factorial = LikelihoodMachine._create_vector_array(
+                self.ln_k_factorial, shape, append=False)
+
             # Move axis so we get (a,b,...,c,d,...,e,f,...,n_data)
             shape = len(self.data_shape)-1
             k              = np.moveaxis(k,              shape, -1)
@@ -453,15 +560,35 @@ class LikelihoodMachine(object):
 
     @staticmethod
     def log_probability(data_vector, response_matrix, truth_vector, _constant=None):
-        """Calculate the log probabilty of measuring `data_vector`, given `response_matrix` and `truth_vector`.
+        """Calculate the log probabilty of some data given a response matrix and truth vector.
 
-        Each of the three objects can actually be an array of vectors/matrices:
+        Parameters
+        ----------
+
+        data_vector : array like
+            The measured data.
+        response_matrix : array like
+            The detector response matrix as ndarray.
+        truth_vector : array like
+            The vector of truth expectation values.
+
+        Returns
+        -------
+
+        p : ndarray
+            The log likelihood of `data_vector` given the `response_matrix`
+            and `truth_vector`.
+
+        Notes
+        -----
+
+        Each of the three objects can actually be an array of vectors/matrices::
 
             data_vector.shape = (a,b,...,n_data)
             response_matrix.shape = (c,d,...,n_data,n_truth)
             truth_vector.shape = (e,f,...,n_truth)
 
-        In this case, the return value will have the following shape:
+        In this case, the return value will have the following shape::
 
             p.shape = (a,b,...,c,d,...,e,f,...)
 
@@ -519,20 +646,31 @@ class LikelihoodMachine(object):
     def log_likelihood(self, truth_vector, systematics='marginal'):
         """Calculate the log likelihood of a vector of truth expectation values.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        truth_vector : Array of truth expectation values.
-                       Can be a multidimensional array of truth vectors.
-                       The shape of the array must be `(a, b, c, ..., n_truth_values)`.
-        systematics : How to deal with detector systematics, i.e. multiple response matrices.
-                      'profile', 'maximum': Choose the response matrix that yields the highest probability.
-                      'marginal', 'average': Sum the probabilites yielded by the matrices.
-                      `tuple(index)`: Select one specific matrix.
-                      `array(indices)`: Select a specific matrix for each truth vector.
-                                        Must have shape `(a, b, c, ..., len(index))`.
-                      `None` : Do nothing, return multiple likelihoods.
-                      Defaults to `marginal`.
+        truth_vector : array like
+            Array of truth expectation values. Can be a multidimensional array
+            of truth vectors. The shape of the array must be `(a, b, c, ...,
+            n_truth_values)`.
+
+        systematics : {'profile', 'marginal'} or tuple or ndarray or None
+            How to deal with detector systematics, i.e. multiple response
+            matrices:
+
+            'profile', 'maximum'
+                Choose the response matrix that yields the highest probability.
+            'marginal', 'average'
+                Take the arithmetic average probability yielded by the
+                matrices.
+            `tuple(index)`
+                Select one specific matrix.
+            `array(indices)`
+                Select a specific matrix for each truth vector. Must have the
+                shape ``(a, b, c, ..., len(index))``.
+            `None`
+                Do nothing, return multiple likelihoods.
+
         """
 
         if np.any(truth_vector > self.truth_limits):
@@ -553,34 +691,50 @@ class LikelihoodMachine(object):
 
     @staticmethod
     def max_log_probability(data_vector, response_matrix, composite_hypothesis, systematics='marginal', disp=False, method='basinhopping', kwargs={}):
-        """Calculate the maximum possible probability in the given CompositeHypothesis, given `response_matrix` and `data_vector`.
+        """Calculate the maximum possible probability of the data in a CompositeHypothesis.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        data_vector : Vector of measured values.
-        response_matrix : The response matrix that translates truth into reco space.
-                          Can be an arbitrarily shaped array of response matrices.
-        composite_hypothesis : The hypothesis to be evaluated.
-        systematics : How to deal with detector systematics, i.e. multiple response matrices.
-                      'profile', 'maximum': Choose the response matrix that yields the highest probability.
-                      'marginal', 'average': Sum the probabilites yielded by the matrices.
-                      Defaults to 'marginal'.
-        disp : Display status messages during optimization.
-        method : Select the method to be used for maximization,
-                 either 'differential_evolution' or 'basinhopping'.
-                 Default: 'basinhopping'
-        kwargs : Keyword arguments to be passed to the minimizer.
-                 If empty, reasonable default values will be used.
+        data_vector : array like
+            Vector of measured values.
+
+        response_matrix : array like
+            The response matrix that translates truth into reco space. Can be
+            an arbitrarily shaped array of response matrices.
+
+        composite_hypothesis : CompositeHypothesis
+            The hypothesis to be evaluated.
+
+        systematics : {'profile', 'marginal'}, optional
+            How to deal with detector systematics, i.e. multiple response
+            matrices:
+
+            'profile', 'maximum'
+                Choose the response matrix that yields the highest probability.
+            'marginal', 'average'
+                Take the arithmetic average probability yielded by the matrices.
+
+        disp : bool, optional
+            Display status messages during optimization.
+
+        method : {'differential_evolution', 'basinhopping'}, optional
+            Select the method to be used for maximization.
+
+        kwargs : dict, optional
+            Keyword arguments to be passed to the minimizer.
+            If empty, reasonable default values will be used.
 
         Returns
         -------
 
-        res : OptimizeResult object containing the maximum log probability `res.P`.
-              In case of `systematics=='profile'`, it also contains the index of
-              the response matrix that yielded the maximum likelihood `res.i`
-        """
+        res : OptimizeResult
+            Object containing the maximum log probability ``res.P``.
+            In case of ``systematics=='profile'``, it also contains the index
+            of the response matrix that yielded the maximum likelihood
+            ``res.i``.
 
+        """
         if isinstance(composite_hypothesis, LinearHypothesis):
             # Special case!
             # Since the parameter translation is just a matrix multiplication,
@@ -731,29 +885,42 @@ class LikelihoodMachine(object):
         return H0
 
     def max_log_likelihood(self, composite_hypothesis, *args, **kwargs):
-        """Calculate the maximum possible Likelihood in the given CompositeHypothesis, given the measured data.
+        """Calculate the maximum possible likelihood in the given CompositeHypothesis.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        composite_hypothesis : The hypothesis to be evaluated.
-        systematics : How to deal with detector systematics, i.e. multiple response matrices.
-                      'profile', 'maximum': Choose the response matrix that yields the highest likelihood.
-                      'marginal', 'average': Sum the probabilites yielded by the matrices.
-                      Defaults to 'marginal'.
-        disp : Display status messages during optimization.
-        method : Select the method to be used for maximization,
-                 either 'differential_evolution' or 'basinhopping'.
-                 Default: 'basinhopping'
-        kwargs : Keyword arguments to be passed to the minimizer.
-                 If empty, reasonable default values will be used.
+        composite_hypothesis : CompositeHypothesis
+            The hypothesis to be evaluated.
+
+        systematics : {'profile', 'marginal'}, optional
+            How to deal with detector systematics, i.e. multiple response
+            matrices:
+
+            'profile', 'maximum'
+                Choose the response matrix that yields the highest probability.
+            'marginal', 'average'
+                Take the arithmetic average probability yielded by the matrices.
+
+        disp : bool, optional
+            Display status messages during optimization.
+
+        method : {'differential_evolution', 'basinhopping'}, optional
+            Select the method to be used for maximization.
+
+        kwargs : dict, optional
+            Keyword arguments to be passed to the minimizer.
+            If empty, reasonable default values will be used.
 
         Returns
         -------
 
-        res : OptimizeResult object containing the maximum log probability `res.L`.
-              In case of `systematics=='profile'`, it also contains the index of
-              the response matrix that yielded the maximum likelihood `res.i`
+        res : OptimizeResult
+            Object containing the maximum log likelihood ``res.L``.
+            In case of ``systematics=='profile'``, it also contains the index
+            of the response matrix that yielded the maximum likelihood
+            ``res.i``.
+
         """
 
         resp = self._reduced_response_matrix
@@ -768,9 +935,21 @@ class LikelihoodMachine(object):
     def generate_random_data_sample(response_matrix, truth_vector, size=None, each=False):
         """Generate random data samples from the provided truth_vector.
 
-        If `each` is `True`, the data is generated for each matrix in
-        `response_matrix`.  Otherwise `size` determines the total number of
-        generated data sets.
+        Parameters
+        ----------
+
+        response_matrix : array like
+            The matrix that translates the truth vector to reco-space
+            expecation values.
+        truth_vector : array like
+            The truth-space expectation values used to generate the data.
+        size : int or tuple of ints, optional
+            The number of data vectors to be generated.
+        each : bool, optional
+            Generate `size` vectors for each response matrix.
+            Otherwise `size` determines the total number of generated data
+            vectors and the response matrices are chosen randomly.
+
         """
 
         mu = response_matrix.dot(truth_vector)
@@ -810,40 +989,58 @@ class LikelihoodMachine(object):
             return np.random.poisson(mu)
 
     def likelihood_p_value(self, truth_vector, N=2500, generator_matrix_index=None, systematics='marginal', **kwargs):
-        """Calculate the likelihood p-value of a truth vector given the measured data.
+        """Calculate the likelihood p-value of a truth vector.
 
-        Arguments
-        ---------
+        The likelihood p-value is the probability of the data yielding a lower
+        likelihood than the actual data, given that the simple hypothesis of
+        `truth_vector` is true.
 
-        truth_vector : The evaluated theory.
-        N : The number of MC evaluations of the theory.
-        generator_matrix_index : The index of the response matrix to be used to generate
-                                 the fake data. This needs to be specified only if the
-                                 LikelihoodMachine contains more than one response matrix.
-                                 If it is `None`, N data sets are thrown for *each* matrix,
-                                 and a p-value is evaluated for all of them.
-                                 The return value thus becomes an array of p-values.
-        systematics : How to deal with detector systematics, i.e. multiple response matrices.
-                      'profile', 'maximum': Choose the response matrix that yields the highest likelihood.
-                      'marginal', 'average': Sum the probabilites yielded by the matrices.
-                      Defaults to 'marginal'.
+        Parameters
+        ----------
 
-        Additional keyword arguments will be passed to the likelihood method.
+        truth_vector : array like
+            The evaluated hypotheis expressed as a vector of truth expectation
+            values.
+
+        N : int, optional
+            The number of MC evaluations of the hypothesis.
+
+        generator_matrix_index : int or tuple, optional
+            The index of the response matrix to be used to generate the fake
+            data. This needs to be specified only if the LikelihoodMachine
+            contains more than one response matrix. If it is `None`, N data
+            sets are thrown for *each* matrix, and a p-value is evaluated for
+            all of them. The return value thus becomes an array of p-values.
+
+        systematics : {'profile', 'marginal'}, optional
+            How to deal with detector systematics, i.e. multiple response
+            matrices:
+
+            'profile', 'maximum'
+                Choose the response matrix that yields the highest likelihood.
+            'marginal', 'average'
+                Take the arithmetic average probability yielded by the matrices.
+
+        **kwargs : optional
+            Additional keyword arguments will be passed to :meth:`log_likelihood`.
 
         Returns
         -------
 
-        p : The probability of measuring data as unlikely or more unlikely than
-            the actual data.
+        p : float or ndarray
+            The likelihood p-value.
+
+        Notes
+        -----
 
         The p-value is estimated by randomly creating `N` data samples
-        according to the given theory. The number of data-sets that yield a
-        likelihood as bad as, or worse than the likelihood given the actual
-        data, `n`, are counted. The estimate for p is then
+        according to the given `truth_vector`. The number of data-sets that
+        yield a likelihood as bad as, or worse than the likelihood given the
+        actual data, `n`, are counted. The estimate for `p` is then::
 
             p = n/N.
 
-        The variance of the estimator follows that of binomial statistics:
+        The variance of the estimator follows that of binomial statistics::
 
                      var(n)   Np(1-p)      1
             var(p) = ------ = ------- <= ---- .
@@ -851,8 +1048,15 @@ class LikelihoodMachine(object):
 
         The expected uncertainty can thus be directly influenced by choosing an
         appropriate number of evaluations.
-        """
 
+        See also
+        --------
+
+        max_likelihood_p_value
+        max_likelihood_ratio_p_value
+        mcmc
+
+        """
         # Reduce truth vectors to efficient values
         reduced_truth_vector = self._reduce_truth_vector(truth_vector)
 
@@ -886,41 +1090,73 @@ class LikelihoodMachine(object):
         return n / N
 
     def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=0, **kwargs):
-        """Calculate the maximum likelihood p-value of a composite hypothesis given the measured data.
+        """Calculate the maximum-likelihood p-value of a composite hypothesis.
 
-        Arguments
-        ---------
+        The maximum-likelihood p-value is the probability of the data yielding
+        a lower maximum likelihood (over the possible parameter space of the
+        composite hypothesis) than the actual data, given that the best-fit
+        parameter set of the composite hypothesis is true.
 
-        composite_hypothesis : The evaluated theory.
-        parameters : The assumed true parameters of the composite hypothesis.
-                     If no parameters are given, they will be calculated with
-                     the maximum likelihood method.
-        N : The number of MC evaluations of the theory.
-        generator_matrix_index : The index of the response matrix to be used to generate
-                                 the fake data. This needs to be specified only if the
-                                 LikelihoodMachine contains more than one response matrix.
-                                 If it is `None`, N data sets are thrown for *each* matrix,
-                                 and a p-value is evaluated for all of them.
-                                 The return value thus becomes an array of p-values.
-        nproc : How many processes to use in parallel.
-                Default: 0
+        Parameters
+        ----------
 
-        Additional keyword arguments will be passed to the likelihood maximizer.
+        composite_hypothesis : CompositeHypothesis
+            The evaluated composite hypothesis.
+
+        parameters : array like, optional
+            The assumed true parameters of the composite hypothesis. If no
+            parameters are given, they will be determined with the maximum
+            likelihood method.
+
+        N : int, optional
+            The number of MC evaluations of the hypothesis.
+
+        generator_matrix_index : int or tuple, optional
+            The index of the response matrix to be used to generate the fake
+            data. This needs to be specified only if the LikelihoodMachine
+            contains more than one response matrix. If it is `None`, N data
+            sets are thrown for *each* matrix, and a p-value is evaluated for
+            all of them. The return value thus becomes an array of p-values.
+
+        systematics : {'profile', 'marginal'}, optional
+            How to deal with detector systematics, i.e. multiple response
+            matrices:
+
+            'profile', 'maximum'
+                Choose the response matrix that yields the highest likelihood.
+            'marginal', 'average'
+                Take the arithmetic average probability yielded by the matrices.
+
+        nproc : int, optional
+            If this parameters is >= 1, the according number of processes are
+            spawned to calculate the p-value in parallel.
+
+        **kwargs : optional
+            Additional keyword arguments will be passed to :meth:`max_log_likelihood`.
 
         Returns
         -------
 
-        p : The probability of measuring data that yields a lower maximum
-            likelihood than the actual data.
+        p : float or ndarray
+            The maximum-likelihood p-value.
+
+        Notes
+        -----
+
+        When used to reject composite hypotheses, this p-value is somtime
+        called the "profile plug-in p-value", as one "plugs in" the maximum
+        likelihood estimate of the hypothesis parameters to calculate it. It's
+        coverage properties are not exact, so care has to be taken to make sure
+        it performs as expected (e.g. by testing it with simulated data)..
 
         The p-value is estimated by randomly creating `N` data samples
-        according to the given theory. The number of data-sets that yield a
-        maximum likelihood as bad as, or worse than the likelihood given the
-        actual data, `n`, are counted. The estimate for p is then
+        according to the given `truth_vector`. The number of data-sets that
+        yield a likelihood ratio as bad as, or worse than the likelihood given
+        the actual data, `n`, are counted. The estimate for `p` is then::
 
             p = n/N.
 
-        The variance of the estimator follows that of binomial statistics:
+        The variance of the estimator follows that of binomial statistics::
 
                      var(n)   Np(1-p)      1
             var(p) = ------ = ------- <= ---- .
@@ -928,6 +1164,14 @@ class LikelihoodMachine(object):
 
         The expected uncertainty can thus be directly influenced by choosing an
         appropriate number of evaluations.
+
+        See also
+        --------
+
+        likelihood_p_value
+        max_likelihood_ratio_p_value
+        mcmc
+
         """
 
         # Get truth vector from assumed true hypothesis
@@ -988,51 +1232,89 @@ class LikelihoodMachine(object):
         return n / N
 
     def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=0, nested=True, **kwargs):
-        """Calculate the maximum likelihood ratio p-value of a two composite hypotheses given the measured data.
+        """Calculate the maximum-likelihood-ratio p-value of two composite hypotheses.
 
-        Arguments
-        ---------
+        The maximum-likelihood-ratio p-value is the probability of the data
+        yielding a lower ratio of maximum likelihoods (over the possible
+        parameter spaces of the composite hypotheses) than the actual data,
+        given that the best-fit parameter set of hypothesis `H0` is true.
 
-        H0 : The tested composite hypothesis. Usually a subset of H1.
-        H1 : The alternative composite hypothesis.
-        par0 : The assumed true parameters of the tested hypothesis.
-        par1 : The maximum likelihood parameters of the alternative hypothesis.
-        N : The number of MC evaluations of the theory.
-        generator_matrix_index : The index of the response matrix to be used to generate
-                                 the fake data. This needs to be specified only if the
-                                 LikelihoodMachine contains more than one response matrix.
-                                 If it is `None`, N data sets are thrown for *each* matrix,
-                                 and a p-value is evaluated for all of them.
-                                 The return value thus becomes an array of p-values.
-        nproc : How many processes to use in parallel.
-                Default: 0
-        nested : Is H0 a nested theory, i.e. does it cover a subset of H1?
-                 In this case the likelihood maximum likelihood values must always be L0 <= L1.
-                 If `True` or `'ignore'`, the calculation of likelihood ratios is re-tried
-                 a couple of times if no valid likelihood ratio is found.
-                 If `True` and no valid value was found after 10 tries, an errors is raised.
-                 If `False`, those cases are just accepted.
+        Parameters
+        ----------
 
-        Additional keyword arguments will be passed to the likelihood maximizer.
+        H0 : CompositeHypothesis
+            The tested composite hypothesis. Usually a subset of `H1`.
 
-        Special case for maximizer argument `kwargs['x0']`: The two different hypotheses
-        have different parameter spaces. So the (optional) elements 'x0' and 'x1' are handled
-        as the starting points for the `H0` and `H1` fit respectively.
+        H1 : CompositeHypothesis
+            The alternative composite hypothesis.
+
+        par0 : array like, optional
+            The assumed true parameters of the tested hypothesis.If no
+            parameters are given, they will be determined with the maximum
+            likelihood method.
+
+        par1 : array like, optional
+            The maximum likelihood parameters of the alternative hypothesis.
+            If no parameters are given, they will be determined with the
+            maximum likelihood method.
+
+        N : int, optional
+            The number of MC evaluations of the hypothesis.
+
+        generator_matrix_index : int or tuple, optional
+            The index of the response matrix to be used to generate the fake
+            data. This needs to be specified only if the LikelihoodMachine
+            contains more than one response matrix. If it is `None`, N data
+            sets are thrown for *each* matrix, and a p-value is evaluated for
+            all of them. The return value thus becomes an array of p-values.
+
+        systematics : {'profile', 'marginal'}, optional
+            How to deal with detector systematics, i.e. multiple response
+            matrices:
+
+            'profile', 'maximum'
+                Choose the response matrix that yields the highest likelihood.
+            'marginal', 'average'
+                Take the arithmetic average probability yielded by the matrices.
+
+        nproc : int, optional
+            If this parameters is >= 1, the according number of processes are
+            spawned to calculate the p-value in parallel.
+
+        nested : bool or 'ignore', optional
+            Is H0 a nested theory, i.e. does it cover a subset of H1? In this
+            case, the maximum likelihoods must always follow ``L0 <= L1``. If
+            `True` or `'ignore'`, the calculation of likelihood ratios is
+            re-tried a couple of times if no valid likelihood ratio is found.
+            If `True` and no valid value was found after 10 tries, an errors is
+            raised. If `False`, those cases are just accepted.
+
+        **kwargs : optional
+            Additional keyword arguments will be passed to :meth:`max_log_likelihood`.
 
         Returns
         -------
 
-        p : The probability of measuring data that yields a lower maximum
-            likelihood ratio than the actual data.
+        p : float or ndarray
+            The maximum-likelihood-ratio p-value.
+
+        Notes
+        -----
+
+        When used to reject composite hypotheses, this p-value is somtime
+        called the "profile plug-in p-value", as one "plugs in" the maximum
+        likelihood estimate of the hypothesis parameters to calculate it. It's
+        coverage properties are not exact, so care has to be taken to make sure
+        it performs as expected (e.g. by testing it with simulated data)..
 
         The p-value is estimated by randomly creating `N` data samples
-        according to the given theory. The number of data-sets that yield a
-        maximum likelihood as bad as, or worse than the likelihood given the
-        actual data, `n`, are counted. The estimate for p is then
+        according to the given `truth_vector`. The number of data-sets that
+        yield a likelihood ratio as bad as, or worse than the likelihood given
+        the actual data, `n`, are counted. The estimate for `p` is then::
 
             p = n/N.
 
-        The variance of the estimator follows that of binomial statistics:
+        The variance of the estimator follows that of binomial statistics::
 
                      var(n)   Np(1-p)      1
             var(p) = ------ = ------- <= ---- .
@@ -1040,8 +1322,15 @@ class LikelihoodMachine(object):
 
         The expected uncertainty can thus be directly influenced by choosing an
         appropriate number of evaluations.
-        """
 
+        See also
+        --------
+
+        likelihood_p_value
+        max_likelihood_p_value
+        mcmc
+
+        """
         # Get truth vector from assumed true hypothesis
         if par0 is None:
             par0 = self.max_log_likelihood(H0, systematics=systematics, **kwargs).x
@@ -1158,7 +1447,29 @@ class LikelihoodMachine(object):
 
         The hypothesis must define priors for its parameters.
 
-        See documentation of PyMC.
+        Parameters
+        ----------
+
+        composite_hypothesis : CompositeHypothesis
+        prior_only : bool, optional
+            Use only the prior infomation. Ignore the data. Useful for testing
+            purposes.
+
+        Notes
+        -----
+
+        See documentation of `PyMC` for a description of the `MCMC` class.
+
+        See also
+        --------
+
+        plr
+        plot_truth_bin_traces
+        plot_reco_bin_traces
+        likelihood_p_value
+        max_likelihood_p_value
+        max_likelihood_ratio_p_value
+
         """
 
         # Load pymc on demand
@@ -1225,46 +1536,63 @@ class LikelihoodMachine(object):
     def plr(self, H0, parameters0, toy_indices0, H1, parameters1, toy_indices1):
         """Calculate the Posterior distribution of the log Likelihood Ratio.
 
-        Arguments
-        ---------
+        Parameters
+        ----------
 
-        H0/1 : Composite Hypotheses to be compared.
+        H0, H1 : CompositeHypothesis
+            Composite Hypotheses to be compared.
 
-        parameters0/1 : Arrays of parameter vectors, drawn from the posterior
-                        distribution of the hypotheses, e.g. with the MCMC objects.
+        parameters0, parameters1 : array like
+            Arrays of parameter vectors, drawn from the posterior distribution
+            of the hypotheses, e.g. with the MCMC objects::
 
-                            parameters0 = [ [1.0, 2.0, 3.0],
-                                            [1.1, 1.9, 2.8],
-                                            ...
-                                          ]
+                parameters0 = [
+                    [1.0, 2.0, 3.0],
+                    [1.1, 1.9, 2.8],
+                    ...
+                    ]
 
-        toy_indices0/1 : The corresponding systematic toy indices, in an
-                         array of equal dimensionality.  That means, even if the toy index is
-                         just a single integer, it must be provided as arrays of length 1.
+        toy_indices0, toy_indices1 : array_like
+            The corresponding systematic toy indices, in an array of equal
+            dimensionality. That means, even if the toy index is just a single
+            integer, it must be provided as arrays of length 1::
 
-                             toy_indices0 = [ [0],
-                                              [3],
-                                              ...
-                                            ]
+                toy_indices0 = [
+                    [0],
+                    [3],
+                    ...
+                    ]
 
         Returns
         -------
 
-        PLR, model_preference : A sample from the PLR as calculated from the parameter sets
-                                and the resulting model preference.
+        PLR : ndarray
+            A sample from the PLR as calculated from the parameter sets.
+        model_preference : float
+            The resulting model preference.
+
+        Notes
+        -----
 
         The model preference is calculated as the fraction of likelihood ratios
-        in the PLR that prefer H1 over H0:
+        in the PLR that prefer H1 over H0::
 
             model_preference = N(PLR > 0) / N(PLR)
 
         It can be interpreted as the posterior probability for the data
         prefering H1 over H0.
 
-        The PLR is symmetric:
+        The PLR is symmetric::
 
             PLR(H0, H1) = -PLR(H1, H0)
             preference(H0, H1) = 1. - preference(H1, H0) # modulo the cases of PLR = 0.
+
+        See also
+        --------
+
+        mcmc
+        plot_truth_bin_traces
+        plot_reco_bin_traces
 
         """
 
@@ -1279,7 +1607,22 @@ class LikelihoodMachine(object):
     def plot_bin_efficiencies(self, filename, plot_limits=False, bins_per_plot=20):
         """Plot bin by bin efficiencies.
 
-        Also plots bin truth limits if `plot_limits` is `True`.
+        Parameters
+        ----------
+
+        filename : string
+            Where to save the plot.
+        plot_limits : bool, optional
+            Also plot the truth limits for each bin on a second axis.
+        bins_per_plot : int, optional
+            How many bins are combined into a single plot.
+
+        Returns
+        -------
+
+        fig : Figure
+        ax : list of Axis
+
         """
 
         # Load matplotlib on demand
@@ -1309,12 +1652,35 @@ class LikelihoodMachine(object):
         fig.tight_layout()
         fig.savefig(filename)
 
+        return fig, ax
+
     def plot_truth_bin_traces(self, filename, trace, plot_limits=False, bins_per_plot=20):
         """Plot bin by bin MCMC truth traces.
 
-        Also plots bin truth limits if `plot_limits` is `True`.  If it is set
-        to the string 'relative', the values are divided by the limit before
-        plotting.
+        Parameters
+        ----------
+
+        filename : string
+            Where to save the plot.
+        trace : array like
+            The posterior trace of the truth bin values of an MCMC.
+        plot_limits : bool, optional
+            Also plot the truth limits.
+        bins_per_plot : int, optional
+            How many bins are combined into a single plot.
+
+        Returns
+        -------
+
+        fig : Figure
+        ax : list of Axis
+
+        See also
+        --------
+
+        mcmc
+        plot_reco_bin_traces
+
         """
 
         # Load matplotlib on demand
@@ -1348,11 +1714,38 @@ class LikelihoodMachine(object):
         fig.tight_layout()
         fig.savefig(filename)
 
+        return fig, ax
+
     def plot_reco_bin_traces(self, filename, trace, toy_index=None, plot_data=False, bins_per_plot=20):
         """Plot bin by bin MCMC reco traces.
 
-        Also plots bin data if `plot_data` is `True`.  If it is set to the
-        string 'relative', the values are divided by the data before plotting.
+        Parameters
+        ----------
+
+        filename : string
+            Where to save the plot.
+        trace : array like
+            The posterior trace of the *truth* bin values of an MCMC.
+        toy_index : array like, optional
+            The posterior trace of the chosen toy matrices of an MCMC.
+        plot_data : bool or 'relative', optional
+            Also plot the actual data content of the reco bins.
+            If 'relative', the values are divided by the data before plotting.
+        bins_per_plot : int, optional
+            How many bins are combined into a single plot.
+
+        Returns
+        -------
+
+        fig : Figure
+        ax : list of Axis
+
+        See also
+        --------
+
+        mcmc
+        plot_truth_bin_traces
+
         """
 
         # Load matplotlib on demand
@@ -1394,3 +1787,5 @@ class LikelihoodMachine(object):
         ax[-1].set_xlabel("Reco bin #")
         fig.tight_layout()
         fig.savefig(filename)
+
+        return fig, ax
