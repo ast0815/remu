@@ -764,42 +764,6 @@ class LikelihoodMachine(object):
         del ret.P
         return ret
 
-    def absolute_max_log_likelihood(self, systematics='marginal', disp=False, kwargs={}):
-        """Calculate the maximum log likelihood achievable with the given data.
-
-        Arguments
-        ---------
-
-        systematics : How to deal with detector systematics, i.e. multiple response matrices.
-                      'profile', 'maximum': Choose the response matrix that yields the highest likelihood.
-                      'marginal', 'average': Sum the probabilites yielded by the matrices.
-                      Defaults to 'marginal'.
-        disp : Display status messages during optimization.
-        method : Select the method to be used for maximization,
-                 either 'differential_evolution' or 'basinhopping'.
-                 Default: 'basinhopping'
-        kwargs : Keyword arguments to be passed to the minimizer.
-                 If empty, reasonable default values will be used.
-
-        Returns
-        -------
-
-        res : OptimizeResult object containing the maximum likelihood `res.L`.
-        """
-
-        # Create a CompositeHypothesis that uses only the efficient truth values
-        n = self._n_eff
-        bounds = [(0,None)]*n
-        eff_to_all = np.eye(self.response_matrix.shape[-1])[:,self._i_eff]
-        translate = lambda x: eff_to_all.dot(x)
-        super_hypothesis = CompositeHypothesis(translate, bounds)
-
-        res = self.max_log_likelihood(super_hypothesis, systematics=systematics, disp=disp, method='basinhopping', kwargs=kwargs)
-
-        # Translate vector of efficient truth values back to complete vector
-        res.x = translate(res.x)
-        return res
-
     @staticmethod
     def generate_random_data_sample(response_matrix, truth_vector, size=None, each=False):
         """Generate random data samples from the provided truth_vector.

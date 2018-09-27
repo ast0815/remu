@@ -916,24 +916,6 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertAlmostEqual(x[0], 3.93, places=2)
         self.assertAlmostEqual(x[1], 1.53, places=2)
 
-    def test_absolute_max_log_likelihood(self):
-        """Test absolute likelihood maximisation."""
-        ret = self.L.absolute_max_log_likelihood()
-        ll, x, s = ret.L, ret.x, ret.lowest_optimization_result.success
-        self.assertTrue(s)
-        self.assertAlmostEqual(ll, -4.6137056388801483, places=3)
-        self.assertAlmostEqual(x[0], 0, places=2)
-        self.assertAlmostEqual(x[1], 4, places=2)
-        self.assertAlmostEqual(x[2], 2, places=2)
-        self.assertAlmostEqual(x[3], 2, places=2)
-        self.L.data_vector[0] += 1
-        self.L.data_vector[1] -= 1
-        self.L.data_vector[2] += 1
-        self.L.data_vector[3] -= 1
-        ret = self.L.absolute_max_log_likelihood(kwargs={'niter': 10})
-        s = ret.lowest_optimization_result.success
-        self.assertTrue(s)
-
     def test_data_sample_generation(self):
         """Test the generatrion of random samples."""
         truth = np.array([1.,2.,3.,4.])
