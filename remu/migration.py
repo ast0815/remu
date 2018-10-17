@@ -45,6 +45,12 @@ class ResponseMatrix(object):
     The reco bins corresonding to the `impossible_indices` will be treated
     like they are filled with a probability of 0.
 
+    Two response matrices can be combined by adding them ``new_resp = respA +
+    respB``. This yields a new matrix that is equivalent to one that has been
+    filled with the data in both ``respA`` and ``respB``. The truth and reco
+    binnings in ``respA`` and ``respB`` must be identical for this to make
+    sense.
+
     """
 
     def __init__(self, reco_binning, truth_binning, nuisance_indices=[], impossible_indices=[], response_binning=None):
@@ -1565,6 +1571,16 @@ class ResponseMatrix(object):
         truth[nuisance_indices] = 1e-50
 
         return truth_binning.plot_ndarray(filename, eff, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.sum, denominator=truth)
+
+    def __add__(self, other):
+        """Add two matrices together, combining their data."""
+        ret = deepcopy(self)
+        ret.truth_binning = self.truth_binning + other.truth_binning
+        ret.reco_binning = self.reco_binning + other.reco_binning
+        ret.response_binning = self.response_binning + other.response_binning
+        ret._fix_rounding_errors()
+        ret._update_filled_indices()
+        return ret
 
 class ResponseMatrixArrayBuilder(object):
     """Class that generates consistent ndarrays from multiple response matrix objects.

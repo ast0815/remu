@@ -745,6 +745,14 @@ class TestResponseMatrices(unittest.TestCase):
         self.assertTrue(n_bins == 16)
         self.assertTrue(distances.size == 104)
 
+    def test_add(self):
+        """Test adding two response matrices."""
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        new_rm = self.rm + self.rm
+        self.assertTrue(np.all(new_rm.get_truth_values_as_ndarray() == 2 * self.rm.get_truth_values_as_ndarray()))
+        self.assertTrue(np.all(new_rm.get_reco_values_as_ndarray() == 2 * self.rm.get_reco_values_as_ndarray()))
+        self.assertTrue(np.all(new_rm.get_response_values_as_ndarray() == 2 * self.rm.get_response_values_as_ndarray()))
+
 class TestResponseMatrixArrayBuilders(unittest.TestCase):
     def setUp(self):
         with open('testdata/test-truth-binning.yml', 'r') as f:
