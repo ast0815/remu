@@ -279,6 +279,8 @@ class Bin(object):
     def __add__(self, other):
         ret = deepcopy(self)
         ret.value = self.value + other.value
+        ret.entries = self.entries + other.entries
+        ret.sumw2 = self.sumw2 + other.sumw2
         return ret
 
     def __sub__(self, other):
