@@ -99,7 +99,17 @@ html_static_path = ['_static']
 # default: ``['localtoc.html', 'relations.html', 'sourcelink.html',
 # 'searchbox.html']``.
 #
-# html_sidebars = {}
+#html_sidebars = {
+#    '**': [
+#        'about.html',
+#        'navigation.html',
+#        'relations.html',
+#        'searchbox.html',
+#        'donate.html',
+#    ]
+#}
+
+html_logo = '../logo/ReMU.svg'
 
 
 # -- Options for HTMLHelp output ---------------------------------------------
@@ -136,6 +146,7 @@ latex_documents = [
      u'Lukas Koch', 'manual'),
 ]
 
+latex_logo = '../logo/ReMU.png'
 
 # -- Options for manual page output ------------------------------------------
 
