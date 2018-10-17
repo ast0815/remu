@@ -360,6 +360,11 @@ class TestBinnings(unittest.TestCase):
         self.assertTrue(self.binning != self.binning0)
         self.assertFalse(self.binning == self.binning0)
 
+    def test_adding(self):
+        """Test adding binnings."""
+        new_binning = self.binning + self.binning
+        self.assertTrue(np.all(self.binning.get_values_as_ndarray() * 2 == new_binning.get_values_as_ndarray()))
+
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.binning

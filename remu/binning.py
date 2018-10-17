@@ -951,6 +951,13 @@ class Binning(object):
     def __ne__(self, other):
         return not self == other
 
+    def __add__(self, other):
+        ret = deepcopy(self)
+        ret.set_values_from_ndarray(self.get_values_as_ndarray() + other.get_values_as_ndarray())
+        ret.set_entries_from_ndarray(self.get_entries_as_ndarray() + other.get_entries_as_ndarray())
+        ret.set_sumw2_from_ndarray(self.get_sumw2_as_ndarray() + other.get_sumw2_as_ndarray())
+        return ret
+
     @staticmethod
     def _yaml_representer(dumper, obj):
         """Represent Binning in a YAML file."""
