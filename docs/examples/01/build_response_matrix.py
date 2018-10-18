@@ -67,11 +67,11 @@ optimised = resp.maximize_stats_by_rebinning()
 entries = optimised.get_response_entries_as_ndarray()
 optimised.plot_values("optimised_response_matrix.png", variables=(None, None))
 optimised.plot_statistical_variance("optimised_stat_var.png", variables=(None, None))
+optimised.plot_expected_efficiency("optimised_efficiency.png", variables=(None, None))
 optimised.plot_in_bin_variation("optimised_inbin_var.png", variables=(None, None))
 
-yml = binning.yaml.dump(optimised.truth_binning)
 with open("optimised-truth-binning.yml", 'w') as f:
-    f.write(yml)
+    binning.yaml.dump(optimised.truth_binning, f)
 
 M = optimised.get_response_matrix_as_ndarray()
 np.save("response_matrix.npy", M)
