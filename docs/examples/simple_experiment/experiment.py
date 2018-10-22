@@ -33,11 +33,11 @@ class Generator(object):
 class ModelAGenerator(Generator):
     """Model A
 
-    x, y ~ Normal(mean=[0.0, 0.0], cov=[[1.0,0.0],[0.0,1.0]])
+    x, y ~ Normal(mean=[0.1, 0.25], cov=[[1.0,0.0],[0.0,1.0]])
     """
 
     def _generate(self, n):
-        x, y = np.random.multivariate_normal(mean=[0.0, 0.0], cov=[[1.0,0.0],[0.0,1.0]], size=n).T
+        x, y = np.random.multivariate_normal(mean=[0.1, 0.25], cov=[[1.0,0.0],[0.0,1.0]], size=n).T
         return build_array({'true_x': x, 'true_y': y})
 
 class ModelBGenerator(Generator):

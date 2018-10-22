@@ -26,12 +26,12 @@ information is saved.
 
 Create "real" data corresponding to one year of running the experiment::
 
-    $ ../simple_experiment/run_experiment.py 1 real_data.txt
+    $ ../simple_experiment/run_experiment.py 10 real_data.txt
 
 Create simulated data corresponding to 10 times the real data::
 
-    $ ../simple_experiment/simulate_experiment.py 10 modelA modelA_data.txt modelA_truth.txt
-    $ ../simple_experiment/simulate_experiment.py 10 modelB modelB_data.txt modelB_truth.txt
+    $ ../simple_experiment/simulate_experiment.py 100 modelA modelA_data.txt modelA_truth.txt
+    $ ../simple_experiment/simulate_experiment.py 100 modelB modelB_data.txt modelB_truth.txt
 
 The file 'reco-binning.yml' contains a RectangularBinning object for the
 reconstructed information::

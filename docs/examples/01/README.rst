@@ -209,6 +209,7 @@ until the in-bin variation reaches a set limit (defaul: 5). The result is more
 densely populated::
 
     optimised.plot_values("optimised_response_matrix.png", variables=(None, None))
+
 .. image:: optimised_response_matrix.png
 
 This plot only shows events that have been reconstructed. So the region of low
