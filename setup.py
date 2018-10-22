@@ -17,7 +17,7 @@ the response matrix, *not* to use it.
 """
 
 setup(name='remu',
-    version='0.3.0',
+    version='0.3.1',
     description=description,
     long_description=long_description,
     url='http://github.com/ast0815/remu',
