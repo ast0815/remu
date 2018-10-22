@@ -27,12 +27,7 @@ Example steps
 
     00/README
     01/README
-
-02 - A simple model fit
------------------------
-
-This example shows how to use the response matrix and "real" data to do some
-likelihood-based fits with different signal models.
+    02/README
 
 03 - Detector uncertainties
 ---------------------------
