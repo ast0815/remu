@@ -1,6 +1,7 @@
 """Module that deals with the calculations of likelihoods."""
 
 from __future__ import division
+from copy import deepcopy
 from six.moves import map, zip
 import numpy as np
 from scipy import stats
@@ -94,6 +95,67 @@ class CompositeHypothesis(object):
 
         """
         return self._translate(parameters)
+
+    def fix_parameters(self, fix_values):
+        """Return a new CompositeHypothesis by fixing some parameters.
+
+        Parameters
+        ----------
+
+        fix_values : iterable of values
+
+            This iterable must have the same length as the vector of parameters
+            of the CompositeHypothesis. The parameters of the new
+            CompositeHypothesis are fixed to the given values. Parameters that
+            should not be fixed must be specified with ``None``. For example,
+            to fix the first and third parameter of a 3-parameter hypothesis,
+            `fix_values` must look like this::
+
+                (1.23, None, 9.87)
+
+            The resulting CompositeHypothesis has one free parameter, the
+            second parameter of the original hypothesis.
+
+        """
+
+        fix_values = np.array(fix_values, dtype=float)
+        unfixed = np.where(np.isnan(fix_values))
+
+        def new_translation_function(new_parameters,
+                _fix_values=fix_values, _unfixed=unfixed,
+                _old_translation_function=self._translate):
+            _fix_values[unfixed] = new_parameters
+            return _old_translation_function(_fix_values)
+
+        if self.parameter_limits is None:
+            new_parameter_limits = None
+        else:
+            new_parameter_limits = []
+            for i, v in enumerate(fix_values):
+                if np.isnan(v):
+                    new_parameter_limits.append(self.parameter_limits[i])
+
+        if self.parameter_priors is None:
+            new_parameter_priors = None
+        else:
+            new_parameter_priors = []
+            for i, v in enumerate(fix_values):
+                if np.isnan(v):
+                    new_parameter_priors.append(self.parameter_priors[i])
+
+        if self.parameter_names is None:
+            new_parameter_names = None
+        else:
+            new_parameter_names = []
+            for i, v in enumerate(fix_values):
+                if np.isnan(v):
+                    new_parameter_names.append(self.parameter_names[i])
+
+        return CompositeHypothesis(
+            translation_function=new_translation_function,
+            parameter_limits=new_parameter_limits,
+            parameter_priors=new_parameter_priors,
+            parameter_names=new_parameter_names)
 
 class LinearHypothesis(CompositeHypothesis):
     """Special case of CompositeHypothesis for linear combinations.

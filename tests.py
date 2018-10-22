@@ -929,6 +929,18 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertAlmostEqual(x[0], 3.93, places=2)
         self.assertAlmostEqual(x[1], 1.53, places=2)
 
+    def test_parameter_fixing(self):
+        fun = lambda x: np.insert(x, 0, 0.)
+        H = CompositeHypothesis(fun, [(0,None)]*3)
+        H1 = H.fix_parameters((None, 1, 1))
+        self.assertTrue(np.all(H1.translate([2]) == H.translate([2,1,1])))
+        H = TemplateHypothesis([[1,1,0,0],[0,0,1,1]], None, [(0,10),(0,10)])
+        H1 = H.fix_parameters((1, None))
+        self.assertTrue(np.all(H1.translate([2]) == H.translate([1,2])))
+        H = TemplateHypothesis([[1,1,0,0],[0,0,1,1]], [1,1,1,1], [(0,10),(0,10)])
+        H1 = H.fix_parameters((1, None))
+        self.assertTrue(np.all(H1.translate([2]) == H.translate([1,2])))
+
     def test_data_sample_generation(self):
         """Test the generatrion of random samples."""
         truth = np.array([1.,2.,3.,4.])
