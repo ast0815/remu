@@ -87,6 +87,10 @@ html_theme = 'alabaster'
 html_theme_options = {
     'logo': 'ReMU.svg',
     'logo_name': False,
+    'github_user': 'ast0815',
+    'github_repo': 'remu',
+    'github_button': False,
+    'github_banner': True,
 }
 
 #html_logo = '../logo/ReMU.svg'
