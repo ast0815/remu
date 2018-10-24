@@ -197,6 +197,65 @@ class LinearHypothesis(CompositeHypothesis):
 
         CompositeHypothesis.__init__(self, translate, *args, **kwargs)
 
+    def fix_parameters(self, fix_values):
+        """Return a new LinearHypothesis by fixing some parameters.
+
+        Parameters
+        ----------
+
+        fix_values : iterable of values
+
+            This iterable must have the same length as the vector of parameters
+            of the LinearHypothesis. The parameters of the new LinearHypothesis
+            are fixed to the given values. Parameters that should not be fixed
+            must be specified with ``None``. For example, to fix the first and
+            third parameter of a 3-parameter hypothesis, `fix_values` must look
+            like this::
+
+                (1.23, None, 9.87)
+
+            The resulting LinearHypothesis has one free parameter, the second
+            parameter of the original hypothesis.
+
+        """
+
+
+        fix_values = np.array(fix_values, dtype=float)
+        unfixed = np.isnan(fix_values)
+
+        if self.parameter_limits is None:
+            new_parameter_limits = None
+        else:
+            new_parameter_limits = []
+            for i, v in enumerate(fix_values):
+                if np.isnan(v):
+                    new_parameter_limits.append(self.parameter_limits[i])
+
+        if self.parameter_priors is None:
+            new_parameter_priors = None
+        else:
+            new_parameter_priors = []
+            for i, v in enumerate(fix_values):
+                if np.isnan(v):
+                    new_parameter_priors.append(self.parameter_priors[i])
+
+        if self.parameter_names is None:
+            new_parameter_names = None
+        else:
+            new_parameter_names = []
+            for i, v in enumerate(fix_values):
+                if np.isnan(v):
+                    new_parameter_names.append(self.parameter_names[i])
+
+        fix_values[unfixed] = 0.
+        new_b = self.translate(fix_values)
+        new_M = np.array(self.M[:,unfixed])
+
+        return LinearHypothesis(M=new_M, b=new_b,
+            parameter_limits=new_parameter_limits,
+            parameter_priors=new_parameter_priors,
+            parameter_names=new_parameter_names)
+
 class TemplateHypothesis(LinearHypothesis):
     """Convenience class to turn truth templates into a CompositeHypothesis.
 

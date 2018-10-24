@@ -809,6 +809,34 @@ class TestResponseMatrixArrayBuilders(unittest.TestCase):
         M = self.builder.get_response_values_as_ndarray()
         self.assertEqual(M.shape, (16,))
 
+class TestCompositeHypotheses(unittest.TestCase):
+    def setUp(self):
+        fun = lambda x: np.insert(x, 0, 0.)
+        self.H = CompositeHypothesis(fun,
+            parameter_limits=[(0,10), (0,20), (0,30)],
+            parameter_priors=[lambda x: -np.log(x)]*3,
+            parameter_names=['A','B','C'])
+
+    def test_parameter_fixing(self):
+        """Test fixing parameters to create new CompositeHypotheses."""
+        H1 = self.H.fix_parameters((None, 1, 1))
+        self.assertTrue(np.all(H1.translate([2]) == self.H.translate([2,1,1])))
+        self.assertTrue(H1.parameter_limits == [(0,10)])
+        self.assertTrue(len(H1.parameter_priors) == 1)
+        self.assertTrue(H1.parameter_names == ['A'])
+
+class TestTemplateHypotheses(unittest.TestCase):
+    def setUp(self):
+        self.H1 = TemplateHypothesis([[1,1,0,0],[0,0,1,1]], None, [(0,10),(0,10)])
+        self.H2 = TemplateHypothesis([[1,1,0,0],[0,0,1,1]], [1,1,1,1])
+
+    def test_parameter_fixing(self):
+        """Test fixing parameters to create new CompositeHypotheses."""
+        H0 = self.H1.fix_parameters((1, None))
+        self.assertTrue(np.all(H0.translate([2]) == self.H1.translate([1,2])))
+        H0 = self.H2.fix_parameters((1, None))
+        self.assertTrue(np.all(H0.translate([2]) == self.H2.translate([1,2])))
+
 class TestLikelihoodMachines(unittest.TestCase):
     def setUp(self):
         with open('testdata/test-truth-binning.yml', 'r') as f:
@@ -928,18 +956,6 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertAlmostEqual(ll, -4.920, places=3)
         self.assertAlmostEqual(x[0], 3.93, places=2)
         self.assertAlmostEqual(x[1], 1.53, places=2)
-
-    def test_parameter_fixing(self):
-        fun = lambda x: np.insert(x, 0, 0.)
-        H = CompositeHypothesis(fun, [(0,None)]*3)
-        H1 = H.fix_parameters((None, 1, 1))
-        self.assertTrue(np.all(H1.translate([2]) == H.translate([2,1,1])))
-        H = TemplateHypothesis([[1,1,0,0],[0,0,1,1]], None, [(0,10),(0,10)])
-        H1 = H.fix_parameters((1, None))
-        self.assertTrue(np.all(H1.translate([2]) == H.translate([1,2])))
-        H = TemplateHypothesis([[1,1,0,0],[0,0,1,1]], [1,1,1,1], [(0,10),(0,10)])
-        H1 = H.fix_parameters((1, None))
-        self.assertTrue(np.all(H1.translate([2]) == H.translate([1,2])))
 
     def test_data_sample_generation(self):
         """Test the generatrion of random samples."""
