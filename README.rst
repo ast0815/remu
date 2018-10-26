@@ -6,10 +6,13 @@ A framework for likelihood calculations and hypothesis testing using binned even
 
 .. image:: https://travis-ci.org/ast0815/remu.svg?branch=master
     :target: https://travis-ci.org/ast0815/remu
+    :alt: [Travis-CI]
 .. image:: https://coveralls.io/repos/github/ast0815/remu/badge.svg?branch=master
     :target: https://coveralls.io/github/ast0815/remu?branch=master
+    :alt: [Coverage]
 .. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1217572.svg
     :target: https://doi.org/10.5281/zenodo.1217572
+    :alt: [DOI: 10.5281/zenodo.1217572]
 
 Setup
 =====
