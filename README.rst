@@ -79,7 +79,7 @@ Run all test cases of the framework::
 Documentation
 =============
 
-Online documentation including examples can be found on the projects readthedocs page:
+Online documentation including examples can be found on the project's readthedocs page:
 
     `<https://remu.readthedocs.io>`_
 
