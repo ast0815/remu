@@ -33,11 +33,11 @@ class Generator(object):
 class ModelAGenerator(Generator):
     """Model A
 
-    x, y ~ Normal(mean=[0.1, 0.25], cov=[[1.0,0.0],[0.0,1.0]])
+    x, y ~ Normal(mean=[0.1, 0.20], cov=[[1.0,0.0],[0.0,1.0]])
     """
 
     def _generate(self, n):
-        x, y = np.random.multivariate_normal(mean=[0.1, 0.25], cov=[[1.0,0.0],[0.0,1.0]], size=n).T
+        x, y = np.random.multivariate_normal(mean=[0.1, 0.20], cov=[[1.0,0.0],[0.0,1.0]], size=n).T
         return build_array({'true_x': x, 'true_y': y})
 
 class ModelBGenerator(Generator):
@@ -54,13 +54,15 @@ class Detector(object):
     """Turn truth data into reconstructed events.
 
     ``x`` is smeared with a normal ``sigma=1``.
-    The efficienct depends on ``y``: ``eff = ndtr(slope*y)`` with ``slope=1.``
+    The efficienct depends on ``y``: ``eff = ndtr(slope*(y-y0))`` with ``slope=1.``
 
     """
 
-    def __init__(self, smear_sigma=1, eff_slope=1.):
+    def __init__(self, smear_sigma=1, eff_slope=1., eff_offset=0., max_eff=0.9):
         self.smear_sigma = smear_sigma
         self.eff_slope = eff_slope
+        self.eff_offset = eff_offset
+        self.max_eff = max_eff
 
     def reconstruct(self, events, keep_truth=False):
         """Turn events into reconstructed events."""
@@ -70,7 +72,7 @@ class Detector(object):
 
     def efficiency(self, events):
         """Return efficiency of given true events."""
-        eff = ndtr(self.eff_slope * events['true_y'])
+        eff = self.max_eff * ndtr(self.eff_slope * (events['true_y'] - self.eff_offset))
         return eff
 
     def smear(self, events, keep_truth=False):

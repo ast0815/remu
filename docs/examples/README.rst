@@ -28,11 +28,7 @@ Example steps
     00/README
     01/README
     02/README
-
-03 - Detector uncertainties
----------------------------
-
-This example shows how to incorporate detector uncertainties into the analysis.
+    03/README
 
 04 - Markov Chain Monte Carlo
 -----------------------------

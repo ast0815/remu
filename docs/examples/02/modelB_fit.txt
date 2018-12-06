@@ -1,16 +1,16 @@
-                          L: -24.790102574658945
-                        fun: 24.790102574658945
- lowest_optimization_result:       fun: 24.790102574658945
+                          L: -24.840381628756326
+                        fun: 24.840381628756326
+ lowest_optimization_result:       fun: 24.840381628756326
  hess_inv: <1x1 LbfgsInvHessProduct with dtype=float64>
-      jac: array([ -9.94759830e-06])
+      jac: array([ -7.10542736e-06])
   message: 'CONVERGENCE: NORM_OF_PROJECTED_GRADIENT_<=_PGTOL'
-     nfev: 14
-      nit: 5
+     nfev: 20
+      nit: 7
    status: 0
   success: True
-        x: array([ 917.38872947])
+        x: array([ 1042.03782368])
                     message: ['requested number of basinhopping iterations completed successfully']
-      minimization_failures: 1
-                       nfev: 1842
+      minimization_failures: 3
+                       nfev: 2144
                         nit: 100
-                          x: array([ 917.38872947])
+                          x: array([ 1042.03782368])

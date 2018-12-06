@@ -45,11 +45,11 @@ with open("fit_p-values.txt", 'w') as f:
     print_(lm.max_likelihood_p_value(modelA_shape, nproc=4), file=f)
     print_(lm.max_likelihood_p_value(modelB_shape, nproc=4), file=f)
 
-figax = reco_binning.plot_values(None, kwargs1d={'label': 'data'})
+figax = reco_binning.plot_values(None, kwargs1d={'label': 'data', 'color': 'k'})
 modelA_reco = response_matrix.dot(modelA_shape.translate(retA.x))
 modelB_reco = response_matrix.dot(modelB_shape.translate(retB.x))
-reco_binning.plot_ndarray(None, modelA_reco, kwargs1d={'label': 'model A'}, sqrt_errors=True, figax=figax)
-reco_binning.plot_ndarray("reco-comparison.png", modelB_reco, kwargs1d={'label': 'model B'}, sqrt_errors=True, figax=figax)
+reco_binning.plot_ndarray(None, modelA_reco, kwargs1d={'label': 'model A', 'color': 'b'}, sqrt_errors=True, error_xoffset=-0.1, figax=figax)
+reco_binning.plot_ndarray("reco-comparison.png", modelB_reco, kwargs1d={'label': 'model B', 'color': 'r'}, sqrt_errors=True, error_xoffset=+0.1, figax=figax)
 
 with open("mix_model_fit.txt", 'w') as f:
     mix_model = likelihood.TemplateHypothesis([modelA, modelB])
