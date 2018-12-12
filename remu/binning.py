@@ -1490,7 +1490,7 @@ class RectangularBinning(Binning):
 
         self.bins._sumw2_array.flat[:] = arr.flat
 
-    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, denominator=None, sqrt_errors=False, no_plot=False):
+    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, denominator=None, sqrt_errors=False, error_xoffset=0., no_plot=False):
         """Plot a visual representation of an array containing the entries or values of the binning.
 
         Parameters
@@ -1501,6 +1501,8 @@ class RectangularBinning(Binning):
             saved to disk. This is only useful with the `figax` option.
         arr : ndarray
             The array containing the data to be plotted.
+            If the data contains more than one set of bin values (`ndim==2`),
+            the mean value and standard deviation are plotted.
         variables : optional
             One of the following:
 
@@ -1533,6 +1535,8 @@ class RectangularBinning(Binning):
             It is projected the same way `arr` is prior to dividing.
         sqrt_errors : bool, optional
             Plot sqrt(n) error bars.
+        error_xoffset : float, optional
+            Shifts the error bars in the x direction away from the bin centres.
         no_plot : bool, optional
             Do not plot anything, just create the figure and axes.
 
@@ -1555,8 +1559,9 @@ class RectangularBinning(Binning):
             LogNorm = _LogNorm
 
         kw1d = {'drawstyle': 'steps-post'}
-        if sqrt_errors:
+        if sqrt_errors or arr.ndim == 2:
             kw1d['linestyle'] = 'none'
+
         kw1d.update(kwargs1d)
         kw2d = {}
         kw2d.update(kwargs2d)
@@ -1587,10 +1592,32 @@ class RectangularBinning(Binning):
 
         if not no_plot:
             temp_binning = deepcopy(self)
-            temp_binning.set_values_from_ndarray(arr)
-            if denominator is not None:
-                denominator_binning = deepcopy(self)
-                denominator_binning.set_values_from_ndarray(denominator)
+            def get_bin_contents(array, variables):
+                values = []
+                if array.ndim == 2:
+                    for array_i in array:
+                        temp_binning.set_values_from_ndarray(array_i)
+                        projected_binning = temp_binning.project(variables, reduction_function=reduction_function)
+                        values.append(projected_binning.get_values_as_ndarray())
+                    values = np.array(values)
+                    errors = np.std(values, axis=0)
+                    values = np.mean(values, axis=0)
+                    projected_binning.set_values_from_ndarray(values)
+                else:
+                    temp_binning.set_values_from_ndarray(array)
+                    projected_binning = temp_binning.project(variables, reduction_function=reduction_function)
+                    values = projected_binning.get_values_as_ndarray()
+                    errors = None
+
+                # Flip axes if they are not returned as required
+                # For the 2D plots to work out right, the returned variable order has to be flipped
+                if projected_binning.variables[0] != variables[-1]:
+                    values = projected_binning.get_values_as_ndarray(shape=projected_binning.nbins)
+                    values = values.transpose()
+                    values = values.flatten()
+                    # Do not care about errors here, because they are not used in the 2D plots
+
+                return values, errors
 
             def make_finite(edges):
                 ret = list(edges)
@@ -1622,27 +1649,28 @@ class RectangularBinning(Binning):
                     if y_var == x_var:
                         # 1D histogram
 
-                        nn = temp_binning.project([y_var], reduction_function=reduction_function).get_values_as_ndarray()
+                        nn, yerr = get_bin_contents(arr, [y_var])
                         if sqrt_errors:
                             yerr = np.sqrt(nn)
-                        else:
-                            yerr = None
 
                         if denominator is not None:
-                            deno = denominator_binning.project([y_var], reduction_function=reduction_function).get_values_as_ndarray()
+                            deno, denoerr = get_bin_contents(denominator, [y_var])
                             nn /= deno
-                            if sqrt_errors:
+                            if yerr is not None:
                                 yerr /= deno
+                            if denoerr is not None:
+                                raise ValueError("Denominator must be single set of values.")
 
                         if divide:
                             div = (y_edg[1:] - y_edg[:-1])
                             nn /= div
-                            if sqrt_errors:
+                            if yerr is not None:
                                 yerr /= div
 
+                        # Double last bin value so it gets actually drawn in full width
                         nn = np.append(nn, nn[-1])
-                        if sqrt_errors:
-                            y_edg = (y_edg[:-1] + y_edg[1:]) / 2.
+                        if yerr is not None:
+                            y_edg = ((y_edg[:-1] + y_edg[1:]) / 2.) + error_xoffset
                             nn = nn[:-1]
 
 
@@ -1663,13 +1691,7 @@ class RectangularBinning(Binning):
                     else:
                         # 2D histogram
 
-                        tb = temp_binning.project([x_var, y_var], reduction_function=reduction_function)
-                        arr = tb.get_values_as_ndarray(shape=tb.nbins)
-                        if denominator is not None:
-                            arr /= denominator_binning.project([x_var, y_var], reduction_function=reduction_function).get_values_as_ndarray(shape=tb.nbins)
-                        if tb.variables[0] != y_var:
-                            arr = arr.transpose()
-                        arr = arr.flatten()
+                        nn, zerr = get_bin_contents(arr, [x_var, y_var])
 
                         # Bin centres
                         x = np.convolve(x_edg, np.ones(2)/2, mode='valid')
@@ -1685,7 +1707,7 @@ class RectangularBinning(Binning):
                             wyy = np.repeat(wy, len(wx))
                             A = wxx * wyy
 
-                            arr /= A
+                            nn /= A
 
                         if i==len(variables[0])-1:
                             ax[i][j].set_xlabel(x_var)
@@ -1693,7 +1715,7 @@ class RectangularBinning(Binning):
                             ax[i][j].set_ylabel(y_var)
 
                         kw2d.update({'norm': LogNorm()})
-                        ax[i][j].hist2d(xx, yy, weights=arr, bins=(x_edg, y_edg), **kw2d)
+                        ax[i][j].hist2d(xx, yy, weights=nn, bins=(x_edg, y_edg), **kw2d)
 
         fig.tight_layout()
         if filename is not None:
