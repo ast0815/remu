@@ -193,7 +193,10 @@ class LinearHypothesis(CompositeHypothesis):
         if b is None:
             translate = lambda par: np.tensordot(self.M, par, axes=(-1,-1))
         else:
-            translate = lambda par: np.tensordot(self.M, par, axes=(-1,-1)) + self.b
+            if self.M.size == 0:
+                translate = lambda par: self.b
+            else:
+                translate = lambda par: np.tensordot(self.M, par, axes=(-1,-1)) + self.b
 
         CompositeHypothesis.__init__(self, translate, *args, **kwargs)
 
@@ -880,6 +883,18 @@ class LikelihoodMachine(object):
             nll = lambda x: -(np.logaddexp.reduce(likfun(x)) - np.log(N_resp))
         else:
             raise ValueError("Unknown systematics method!")
+
+        if len(composite_hypothesis.parameter_limits) == 0:
+            # Special case!
+            # We seem to be dealing with a degenerate CompositeHypothesis with no free parameters.
+            # Just return a dummy optimisation result.
+            res = optimize.OptimizeResult()
+            res.x = np.ndarray(0)
+            res.fun = nll(res.x)
+            res.P = -res.fun
+            if systematics == 'profile' or systematics == 'maximum':
+                res.i = np.argmax(LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(res.x)))
+            return res
 
         # Parameter limits
         bounds = composite_hypothesis.parameter_limits
