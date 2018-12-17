@@ -504,6 +504,14 @@ class LikelihoodMachine(object):
     def __init__(self, data_vector, response_matrix, truth_limits=None, limit_method='raise', eff_threshold=0., eff_indices=None, is_sparse=False):
         self.data_vector = np.array(data_vector)
         self.response_matrix = np.array(response_matrix)
+        if self.response_matrix.ndim > 3:
+            # Multiple matrices could come arranged as a n-dimensional array.
+            # In principle this should not be a problem, but some places in the
+            # code seem to assume at most a 1D list of matrices. It is simplest
+            # to ensure that shape here. Might revisit this decision if a
+            # n-dimensional array of matrices ever actually becomes
+            # necessary/useful.
+            self.response_matrix.shape = (np.prod(self.response_matrix.shape[:-2]),) + self.response_matrix.shape[-2:]
         if truth_limits is None:
             self.truth_limits = np.full(self.response_matrix.shape[-1], np.inf)
         else:
