@@ -1,3 +1,7 @@
 sphinx==1.8.1
 sphinx-autobuild==0.7.1
 numpydoc==0.8.0
+ruamel.yaml==0.11.15
+numpy==1.11.3
+scipy==1.0.0
+six==1.10.0
