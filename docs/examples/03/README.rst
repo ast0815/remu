@@ -314,13 +314,13 @@ Finally, let us construct confidence intervals of the template weights, *assumin
         fixed_model_A = modelA_shape.fix_parameters((v,))
         fixed_model_B = modelB_shape.fix_parameters((v,))
         A = lm.max_likelihood_ratio_p_value(fixed_model_A, modelA_shape,
-            nproc=4, nested=False)
+            nproc=4)
         A_syst = lm_syst.max_likelihood_ratio_p_value(fixed_model_A,
-            modelA_shape, nproc=4, nested=False)
+            modelA_shape, nproc=4)
         B = lm.max_likelihood_ratio_p_value(fixed_model_B, modelB_shape,
-            nproc=4, nested=False)
+            nproc=4)
         B_syst = lm_syst.max_likelihood_ratio_p_value(fixed_model_B,
-            modelB_shape, nproc=4, nested=False)
+            modelB_shape, nproc=4)
         print_(v, A, A_syst, B, B_syst)
         p_values_A.append(A)
         p_values_B.append(B)
