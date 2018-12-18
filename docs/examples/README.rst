@@ -29,9 +29,4 @@ Example steps
     01/README
     02/README
     03/README
-
-04 - Markov Chain Monte Carlo
------------------------------
-
-This example shows how to use a Markov Chain Monte Carlo (MCMC) to construct a
-Bayesian posterior distribution of model parameters.
+    04/README
