@@ -1801,6 +1801,9 @@ class LikelihoodMachine(object):
     def plot_truth_bin_traces(self, filename, trace, plot_limits=False, bins_per_plot=20):
         """Plot bin by bin MCMC truth traces.
 
+        Uses Matplotlibs ``boxplot``, showing the traces' median (line),
+        quartiles (box), and mean (point).
+
         Parameters
         ----------
 
@@ -1808,8 +1811,9 @@ class LikelihoodMachine(object):
             Where to save the plot.
         trace : array like
             The posterior trace of the truth bin values of an MCMC.
-        plot_limits : bool, optional
+        plot_limits : bool or 'relative', optional
             Also plot the truth limits.
+            If 'relative', the values are divided by the limits before plotting.
         bins_per_plot : int, optional
             How many bins are combined into a single plot.
 
@@ -1862,6 +1866,9 @@ class LikelihoodMachine(object):
 
     def plot_reco_bin_traces(self, filename, trace, toy_index=None, plot_data=False, bins_per_plot=20):
         """Plot bin by bin MCMC reco traces.
+
+        Uses Matplotlibs ``boxplot``, showing the traces' median (line),
+        quartiles (box), and mean (point).
 
         Parameters
         ----------
