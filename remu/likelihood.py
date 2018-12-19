@@ -191,12 +191,12 @@ class LinearHypothesis(CompositeHypothesis):
             self.b = np.array(b, dtype=float)
 
         if b is None:
-            translate = lambda par: np.tensordot(self.M, par, axes=(-1,-1))
+            translate = lambda par: np.tensordot(par, self.M, axes=(-1,-1))
         else:
             if self.M.size == 0:
                 translate = lambda par: self.b
             else:
-                translate = lambda par: np.tensordot(self.M, par, axes=(-1,-1)) + self.b
+                translate = lambda par: np.tensordot(par, self.M, axes=(-1,-1)) + self.b
 
         CompositeHypothesis.__init__(self, translate, *args, **kwargs)
 
