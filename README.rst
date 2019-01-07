@@ -4,18 +4,7 @@ ReMU - Response Matrix Utilities
 
 A framework for likelihood calculations and hypothesis testing using binned events and response matrices.
 
-.. image:: https://travis-ci.org/ast0815/remu.svg?branch=master
-    :target: https://travis-ci.org/ast0815/remu
-    :alt: [Travis-CI]
-.. image:: https://readthedocs.org/projects/remu/badge/?version=latest
-    :target: https://remu.readthedocs.io/en/latest/
-    :alt: [Documentation]
-.. image:: https://coveralls.io/repos/github/ast0815/remu/badge.svg?branch=master
-    :target: https://coveralls.io/github/ast0815/remu?branch=master
-    :alt: [Coverage]
-.. image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1217572.svg
-    :target: https://doi.org/10.5281/zenodo.1217572
-    :alt: [DOI: 10.5281/zenodo.1217572]
+|Travis-CI| |Documentation| |Coverage| |MIT-Licence| |DOI|
 
 Setup
 =====
@@ -99,3 +88,24 @@ If you use ReMU in a publication, please cite it as follows::
 Or just use the DOI and let your bibliography manager handle the rest for you.
 You can cite specififc versions of the software too. Just follow the link
 behind the DOI badge and choose the DOI specific for the release.
+
+
+.. |Travis-CI| image:: https://travis-ci.org/ast0815/remu.svg?branch=master
+    :target: https://travis-ci.org/ast0815/remu
+    :alt: [Travis-CI]
+
+.. |Documentation| image:: https://readthedocs.org/projects/remu/badge/?version=latest
+    :target: https://remu.readthedocs.io/en/latest/
+    :alt: [Documentation]
+
+.. |Coverage| image:: https://coveralls.io/repos/github/ast0815/remu/badge.svg?branch=master
+    :target: https://coveralls.io/github/ast0815/remu?branch=master
+    :alt: [Coverage]
+
+.. |MIT-Licence| image:: https://img.shields.io/badge/license-MIT-yellow.svg
+    :target: https://opensource.org/licenses/MIT
+    :alt: [license: MIT]
+
+.. |DOI| image:: https://zenodo.org/badge/DOI/10.5281/zenodo.1217572.svg
+    :target: https://doi.org/10.5281/zenodo.1217572
+    :alt: [DOI: 10.5281/zenodo.1217572]
