@@ -6,7 +6,7 @@ Aims
 ====
 
 *   Use :meth:`.mcmc` to create a PyMC MCMC object
-*   Use Markov Chain Monte Carlo to create a posterior sample of 
+*   Use Markov Chain Monte Carlo to create a posterior sample of
     :class:`.CompositeHypothesis` parameters
 *   Compare two hypotheses using :meth:`.plr` to calculate the Posterior
     Distribution of the Likelihood Ratio
@@ -282,9 +282,10 @@ away from those limits::
 
 .. image:: truth_traces.png
 
-The box plots show the full range of sample (vertical lines), the quartiles
-(boxes), the median (horizontal lines) and the mean values (points). Here it is
-clear that the posterior distributions are much lower than the limits.
+The box plots show the full range of the sample (vertical lines), the quartiles
+(boxes), the median (horizontal lines), 5% and 95% percentile (error bars), and
+the mean values (points). Here it is clear that the posterior distributions are
+much lower than the limits.
 
 There is a similar method to plot the predicted expectation values in reco
 space::

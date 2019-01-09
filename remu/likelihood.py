@@ -1751,6 +1751,10 @@ class LikelihoodMachine(object):
     def plot_bin_efficiencies(self, filename, plot_limits=False, bins_per_plot=20):
         """Plot bin by bin efficiencies.
 
+        Uses Matplotlibs ``boxplot``, showing the median (line), quartiles
+        (box), 5% and 95% percentile (error bars), and mean (point) of the
+        efficiencies over all matrices.
+
         Parameters
         ----------
 
@@ -1802,7 +1806,7 @@ class LikelihoodMachine(object):
         """Plot bin by bin MCMC truth traces.
 
         Uses Matplotlibs ``boxplot``, showing the traces' median (line),
-        quartiles (box), and mean (point).
+        quartiles (box), 5% and 95% percentile (error bars), and mean (point).
 
         Parameters
         ----------
@@ -1868,7 +1872,7 @@ class LikelihoodMachine(object):
         """Plot bin by bin MCMC reco traces.
 
         Uses Matplotlibs ``boxplot``, showing the traces' median (line),
-        quartiles (box), and mean (point).
+        quartiles (box), 5% and 95% percentile (error bars), and mean (point).
 
         Parameters
         ----------
