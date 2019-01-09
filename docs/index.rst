@@ -9,5 +9,6 @@ Table of contents
 .. toctree::
     :maxdepth: 2
 
+    introduction/README
     examples/README
     modules/README
