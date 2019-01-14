@@ -88,7 +88,7 @@ of a particle, but the detection efficiency depends on the particle's
 direction, it is necessary to also distinguish events by (i.e. "to bin in") the
 true direction of the particle. The binning in reco space does not have to be
 affected by this, and can be chosen by the physics aims and expected number of
-events. This can leading to very asymmetric response matrices:
+events. This can lead to very asymmetric response matrices:
 
 .. image:: asym.svg
 
@@ -150,12 +150,13 @@ response matrices. ReMU thus replaces the infinite integral with a sum over a
 .. math::
     L(\mu) = \frac{1}{N_{\text{toys}}} \sum_{t}^{N_{\text{toys}}} \prod_i \frac{(R^t_{ij}\mu_j)^{n_i} \exp(-R^t_{ij}\mu_j)}{n_i!}
 
-It is common praxis to do an analysis with many different assumed detector
+It is common practice to do an analysis with many different assumed detector
 properties to evaluate systematic uncertainties. The single instances of the
 analysis are often called "universes" or "toys". Each toy (with index
 :math:`t`) can be used to create its corresponding response matrix
-:math:`R^t_{ij}`. The set of all toy matrices will then include the knowledge
-of the detector uncertainties.
+:math:`R^t_{ij}`. The set of all toy matrices will then include the expert
+knowledge of the detector uncertainties, and make it available for the use by
+non-experts.
 
 When testing models against the data, each toy matrix will yield its own reco
 expectation values and its own Poissonian likelihood. The average over all
@@ -163,11 +164,11 @@ toy likelihoods yields the overall likelihood of the tested model:
 
 .. image:: systematics.svg
 
-ReMU handles all of this in the background. It provides the
+ReMU handles all of this in the background in the provided
 :class:`.LikelihoodMachine` class. Its instances are created with the measured
-data and the response matrix information. The user then only has to provide a
-model to be tested and it will return the total likelihood including all
-detector effects::
+data and the toy response matrices provided by the detector experts. The user
+then only has to provide a model to be tested and it will return the total
+likelihood including all detector effects::
 
     lm = likelihood.LikelihoodMachine(data, response_matrix)
     lm.log_likelihood(model)
@@ -197,16 +198,16 @@ then get scaled by the parameters of the hypothesis.
 
 ReMU also offers methods to compute p-values based on the expected likelihood
 values of a model, the maximised likelihood of a :class:`.CompositeHypothesis`,
-or the the expected ratio of maximised likelihoods of two
+or the expected ratio of maximised likelihoods of two
 :class:`.CompositeHypothesis`::
 
     lm.likelihood_p_value(model)
     lm.max_likelihood_p_value(model_shape)
     lm.max_likelihood_ratio_p_value(compositeA, compositeB)
 
-Especially likelihood ratio p-value is useful to construct confidence intervals
-for parameters of a :class:`.CompositeHypothesis`, when combined with the
-method to fix parameters::
+Likelihood ratio p-values are especially useful to construct confidence
+intervals for parameters of a :class:`.CompositeHypothesis`, when combined with
+the method to fix parameters::
 
     for v in values:
         fixed_model = model_shape.fix_parameters((v,))
@@ -222,7 +223,7 @@ each with and without considering the detector systematics:
 
 See :ref:`example02` and :ref:`example03` for details.
 
-Bayesian analysis
+Bayesian analyses
 =================
 
 ReMU also offers methods for Bayesian analyses, especially to do a
@@ -260,3 +261,35 @@ Or do calculations, like sums of parameters::
 .. image:: ../examples/04/sum_posterior.png
 
 See :ref:`example04` for details.
+
+Backgrounds
+===========
+
+Real experiments have to deal not only with the loss of events (efficiency) and
+the slight mis-reconstruction of event properties (smearing), but also with the
+erroneous inclusion of events in the data that are not actually part of the
+signal definition (background). ReMU is able to handle these events organically.
+For this, the response matrix must simply provide a set of truth bins that correspond
+to the background events:
+
+.. image:: folded-BG.svg
+
+Depending on the type of background, the model builders might not be able to
+predict the expectation values of the background. In this case, the background
+expectation values can be left free-floating, as nuisance parameters
+in the :class:`.CompositeHypothesis`.
+
+This can lead to a high number of degrees of freedom that make likelihood fits
+very difficult, though. Also, the background could be such that the measured
+data is not good at constraining its contribution. To deal with that, the
+detector experts can provide one or many background templates that describe the
+background's shape and/or strength in truth space. These can then be added to
+the signal predictions as is, or as part of a simultaneous fit.
+
+For background that is detector specific and does not depend (much) on
+(interesting) physics-model parameters, the background templates could also be
+made a part of the response matrix:
+
+.. image:: template-BG.svg
+
+TODO: A detailed example of background treatment
