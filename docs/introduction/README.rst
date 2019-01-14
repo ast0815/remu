@@ -284,7 +284,10 @@ very difficult, though. Also, the background could be such that the measured
 data is not good at constraining its contribution. To deal with that, the
 detector experts can provide one or many background templates that describe the
 background's shape and/or strength in truth space. These can then be added to
-the signal predictions as is, or as part of a simultaneous fit.
+the signal predictions as is, or as part of a simultaneous fit::
+
+    templates = likelihood.TemplateHypothesis([model, background_template])
+    lm.max_log_likelihood(templates)
 
 For background that is detector specific and does not depend (much) on
 (interesting) physics-model parameters, the background templates could also be
