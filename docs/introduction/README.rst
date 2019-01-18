@@ -76,7 +76,7 @@ properties does.
 
 The most important property of a "correct" response matrix is its
 model-independence. No matter what physics model you use to generate the
-truth-space expectation values :math:`mu_j`, the linear coefficients
+truth-space expectation values :math:`\mu_j`, the linear coefficients
 :math:`R_{ij}` must stay unchanged (within their uncertainties, see below).
 Only then can you use the same matrix to test the many different models
 that you are interested in.
