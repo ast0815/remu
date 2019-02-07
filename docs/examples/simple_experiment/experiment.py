@@ -41,7 +41,7 @@ class ModelAGenerator(Generator):
         return build_array({'true_x': x, 'true_y': y})
 
 class ModelBGenerator(Generator):
-    """Model A
+    """Model B
 
     x, y ~ Normal(mean=[0.0, 0.0], cov=[[1.0,0.5],[0.5,1.0]])
     """
