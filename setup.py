@@ -5,7 +5,7 @@ description='Response Matrix Utilities'
 long_description = """ReMU - Response Matrix Utilities
 
 ReMU is a framework for response matrices in cross-section measurements and
-general counting experiments. It offers functions to build response matricesi,
+general counting experiments. It offers functions to build response matrices,
 and use them to compare truth-space expectation values with actual experimental
 results in reconstructed space.
 
