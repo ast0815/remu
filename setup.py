@@ -55,4 +55,4 @@ setup(name='remu',
       'Programming Language :: Python :: 3',
       'Programming Language :: Python :: 3.4',
     ],
-    zip_safe=False)
+    zip_safe=True)
