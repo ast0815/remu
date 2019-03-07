@@ -1677,6 +1677,61 @@ class LikelihoodMachine(object):
 
         return M
 
+    def marginal_log_likelihood(self, composite_hypothesis, parameters, toy_indices):
+        """Calculate the marginal likelihood.
+
+        Parameters
+        ----------
+
+        composite_hypothesis : CompositeHypothesis
+            The composite hypotheses for which the likelihood will be calculated.
+
+        parameters : array like
+            Array of parameter vectors, drawn from the prior or posterior distribution
+            of the hypothesis, e.g. with the MCMC objects::
+
+                parameters = [
+                    [1.0, 2.0, 3.0],
+                    [1.1, 1.9, 2.8],
+                    ...
+                    ]
+
+        toy_indices, : array_like
+            The corresponding systematic toy indices, in an array of equal
+            dimensionality. That means, even if the toy index is just a single
+            integer, it must be provided as arrays of length 1::
+
+                toy_indices0 = [
+                    [0],
+                    [3],
+                    ...
+                    ]
+
+        Returns
+        -------
+
+        L : float
+            The marginal log-likelihood.
+
+        Notes
+        -----
+
+        The marginal likelihood is used in the construction of bayes factors,
+        when comparing the evidence in the data for two hypotheses::
+
+            bayes_factor = marginal_likelihood0 / marginal_likelihood1
+
+        or in the case of log-likelihoods::
+
+            log_bayes_factor = marginal_log_likelihood0 - marginal_log_likelihood1
+
+        """
+
+        L = self.log_likelihood(composite_hypothesis.translate(parameters),
+            systematics=toy_indices)
+        print L
+        return np.logaddexp.reduce(L) - np.log(len(L))
+
     def plr(self, H0, parameters0, toy_indices0, H1, parameters1, toy_indices1):
         """Calculate the Posterior distribution of the log Likelihood Ratio.
 

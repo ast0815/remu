@@ -1027,6 +1027,14 @@ class TestLikelihoodMachines(unittest.TestCase):
         M = self.L.mcmc(H)
         M.sample(100, burn=50, thin=10, tune_interval=10, progress_bar=False)
 
+    def test_marginal_likelihood(self):
+        """Test the marginal likelihood calculation"""
+        fun = lambda x: np.repeat(x, 2, axis=-1)
+        pri = JeffreysPrior(self.L.response_matrix, fun, [(0,100), (0,100)], (50,50))
+        H0 = CompositeHypothesis(fun, parameter_priors=[pri], parameter_names=['x'])
+        mll = self.L.marginal_log_likelihood(H0, [[50,50], [51,49]], [[0], [0]])
+        self.assertTrue(mll < 0)
+
     def test_plr(self):
         fun = lambda x: np.repeat(x, 2, axis=-1)
         pri = JeffreysPrior(self.L.response_matrix, fun, [(0,100), (0,100)], (50,50))

@@ -10,6 +10,8 @@ Aims
 *   Use :meth:`.mcmc` to create a PyMC MCMC object
 *   Use Markov Chain Monte Carlo to create a posterior sample of
     :class:`.CompositeHypothesis` parameters
+*   Compare two hypotheses using :meth:`.marginal_log_likelihood` to calculate
+    the Bayes factor
 *   Compare two hypotheses using :meth:`.plr` to calculate the Posterior
     Distribution of the Likelihood Ratio
 *   Use a :class:`.JeffreysPrior`
@@ -162,10 +164,8 @@ analyses::
 Compare these central 1 and 2 sigma credible intervals with the confidence
 intervals of the previous examples.
 
-The posterior distributions of the parameters of the two hypotheses tell us
-nothing about the data preference for one or the other. To get this kind of
-information, we can use the Posterior distribution of the Likelihood Ratio
-(PLR)::
+To understand how the data favours one model over the other, we can calculate
+the (log of the) Bayes factor::
 
     toysA = mcmcA.trace('toy_index')[:]
     toysB = mcmcB.trace('toy_index')[:]
@@ -173,6 +173,43 @@ information, we can use the Posterior distribution of the Likelihood Ratio
     iA = toysA[:,np.newaxis]
     tB = traceB[:,np.newaxis]
     iB = toysB[:,np.newaxis]
+
+    print_(lm.marginal_log_likelihood(modelA_shape, tA, iA)
+        - lm.marginal_log_likelihood(modelB_shape, tB, iB))
+
+.. include:: B_posterior.txt
+    :literal:
+
+Model B is strongly favoured. This Bayes factor used the posterior average
+likelihood. Usually the prior average likelihood is used to avoid "using the
+data twice". We can do this by creating a :class:`MCMC` object that ignores the
+data and sampling from it::
+
+
+    mcmcA_prior = lm.mcmc(modelA_shape, prior_only=True)
+    mcmcA_prior.sample(iter=1000*10, burn=100, thin=10)
+    mcmcB_prior = lm.mcmc(modelB_shape, prior_only=True)
+    mcmcB_prior.sample(iter=1000*10, burn=100, thin=10)
+    traceA_prior = mcmcA_prior.trace('template_weight')[:]
+    traceB_prior = mcmcB_prior.trace('template_weight')[:]
+    toysA_prior = mcmcA_prior.trace('toy_index')[:]
+    toysB_prior = mcmcB_prior.trace('toy_index')[:]
+    tAp = traceA_prior[:,np.newaxis]
+    iAp = toysA_prior[:,np.newaxis]
+    tBp = traceB_prior[:,np.newaxis]
+    iBp = toysB_prior[:,np.newaxis]
+
+    print_(lm.marginal_log_likelihood(modelA_shape, tAp, iAp)
+        - lm.marginal_log_likelihood(modelB_shape, tBp, iBp), file=f)
+
+.. include:: B_prior.txt
+    :literal:
+
+Model B is still strongly favoured.
+
+Another possible value to check is the Posterior distribution of the Likelihood
+Ratio (PLR)::
+
     ratios, preference = lm.plr(modelA_shape, tA, iA, modelB_shape, tB, iB)
     print_(preference)
 

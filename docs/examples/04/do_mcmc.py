@@ -67,6 +67,28 @@ tA = traceA[:,np.newaxis]
 iA = toysA[:,np.newaxis]
 tB = traceB[:,np.newaxis]
 iB = toysB[:,np.newaxis]
+
+with open("B_posterior.txt", 'wt') as f:
+    print_(lm.marginal_log_likelihood(modelA_shape, tA, iA)
+        - lm.marginal_log_likelihood(modelB_shape, tB, iB), file=f)
+
+mcmcA_prior = lm.mcmc(modelA_shape, prior_only=True)
+mcmcA_prior.sample(iter=1000*10, burn=100, thin=10)
+mcmcB_prior = lm.mcmc(modelB_shape, prior_only=True)
+mcmcB_prior.sample(iter=1000*10, burn=100, thin=10)
+traceA_prior = mcmcA_prior.trace('template_weight')[:]
+traceB_prior = mcmcB_prior.trace('template_weight')[:]
+toysA_prior = mcmcA_prior.trace('toy_index')[:]
+toysB_prior = mcmcB_prior.trace('toy_index')[:]
+tAp = traceA_prior[:,np.newaxis]
+iAp = toysA_prior[:,np.newaxis]
+tBp = traceB_prior[:,np.newaxis]
+iBp = toysB_prior[:,np.newaxis]
+
+with open("B_prior.txt", 'wt') as f:
+    print_(lm.marginal_log_likelihood(modelA_shape, tAp, iAp)
+        - lm.marginal_log_likelihood(modelB_shape, tBp, iBp), file=f)
+
 ratios, preference = lm.plr(modelA_shape, tA, iA, modelB_shape, tB, iB)
 with open("plr.txt", 'wt') as f:
     print_(preference, file=f)
