@@ -1729,7 +1729,6 @@ class LikelihoodMachine(object):
 
         L = self.log_likelihood(composite_hypothesis.translate(parameters),
             systematics=toy_indices)
-        print L
         return np.logaddexp.reduce(L) - np.log(len(L))
 
     def plr(self, H0, parameters0, toy_indices0, H1, parameters1, toy_indices1):
