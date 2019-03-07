@@ -570,7 +570,7 @@ class Binning(object):
         Parameters
         ----------
 
-        event : [iterable of] dict like or Numpy structured array
+        event : [iterable of] dict like or Numpy structured array or Pandas DataFrame
             The event(s) to be filled into the binning.
         weight : float or iterable of floats, optional
             The weight of the event(s).
@@ -600,16 +600,34 @@ class Binning(object):
                 # Numpy array?
                 event = rename_fields(event, rename)
             except AttributeError:
-                # Dict?
-                for e in event:
-                    for name in rename:
-                        e[rename[name]] = e[name]
+                try:
+                    # Pandas DataFrame?
+                    event = event.rename(index=str, columns=rename)
+                except AttributeError:
+                    # Dict?
+                    for e in event:
+                        for name in rename:
+                            e[rename[name]] = e[name]
 
-        try:
-            # Try to get bin numbers from structured numpy array
-            ibins = list(map(self.get_event_bin_number, np.nditer(event)))
-        except TypeError:
-            # Seems like this is not a structured numpy array
+        ibins = None
+
+        if ibins is None:
+            try:
+                # Try to get bin numbers from a pandas DataFrame
+                ibins = list(map(lambda (i, row): self.get_event_bin_number(row), event.iterrows()))
+            except AttributeError:
+                # Seems like this is not a DataFrame
+                pass
+
+        if ibins is None:
+            try:
+                # Try to get bin numbers from structured numpy array
+                ibins = list(map(self.get_event_bin_number, np.nditer(event)))
+            except TypeError:
+                # Seems like this is not a structured numpy array
+                pass
+
+        if ibins is None:
             try:
                 # Try to get bin numbers from any iterable of events
                 ibins = list(map(self.get_event_bin_number, event))

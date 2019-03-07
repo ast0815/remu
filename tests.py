@@ -7,6 +7,7 @@ from remu.migration import *
 from remu.likelihood import *
 import numpy as np
 from copy import deepcopy
+import pandas as pd
 
 if __name__ == '__main__':
     # Parse arguments for skipping tests
@@ -262,6 +263,12 @@ class TestBinnings(unittest.TestCase):
         self.assertEqual(self.b0.entries, 9)
         self.assertEqual(self.b1.value, 6)
         self.assertEqual(self.b1.entries, 3)
+        df = pd.DataFrame({'x': [0.5, 0.5], 'z': [10, 20]})
+        self.binning.fill(df, rename={'z': 'y'})
+        self.assertEqual(self.b0.value, 13)
+        self.assertEqual(self.b0.entries, 11)
+        self.assertEqual(self.b1.value, 6)
+        self.assertEqual(self.b1.entries, 3)
         self.binning.reset()
         str_arr = np.array([], dtype=[('x', float), ('y', float)])
         self.binning.fill(str_arr)
@@ -416,6 +423,14 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertEqual(self.bl.bins[0].value, 3)
         self.assertEqual(self.bl.bins[0].entries, 3)
         self.assertEqual(self.bl.bins[0].sumw2, 3)
+        self.assertEqual(self.bl.bins[1].value, 4)
+        self.assertEqual(self.bl.bins[1].entries, 2)
+        self.assertEqual(self.bl.bins[1].sumw2, 8)
+        df = pd.DataFrame({'x': [0.5, 0.5], 'z': [-10, -10]})
+        self.bl.fill(df, rename={'z': 'y'})
+        self.assertEqual(self.bl.bins[0].value, 5)
+        self.assertEqual(self.bl.bins[0].entries, 5)
+        self.assertEqual(self.bl.bins[0].sumw2, 5)
         self.assertEqual(self.bl.bins[1].value, 4)
         self.assertEqual(self.bl.bins[1].entries, 2)
         self.assertEqual(self.bl.bins[1].sumw2, 8)
