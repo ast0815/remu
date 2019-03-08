@@ -1,4 +1,4 @@
 ruamel.yaml==0.11.15
-numpy==1.11.3
+numpy==1.16.2
 scipy==1.0.0
 six==1.10.0
