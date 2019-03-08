@@ -614,7 +614,7 @@ class Binning(object):
         if ibins is None:
             try:
                 # Try to get bin numbers from a pandas DataFrame
-                ibins = list(map(lambda (i, row): self.get_event_bin_number(row), event.iterrows()))
+                ibins = list(map(lambda irow: self.get_event_bin_number(irow[1]), event.iterrows()))
             except AttributeError:
                 # Seems like this is not a DataFrame
                 pass
