@@ -109,11 +109,11 @@ class ResponseMatrix(object):
         """Update the list of filled truth indices."""
         self.filled_truth_indices = np.argwhere(self.get_truth_entries_as_ndarray() > 0).flatten()
 
-    def fill(self, event, weight=1.):
+    def fill(self, *args, **kwargs):
         """Fill events into the binnings."""
-        self.truth_binning.fill(event, weight)
-        self.reco_binning.fill(event, weight)
-        self.response_binning.fill(event, weight)
+        self.truth_binning.fill(*args, **kwargs)
+        self.reco_binning.fill(*args, **kwargs)
+        self.response_binning.fill(*args, **kwargs)
         self._update_filled_indices()
 
     def _fix_rounding_errors(self):
@@ -196,6 +196,53 @@ class ResponseMatrix(object):
         new_truth_binning = deepcopy(self.truth_binning)
         new_truth_binning.reset()
         new_truth_binning.fill_from_csv_file(*args, **kwargs)
+        return self._replace_smaller_truth(new_truth_binning)
+
+    def fill_up_truth(self, *args, **kwargs):
+        """Re-fill the truth bins with the given events file.
+
+        This can be used to get proper efficiencies if the true signal events
+        are stored separate from the reconstructed events.
+
+        It takes the same parameters as :meth:`fill`.
+
+        Notes
+        -----
+
+        A new truth binning is created and filled with the events from the
+        provided events. Each bin is compared to the corresponding bin in the
+        already present truth binning. The larger value of the two is taken as
+        the new truth. This way, event types that are not present in the pure
+        truth data, e.g. background, are not affected by this. It can only
+        *increase* the value of the truth bins, lowering their efficiency.
+
+        For each truth bin, one of the following *must* be true for this
+        operation to make sense:
+
+        *   All events in the migration matrix are also present in the new truth
+            events. In this case, the additional truth events lower the
+            efficiency of the truth bin. This is the case, for example, if not
+            all true signal events are reconstructed.
+
+        *   All events in the new truth events are also present in the migration
+            matrix. In this case, the events in the new truth events have no
+            influence on the response matrix. This is the case, for example, if
+            only a subset of the reconstructed background is saved in the truth
+            file.
+
+        If there are events in the response matrix that are not in the new truth
+        events *and* there are events in the new truth events that are not in the
+        response matrix, this method will lead to a *wrong* efficiency of the
+        affected truth bin.
+
+        """
+
+        new_truth_binning = deepcopy(self.truth_binning)
+        new_truth_binning.reset()
+        new_truth_binning.fill(*args, **kwargs)
+        return self._replace_smaller_truth(new_truth_binning)
+
+    def _replace_smaller_truth(self, new_truth_binning):
         new_values = new_truth_binning.get_values_as_ndarray()
         new_entries = new_truth_binning.get_entries_as_ndarray()
         new_sumw2 = new_truth_binning.get_sumw2_as_ndarray()
