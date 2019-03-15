@@ -171,13 +171,23 @@ true yields p-values that can be used to construct the confidence interval::
         p = lm.max_likelihood_ratio_p_value(fixed_model, mix_model, nproc=4)
         p_values.append(p)
 
+    wilks_p_values = []
+    fine_A_values = np.linspace(0, 1000, 100)
+    for A in fine_A_values:
+        fixed_model = mix_model.fix_parameters((A, None))
+        p = lm.wilks_max_likelihood_ratio_p_value(fixed_model, mix_model)
+        print_(A, p)
+        wilks_p_values.append(p)
+
     fig, ax = plt.subplots()
     ax.set_xlabel("Model A weight")
     ax.set_ylabel("p-value")
-    ax.plot(A_values, p_values)
+    ax.plot(A_values, p_values, label="Profile plug-in")
+    ax.plot(fine_A_values, wilks_p_values, label="Wilks")
     ax.axvline(ret.x[0], color='k', linestyle='solid')
     ax.axhline(0.32, color='k', linestyle='dashed')
     ax.axhline(0.05, color='k', linestyle='dashed')
+    ax.legend(loc='best')
     fig.savefig("p-values.png")
 
 .. image:: p-values.png

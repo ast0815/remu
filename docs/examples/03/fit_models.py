@@ -116,13 +116,27 @@ for v in values:
     p_values_A_syst.append(A_syst)
     p_values_B_syst.append(B_syst)
 
+p_values_A_wilks = []
+p_values_B_wilks = []
+fine_values = np.linspace(600, 1600, 100)
+for v in fine_values:
+    fixed_model_A = modelA_shape.fix_parameters((v,))
+    fixed_model_B = modelB_shape.fix_parameters((v,))
+    A = lm_syst.wilks_max_likelihood_ratio_p_value(fixed_model_A, modelA_shape)
+    B = lm_syst.wilks_max_likelihood_ratio_p_value(fixed_model_B, modelB_shape)
+    print_(v, A, B)
+    p_values_A_wilks.append(A)
+    p_values_B_wilks.append(B)
+
 fig, ax = plt.subplots()
 ax.set_xlabel("Model weight")
 ax.set_ylabel("p-value")
 ax.plot(values, p_values_A, label="Model A", color='b', linestyle='dotted')
 ax.plot(values, p_values_A_syst, label="Model A syst", color='b', linestyle='solid')
+ax.plot(fine_values, p_values_A_wilks, label="Model A Wilks", color='b', linestyle='dashed')
 ax.plot(values, p_values_B, label="Model B", color='r', linestyle='dotted')
 ax.plot(values, p_values_B_syst, label="Model B syst", color='r', linestyle='solid')
+ax.plot(fine_values, p_values_B_wilks, label="Model B Wilks", color='r', linestyle='dashed')
 ax.axvline(retA.x[0], color='b', linestyle='dotted')
 ax.axvline(retA_syst.x[0], color='b', linestyle='solid')
 ax.axvline(retB.x[0], color='r', linestyle='dotted')

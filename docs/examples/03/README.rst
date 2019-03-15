@@ -305,7 +305,8 @@ actual maximisation is taking place. Note that the p-values for model A are
 generally smaller than those for model B. This is consistent with previous
 results showing that the data is better described by model B.
 
-Finally, let us construct confidence intervals of the template weights, *assuming that the corresponding model is correct*::
+Finally, let us construct confidence intervals of the template weights,
+*assuming that the corresponding model is correct*::
 
     p_values_A = []
     p_values_B = []
@@ -329,15 +330,31 @@ Finally, let us construct confidence intervals of the template weights, *assumin
         p_values_A_syst.append(A_syst)
         p_values_B_syst.append(B_syst)
 
+    p_values_A_wilks = []
+    p_values_B_wilks = []
+    fine_values = np.linspace(600, 1600, 100)
+    for v in fine_values:
+        fixed_model_A = modelA_shape.fix_parameters((v,))
+        fixed_model_B = modelB_shape.fix_parameters((v,))
+        A = lm_syst.wilks_max_likelihood_ratio_p_value(fixed_model_A, modelA_shape)
+        B = lm_syst.wilks_max_likelihood_ratio_p_value(fixed_model_B, modelB_shape)
+        print_(v, A, B)
+        p_values_A_wilks.append(A)
+        p_values_B_wilks.append(B)
+
     fig, ax = plt.subplots()
     ax.set_xlabel("Model weight")
     ax.set_ylabel("p-value")
     ax.plot(values, p_values_A, label="Model A", color='b', linestyle='dotted')
     ax.plot(values, p_values_A_syst, label="Model A syst", color='b',
         linestyle='solid')
+    ax.plot(fine_values, p_values_A_wilks, label="Model A Wilks", color='b',
+        linestyle='dashed')
     ax.plot(values, p_values_B, label="Model B", color='r', linestyle='dotted')
     ax.plot(values, p_values_B_syst, label="Model B syst", color='r',
         linestyle='solid')
+    ax.plot(fine_values, p_values_B_wilks, label="Model B Wilks", color='r',
+        linestyle='dashed')
     ax.axvline(retA.x[0], color='b', linestyle='dotted')
     ax.axvline(retA_syst.x[0], color='b', linestyle='solid')
     ax.axvline(retB.x[0], color='r', linestyle='dotted')
@@ -359,3 +376,8 @@ getting a worse best-fit likelihood ratio, assuming the tested model-parameter
 is true?". Since the likelihood ratio is 1.0 at the best fit point and the
 likelihood ratio of nested hypotheses is less than or equal to 1.0 by
 construction, the p-value is 100% there.
+
+The method :meth:`.wilks_max_likelihood_ratio_p_value` calculates the same
+p-value as :meth:`.max_likelihood_ratio_p_value`, but does so assuming Wilks'
+theorem holds. This does not require the generation of random data and
+subsequent likelihood maximisations, so it is much faster.

@@ -1375,6 +1375,117 @@ class LikelihoodMachine(object):
         # Return the quotient
         return n / N
 
+    def wilks_max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, systematics='marginal', nested=True, **kwargs):
+        """Calculate the maximum-likelihood-ratio p-value of two composite hypotheses.
+
+        The maximum-likelihood-ratio p-value is the probability of the data
+        yielding a lower ratio of maximum likelihoods (over the possible
+        parameter spaces of the composite hypotheses) than the actual data,
+        given that the best-fit parameter set of hypothesis `H0` is true.
+        This method assumes that Wilk's theorem holds.
+
+        Parameters
+        ----------
+
+        H0 : CompositeHypothesis
+            The tested composite hypothesis. Usually a subset of `H1`.
+
+        H1 : CompositeHypothesis
+            The alternative composite hypothesis.
+
+        par0 : array like, optional
+            The assumed true parameters of the tested hypothesis.If no
+            parameters are given, they will be determined with the maximum
+            likelihood method.
+
+        par1 : array like, optional
+            The maximum likelihood parameters of the alternative hypothesis.
+            If no parameters are given, they will be determined with the
+            maximum likelihood method.
+
+        systematics : {'profile', 'marginal'}, optional
+            How to deal with detector systematics, i.e. multiple response
+            matrices:
+
+            'profile', 'maximum'
+                Choose the response matrix that yields the highest likelihood.
+            'marginal', 'average'
+                Take the arithmetic average probability yielded by the matrices.
+
+        nested : bool or 'ignore', optional
+            Is H0 a nested theory, i.e. does it cover a subset of H1? In this
+            case, the maximum likelihoods must always follow ``L0 <= L1``. If
+            `True` or `'ignore'`, the calculation of likelihood ratios is
+            re-tried a couple of times if no valid likelihood ratio is found.
+            If `True` and no valid value was found after 10 tries, an errors is
+            raised. If `False`, those cases are just accepted.
+
+        **kwargs : optional
+            Additional keyword arguments will be passed to :meth:`max_log_likelihood`.
+
+        Returns
+        -------
+
+        p : float
+            The maximum-likelihood-ratio p-value.
+
+        Notes
+        -----
+
+        This method assumes that Wilks' theorem holds, i.e. that the logarithm
+        of the maximum likelihood ratio of the two hypothesis is distributed
+        like a chi-squared distribution::
+
+            ndof = number_of_parameters_of_H1 - number_of_parameters_of_H0
+            p_value = scipy.stats.chi2.sf(-2*log_likelihood_ratio, df=ndof)
+
+        See also
+        --------
+
+        max_likelihood_ratio_p_value
+        likelihood_p_value
+        max_likelihood_p_value
+        mcmc
+
+        """
+
+        # Get truth vector from assumed true hypothesis
+        if par0 is None:
+            par0 = self.max_log_likelihood(H0, systematics=systematics, **kwargs).x
+        if par1 is None:
+            par1 = self.max_log_likelihood(H1, systematics=systematics, **kwargs).x
+
+        truth_vector = self._reduce_truth_vector(H0.translate(par0))
+        alternative_truth = self._reduce_truth_vector(H1.translate(par1))
+
+        # Get likelihood of actual data
+        p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
+        p1 = self._reduced_log_likelihood(alternative_truth, systematics=systematics)
+        r0 = p0-p1 # difference because log
+
+        # If we assume a nested hypothesis, we should try to fix impossible likelihood ratios
+        nested_tolerance = 1e-2
+        if nested is True or nested == 'ignore':
+            ttl = 10
+            while r0 > nested_tolerance and ttl > 0:
+                try:
+                    p0 = np.maximum(p0, self.max_log_likelihood(H0, systematics=systematics, **kwargs).L)
+                    p1 = np.maximum(p1, self.max_log_likelihood(H1, systematics=systematics, **kwargs).L)
+                except KeyboardInterrupt:
+                    raise Exception("Terminated.")
+                r0 = p0 - p1
+                ttl -= 1
+        if r0 > nested_tolerance and (nested is True):
+            raise RuntimeError("Could not find a valid likelihood ratio! Is H0 a subset of H1?")
+        if r0 > nested_tolerance and (nested == 'ignore'):
+            warn("Could not find a valid likelihood ratio! Is H0 a subset of H1?", stacklevel=2)
+        if r0 > 0 and (nested is True):
+            r0 = 0.
+
+        # Likelihood ratio should be distributed like a chi2 distribution
+        ndof = len(par1) - len(par0)
+        return stats.chi2.sf(-2.*r0, df=ndof)
+
     def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=0, nested=True, **kwargs):
         """Calculate the maximum-likelihood-ratio p-value of two composite hypotheses.
 
@@ -1470,6 +1581,7 @@ class LikelihoodMachine(object):
         See also
         --------
 
+        wilks_max_likelihood_ratio_p_value
         likelihood_p_value
         max_likelihood_p_value
         mcmc
