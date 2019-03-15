@@ -1556,11 +1556,11 @@ class LikelihoodMachine(object):
         Notes
         -----
 
-        When used to reject composite hypotheses, this p-value is somtime
+        When used to reject composite hypotheses, this p-value is sometimes
         called the "profile plug-in p-value", as one "plugs in" the maximum
         likelihood estimate of the hypothesis parameters to calculate it. It's
         coverage properties are not exact, so care has to be taken to make sure
-        it performs as expected (e.g. by testing it with simulated data)..
+        it performs as expected (e.g. by testing it with simulated data).
 
         The p-value is estimated by randomly creating `N` data samples
         according to the given `truth_vector`. The number of data-sets that
