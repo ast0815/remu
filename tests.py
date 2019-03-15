@@ -1024,6 +1024,23 @@ class TestLikelihoodMachines(unittest.TestCase):
         p = self.L.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2}, N=10)
         self.assertTrue(0.0 <= p <= 1.0)
 
+    def test_wilks_max_likelihood_ratio_p_value(self):
+        """Test the calculation of Wilks' p-value of composite hypotheses comparisons."""
+        fun1 = lambda x: x
+        H1 = CompositeHypothesis(fun1, [(0,None)]*4)
+        ret1 = self.L.max_log_likelihood(H1, kwargs={'niter':2})
+        fun = lambda x: np.repeat(x,2)
+        H = CompositeHypothesis(fun, [(0,None),(0,None)])
+        ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
+        p = self.L.wilks_max_likelihood_ratio_p_value(H, H1, par0=ret.x, par1=ret1.x)
+        self.assertTrue(0.0 <= p <= 1.0)
+        p = self.L.wilks_max_likelihood_ratio_p_value(H, H1, par0=[10,10], par1=[1000,1000,1000,1000])
+        self.assertTrue(0.0 <= p <= 1.0)
+        fun = lambda x: np.repeat(x,4)
+        H = CompositeHypothesis(fun, [(0,None)])
+        p = self.L.wilks_max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2})
+        self.assertTrue(0.0 <= p <= 1.0)
+
     @unittest.skipIf(noproc, "Skipping multiprocess test.")
     def test_multiprocess(self):
         """Test parallelisation."""
