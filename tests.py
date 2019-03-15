@@ -971,6 +971,9 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertAlmostEqual(ll, -4.920, places=3)
         self.assertAlmostEqual(x[0], 3.93, places=2)
         self.assertAlmostEqual(x[1], 1.53, places=2)
+        H = LinearHypothesis([[]], [1,1,1,1], parameter_limits=[])
+        ret = self.L2.max_log_likelihood(H)
+        self.assertAlmostEqual(ret.L, -7.170, places=3)
 
     def test_data_sample_generation(self):
         """Test the generatrion of random samples."""
