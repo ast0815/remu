@@ -460,6 +460,9 @@ class LikelihoodMachine(object):
     is_sparse : bool, optional
         Assume that the response matrix is already a sparse matrix with only
         the `eff_indices` being present.
+    matrix_weights : array like, optional
+        Relative weights of the response matrices, to be used in 'marignal'
+        or 'average' likelihood calculations.
 
     Notes
     -----
@@ -501,7 +504,7 @@ class LikelihoodMachine(object):
 
     """
 
-    def __init__(self, data_vector, response_matrix, truth_limits=None, limit_method='raise', eff_threshold=0., eff_indices=None, is_sparse=False):
+    def __init__(self, data_vector, response_matrix, truth_limits=None, limit_method='raise', eff_threshold=0., eff_indices=None, is_sparse=False, matrix_weights=None):
         self.data_vector = np.array(data_vector)
         self.response_matrix = np.array(response_matrix)
         if self.response_matrix.ndim > 3:
@@ -517,6 +520,11 @@ class LikelihoodMachine(object):
         else:
             self.truth_limits = np.array(truth_limits)
         self.limit_method = limit_method
+
+        if matrix_weights is None:
+            self.log_matrix_weights = None
+        else:
+            self.log_matrix_weights = np.log(matrix_weights).flatten()
 
         # Calculate the reduced response matrix for speedier calculations
         if eff_indices is None:
@@ -729,7 +737,7 @@ class LikelihoodMachine(object):
         return LikelihoodMachine._LazyLogProbabilityCalculator(data_vector, response_matrix, _constant)(truth_vector)
 
     @staticmethod
-    def _collapse_systematics_axes(ll, systaxis, systematics):
+    def _collapse_systematics_axes(ll, systaxis, systematics, log_weights=None):
         """Collapse the given axes according to the systematics mode."""
 
         if type(systematics) is tuple:
@@ -749,8 +757,12 @@ class LikelihoodMachine(object):
             ll = np.max(ll, axis=systaxis)
         elif systematics == 'marginal' or systematics == 'average':
             # Return average
-            N = np.prod(np.array(ll.shape)[np.array(systaxis, dtype=int)])
-            ll = np.logaddexp.reduce(ll, axis=systaxis) - np.log(N)
+            if log_weights is None:
+                N = np.prod(np.array(ll.shape)[np.array(systaxis, dtype=int)])
+                ll = np.logaddexp.reduce(ll, axis=systaxis) - np.log(N)
+            else:
+                log_sum_weights = np.logaddexp.reduce(log_weights, axis=systaxis)
+                ll = np.logaddexp.reduce(ll + log_weights, axis=systaxis) - log_sum_weights
         else:
             raise ValueError("Unknown systematics method!")
 
@@ -763,7 +775,7 @@ class LikelihoodMachine(object):
         # Deal with systematics, i.e. multiple response matrices
         systaxis = tuple(range(self.data_vector.ndim-1, self.data_vector.ndim-1+self._reduced_response_matrix.ndim-2))
         if systematics is not None and len(systaxis) > 0:
-            ll = LikelihoodMachine._collapse_systematics_axes(ll, systaxis, systematics)
+            ll = LikelihoodMachine._collapse_systematics_axes(ll, systaxis, systematics, log_weights=self.log_matrix_weights)
 
         return ll
 
@@ -822,7 +834,7 @@ class LikelihoodMachine(object):
         return ll
 
     @staticmethod
-    def max_log_probability(data_vector, response_matrix, composite_hypothesis, systematics='marginal', disp=False, method='basinhopping', kwargs={}):
+    def max_log_probability(data_vector, response_matrix, composite_hypothesis, systematics='marginal', log_matrix_weights=None, disp=False, method='basinhopping', kwargs={}):
         """Calculate the maximum possible probability of the data in a CompositeHypothesis.
 
         Parameters
@@ -846,6 +858,10 @@ class LikelihoodMachine(object):
                 Choose the response matrix that yields the highest probability.
             'marginal', 'average'
                 Take the arithmetic average probability yielded by the matrices.
+
+        log_matrix_weights : array like, optional
+            Logarithm of the matrix weights used for the 'average' or 'marginal'
+            probability calculation.
 
         disp : bool, optional
             Display status messages during optimization.
@@ -887,8 +903,12 @@ class LikelihoodMachine(object):
         if systematics == 'profile' or systematics == 'maximum':
             nll = lambda x: -np.max(likfun(x))
         elif systematics == 'marginal' or systematics == 'average':
-            N_resp = np.prod(response_matrix.shape[:-2])
-            nll = lambda x: -(np.logaddexp.reduce(likfun(x)) - np.log(N_resp))
+            if log_matrix_weights is None:
+                N_resp = np.prod(response_matrix.shape[:-2])
+                nll = lambda x: -(np.logaddexp.reduce(likfun(x)) - np.log(N_resp))
+            else:
+                log_sum_weights = np.logaddexp.reduce(log_matrix_weights)
+                nll = lambda x: -(np.logaddexp.reduce(likfun(x) + log_matrix_weights) - log_sum_weights)
         else:
             raise ValueError("Unknown systematics method!")
 
@@ -1070,13 +1090,13 @@ class LikelihoodMachine(object):
         resp = self._reduced_response_matrix
         # Wrapping composite hypothesis to produce reduced truth vectors
         H0 = self._composite_hypothesis_wrapper(composite_hypothesis)
-        ret = LikelihoodMachine.max_log_probability(self.data_vector, resp, H0, *args, **kwargs)
+        ret = LikelihoodMachine.max_log_probability(self.data_vector, resp, H0, *args, log_matrix_weights=self.log_matrix_weights, **kwargs)
         ret.L = ret.P
         del ret.P
         return ret
 
     @staticmethod
-    def generate_random_data_sample(response_matrix, truth_vector, size=None, each=False):
+    def generate_random_data_sample(response_matrix, truth_vector, size=None, each=False, matrix_weights=None):
         """Generate random data samples from the provided truth_vector.
 
         Parameters
@@ -1093,6 +1113,8 @@ class LikelihoodMachine(object):
             Generate `size` vectors for each response matrix.
             Otherwise `size` determines the total number of generated data
             vectors and the response matrices are chosen randomly.
+        matrix_weights : array like, optional
+            Relative probability of the matrices to be chosen.
 
         """
 
@@ -1118,17 +1140,26 @@ class LikelihoodMachine(object):
             else:
                 mu.shape = (1, mu.shape[-1])
 
+
             if size is not None:
                 # Append truth vector shape to requested shape of data sets
                 try:
                     shape = list(size)
                 except TypeError:
                     shape = [size]
-                i = np.random.randint(mu.shape[0], size=shape)
-                mu = mu[i,...]
             else:
-                i = np.random.randint(mu.shape[0])
-                mu = mu[i,...]
+                shape = [1]
+
+            if matrix_weights is None:
+                i = np.random.randint(mu.shape[0], size=shape)
+            else:
+                p = np.array(matrix_weights).flatten()
+                p /= np.sum(p)
+                i = np.random.choice(mu.shape[0], size=shape, p=p)
+            mu = mu[i,...]
+            if size is None:
+                # Reduce dimensions
+                mu.shape = mu.shape[1:]
 
             return np.random.poisson(mu)
 
@@ -1164,6 +1195,9 @@ class LikelihoodMachine(object):
                 Choose the response matrix that yields the highest likelihood.
             'marginal', 'average'
                 Take the arithmetic average probability yielded by the matrices.
+
+        matrix_weights : array like, optional
+            The relative weights of the matrices used when generating the random data
 
         **kwargs : optional
             Additional keyword arguments will be passed to :meth:`log_likelihood`.
@@ -1214,18 +1248,25 @@ class LikelihoodMachine(object):
             resp = self._reduced_response_matrix
 
         # Draw N fake data distributions
-        fake_data = LikelihoodMachine.generate_random_data_sample(resp, reduced_truth_vector, N)
-        # shape = N, resp_shape-2, data_shape
+        if self.log_matrix_weights is None or generator_matrix_index is not None:
+            fake_data = LikelihoodMachine.generate_random_data_sample(resp, reduced_truth_vector, N)
+        else:
+            fake_data = LikelihoodMachine.generate_random_data_sample(resp, reduced_truth_vector, N, matrix_weights=np.exp(self.log_matrix_weights))
+        # shape = N, data_shape
 
         # Calculate probabilities of each generated sample
         prob = LikelihoodMachine.log_probability(fake_data, self._reduced_response_matrix, reduced_truth_vector, **kwargs)
-        # shape = N, resp_shape-2, resp_shape-2
+        # shape = N, resp_shape-2
 
         # Deal with systematics, i.e. multiple response matrices
-        if prob.ndim > (1+resp.ndim-2):
-            systaxis = tuple(range(1+resp.ndim-2, prob.ndim))
-            prob = LikelihoodMachine._collapse_systematics_axes(prob, systaxis, systematics)
-        # shape = N, resp_shape-2
+        if prob.ndim > 1:
+            systaxis = tuple(range(1, prob.ndim))
+            if self.log_matrix_weights is None or generator_matrix_index is not None:
+                weights = None
+            else:
+                weights = LikelihoodMachine._create_vector_array(self.log_matrix_weights, (N,))
+            prob = LikelihoodMachine._collapse_systematics_axes(prob, systaxis, systematics, log_weights=weights)
+        # shape = N
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
         n = np.sum(prob <= p0, axis=0, dtype=float)
@@ -1331,12 +1372,11 @@ class LikelihoodMachine(object):
             resp = self._reduced_response_matrix
 
         # Draw N fake data distributioxxns
-        fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N)
-        # shape = N, resp_shape-2, data_shape
-        # Flatten the fake data sets from possibly multiple response matrices
-        fake_shape = fake_data.shape
-        fake_data.shape = (np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
-        # shape = N * resp_shape-2, data_shape
+        if self.log_matrix_weights is None or generator_matrix_index is not None:
+            fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N)
+        else:
+            fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N, matrix_weights=np.exp(self.log_matrix_weights))
+        # shape = N, data_shape
 
         # Wrapping composite hypothesis to produce reduced truth vectors
         H0 = self._composite_hypothesis_wrapper(composite_hypothesis)
@@ -1344,7 +1384,7 @@ class LikelihoodMachine(object):
         # Calculate the maximum probabilities
         def prob_fun(data):
             try:
-                prob = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, H0, systematics=systematics, **kwargs).P
+                prob = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, H0, systematics=systematics, log_matrix_weights=self.log_matrix_weights, **kwargs).P
             except KeyboardInterrupt:
                 raise Exception("Terminated.")
             return prob
@@ -1362,9 +1402,7 @@ class LikelihoodMachine(object):
             del p
         else:
             prob = np.fromiter(map(prob_fun, fake_data), dtype=float)
-        # shape = N*resp_shape-2
-        prob.shape = fake_shape[0:-1] + prob.shape[1:]
-        # shape = N, resp_shape-2
+        # shape = N
 
         # Get likelihood of actual data
         p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
@@ -1627,12 +1665,11 @@ class LikelihoodMachine(object):
             resp = self._reduced_response_matrix
 
         # Draw N fake data distributions
-        fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N)
-        # shape = N, resp_shape-2, data_shape
-        # Flatten the fake data sets from possibly multiple response matrices
-        fake_shape = fake_data.shape
-        fake_data.shape = (np.prod(fake_data.shape[:-1]), fake_data.shape[-1])
-        # shape = N * resp_shape-2, data_shape
+        if self.log_matrix_weights is None or generator_matrix_index is not None:
+            fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N)
+        else:
+            fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N, matrix_weights=np.exp(self.log_matrix_weights))
+        # shape = N, data_shape
 
         # Wrapping composite hypothesis to produce reduced truth vectors
         wH0 = self._composite_hypothesis_wrapper(H0)
@@ -1688,9 +1725,7 @@ class LikelihoodMachine(object):
             del p
         else:
             ratio = np.fromiter(map(ratio_fun, fake_data), dtype=float)
-        # shape = N*resp_shape-2
-        ratio.shape = fake_shape[0:-1] + ratio.shape[1:]
-        # shape = N, resp_shape-2
+        # shape = N
 
         # Count number of probabilities lower than or equal to the likelihood of the real data
         n = np.sum(ratio <= r0, axis=0, dtype=float)
@@ -1743,6 +1778,7 @@ class LikelihoodMachine(object):
         # Toy index as additional stochastic
         n_toys = np.prod(self.response_matrix.shape[:-2])
         toy_index = pymc.DiscreteUniform('toy_index', lower=0, upper=(n_toys-1))
+        #TODO: Implement non-uniform toy index priors for weighted matrics
 
         # The parameter pymc stochastics
         parameters = []
@@ -1958,6 +1994,7 @@ class LikelihoodMachine(object):
             x = np.arange(i*bins_per_plot, min((i+1)*bins_per_plot, eff.shape[-1]), dtype=int)
             ax[i].set_ylabel("Efficiency")
             ax[i].boxplot(eff[:,i*bins_per_plot:(i+1)*bins_per_plot], whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=x)
+            # TODO: Weightes plot for weighted matrices?
             if plot_limits:
                 ax2 = ax[i].twinx()
                 ax2.plot(x, self.truth_limits[i*bins_per_plot:(i+1)*bins_per_plot], drawstyle='steps-mid', color='green')

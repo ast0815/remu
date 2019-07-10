@@ -869,6 +869,8 @@ class TestLikelihoodMachines(unittest.TestCase):
         response_matrix.append(rm.get_response_matrix_as_ndarray())
         self.L = LikelihoodMachine(data_vector, response_matrix[0])
         self.L2 = LikelihoodMachine(data_vector, np.array([response_matrix])[...,[1,2,3]], truth_limits=[np.inf]*4, eff_indices=[1,2,3], is_sparse=True)
+        self.L3 = LikelihoodMachine(data_vector, np.array([response_matrix])[...,[1,2,3]], truth_limits=[np.inf]*4, eff_indices=[1,2,3], is_sparse=True, matrix_weights=[2.,1.])
+        self.L4 = LikelihoodMachine(data_vector, np.array([response_matrix[0]]+response_matrix)[...,[1,2,3]], truth_limits=[np.inf]*4, eff_indices=[1,2,3], is_sparse=True)
 
     def test_log_probabilities(self):
         """Test n-dimensional calculation of probabilities."""
@@ -928,6 +930,10 @@ class TestLikelihoodMachines(unittest.TestCase):
         ret = self.L2.log_likelihood(self.truth_vector, systematics=None)
         self.assertAlmostEqual(ret[0], -4.6137056388801092)
         self.assertAlmostEqual(ret[1], -5.6439287294984988)
+        ret = self.L3.log_likelihood(self.truth_vector, systematics='marginal')
+        self.assertAlmostEqual(ret, -4.8549591379478764)
+        ret4 = self.L4.log_likelihood(self.truth_vector, systematics='marginal')
+        self.assertAlmostEqual(ret, ret4)
         ret = self.L2.log_likelihood(self.truth_vector, systematics=(0,))
         self.assertAlmostEqual(ret, -4.6137056388801092)
         ret = self.L2.log_likelihood([self.truth_vector, self.truth_vector], systematics=(1,))
@@ -974,6 +980,10 @@ class TestLikelihoodMachines(unittest.TestCase):
         H = LinearHypothesis([[]], [1,1,1,1], parameter_limits=[])
         ret = self.L2.max_log_likelihood(H)
         self.assertAlmostEqual(ret.L, -7.170, places=3)
+        ret = self.L3.max_log_likelihood(H)
+        self.assertAlmostEqual(ret.L, -6.914, places=3)
+        ret4 = self.L4.max_log_likelihood(H)
+        self.assertAlmostEqual(ret.L, ret4.L)
 
     def test_data_sample_generation(self):
         """Test the generatrion of random samples."""
@@ -988,6 +998,10 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.assertEqual(mc.shape, (5,6,4))
         mc = LikelihoodMachine.generate_random_data_sample(self.L2.response_matrix, truth[1:], (5,6), each=True)
         self.assertEqual(mc.shape, (5,6,2,4))
+        mc = LikelihoodMachine.generate_random_data_sample(self.L3.response_matrix, truth[1:], (5,6))
+        self.assertEqual(mc.shape, (5,6,4))
+        mc = LikelihoodMachine.generate_random_data_sample(self.L4.response_matrix, truth[1:], (5,6))
+        self.assertEqual(mc.shape, (5,6,4))
 
     def test_likelihood_p_value(self):
         """Test the calculation of p-values."""
@@ -996,6 +1010,10 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.truth_vector[2] += 4
         p = self.L.likelihood_p_value(self.truth_vector, N=250000)
         self.assertTrue(abs(p-0.725) < 0.01)
+        p3 = self.L3.likelihood_p_value(self.truth_vector, N=250000)
+        p4 = self.L4.likelihood_p_value(self.truth_vector, N=250000)
+        self.assertTrue(abs(p3-p4) < 0.01)
+        self.assertTrue(abs(p-p4) > 0.01)
 
     def test_max_likelihood_p_value(self):
         """Test the calculation of the p-value of composite hypotheses."""
@@ -1008,6 +1026,10 @@ class TestLikelihoodMachines(unittest.TestCase):
         H = CompositeHypothesis(fun, [(0,None)])
         ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
         p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2}, N=10)
+        self.assertTrue(0. <= p <= 1.0)
+        p = self.L2.max_likelihood_p_value(H, ret.x, kwargs={'niter':2}, N=10)
+        self.assertTrue(0. <= p <= 1.0)
+        p = self.L3.max_likelihood_p_value(H, ret.x, kwargs={'niter':2}, N=10)
         self.assertTrue(0. <= p <= 1.0)
 
     def test_max_likelihood_ratio_p_value(self):
@@ -1026,6 +1048,10 @@ class TestLikelihoodMachines(unittest.TestCase):
         H = CompositeHypothesis(fun, [(0,None)])
         p = self.L.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2}, N=10)
         self.assertTrue(0.0 <= p <= 1.0)
+        p = self.L2.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2}, N=10)
+        self.assertTrue(0.0 <= p <= 1.0)
+        p = self.L3.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2}, N=10)
+        self.assertTrue(0.0 <= p <= 1.0)
 
     def test_wilks_max_likelihood_ratio_p_value(self):
         """Test the calculation of Wilks' p-value of composite hypotheses comparisons."""
@@ -1043,6 +1069,12 @@ class TestLikelihoodMachines(unittest.TestCase):
         H = CompositeHypothesis(fun, [(0,None)])
         p = self.L.wilks_max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2})
         self.assertTrue(0.0 <= p <= 1.0)
+        p = self.L2.wilks_max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2})
+        self.assertTrue(0.0 <= p <= 1.0)
+        p3 = self.L3.wilks_max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2})
+        self.assertTrue(0.0 <= p3 <= 1.0)
+        p4 = self.L4.wilks_max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2})
+        self.assertAlmostEqual(p3, p4)
 
     @unittest.skipIf(noproc, "Skipping multiprocess test.")
     def test_multiprocess(self):
