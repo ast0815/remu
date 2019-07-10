@@ -378,7 +378,7 @@ class JeffreysPrior(object):
         Parameters
         ----------
 
-        parameters : aray like
+        parameters : array like
             The parameters of the translation function.
         toy_index : int, optional
             The index of the response matrix to be used for the calculation
@@ -1777,8 +1777,12 @@ class LikelihoodMachine(object):
 
         # Toy index as additional stochastic
         n_toys = np.prod(self.response_matrix.shape[:-2])
-        toy_index = pymc.DiscreteUniform('toy_index', lower=0, upper=(n_toys-1))
-        #TODO: Implement non-uniform toy index priors for weighted matrics
+        if self.log_matrix_weights is None:
+            toy_index = pymc.DiscreteUniform('toy_index', lower=0, upper=(n_toys-1))
+        else:
+            p = np.exp(self.log_matrix_weights)
+            p /= np.sum(p)
+            toy_index = pymc.Categorical('toy_index', p=p)
 
         # The parameter pymc stochastics
         parameters = []
