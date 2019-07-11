@@ -833,6 +833,86 @@ class LikelihoodMachine(object):
 
         return ll
 
+    def best_possible_log_likelihood(self, truth_vector, systematics='marginal'):
+        """Calculate the best possible log likelihood of a vector of truth expectation values.
+
+        Maximises the likelihood over possible data.
+
+        Parameters
+        ----------
+
+        truth_vector : array like
+            Array of truth expectation values. Can be a multidimensional array
+            of truth vectors. The shape of the array must be `(a, b, c, ...,
+            n_truth_values)`.
+
+        systematics : {'profile', 'marginal'} or tuple or ndarray or None
+            How to deal with detector systematics, i.e. multiple response
+            matrices:
+
+            'profile', 'maximum'
+                Choose the response matrix that yields the highest probability.
+            'marginal', 'average'
+                Take the arithmetic average probability yielded by the
+                matrices.
+            `tuple(index)`
+                Select one specific matrix.
+            `array(indices)`
+                Select a specific matrix for each truth vector. Must have the
+                shape ``(a, b, c, ..., len(index))``.
+            `None`
+                Do nothing, return multiple likelihoods.
+
+        Notes
+        -----
+
+        The maximisation is a simple local method starting from the actual data.
+        IT is in no way guaranteed to find a global minimum.
+
+        """
+
+        if np.any(truth_vector > self.truth_limits):
+            if self.limit_method == 'raise':
+                i = np.argwhere(truth_vector > self.truth_limits)[0,-1]
+                raise RuntimeError("Truth value %d is above allowed limits!"%(i,))
+            elif self.limit_method == 'prohibit':
+                return -np.inf
+            else:
+                raise ValueError("Unknown limit method: '%s'"%(self.limit_method))
+
+        # Use reduced truth values for efficient calculations.
+        reduced_truth_vector = self._reduce_truth_vector(truth_vector)
+
+        def ll(data):
+            ll = LikelihoodMachine.log_probability(data, self._reduced_response_matrix, reduced_truth_vector)
+
+            # Deal with systematics, i.e. multiple response matrices
+            systaxis = tuple(range(data.ndim-1, data.ndim-1+self._reduced_response_matrix.ndim-2))
+            if systematics is not None and len(systaxis) > 0:
+                ll = LikelihoodMachine._collapse_systematics_axes(ll, systaxis, systematics, log_weights=self.log_matrix_weights)
+            # Maximise over whatever is left
+            ll = LikelihoodMachine._collapse_systematics_axes(ll, tuple(range(ll.ndim)), 'maximum')
+
+            return ll
+
+        # Find a local maximum by stepping through neighbouring values one by one
+        # TODO: This is quite slow
+        done = False
+        data = np.array(self.data_vector)
+        while not done:
+            done = True
+            for i in range(len(data)):
+                step = np.zeros_like(data)
+                step[i] = 1
+                while ll(data) < ll(data + step):
+                    data += step
+                    done = False
+                while ll(data) < ll(data - step):
+                    data -= step
+                    done = False
+
+        return ll(data)
+
     @staticmethod
     def max_log_probability(data_vector, response_matrix, composite_hypothesis, systematics='marginal', log_matrix_weights=None, disp=False, method='basinhopping', kwargs={}):
         """Calculate the maximum possible probability of the data in a CompositeHypothesis.

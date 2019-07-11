@@ -952,6 +952,16 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.L.limit_method = 'garbage'
         self.assertRaises(ValueError, lambda: self.L.log_likelihood(self.truth_vector))
 
+    def test_best_possible_likelihood(self):
+        self.assertAlmostEqual(self.L.best_possible_log_likelihood(self.truth_vector), -4.6137056388801092)
+        ret = self.L2.best_possible_log_likelihood(self.truth_vector, systematics='marginal')
+        self.assertAlmostEqual(ret, -3.5727488803986978)
+        ret = self.L2.best_possible_log_likelihood([self.truth_vector, self.truth_vector*10])
+        self.assertAlmostEqual(ret, -3.5727488803986978)
+        ret3 = self.L3.best_possible_log_likelihood(self.truth_vector)
+        ret4 = self.L4.best_possible_log_likelihood(self.truth_vector)
+        self.assertAlmostEqual(ret3, ret4)
+
     def test_max_log_likelihood(self):
         """Test maximum likelihood calculation with CompositeHypotheses"""
         fun = lambda x: np.insert(x, 0, 0.)
