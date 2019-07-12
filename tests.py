@@ -661,6 +661,16 @@ class TestResponseMatrices(unittest.TestCase):
         self.assertEqual(truth[0,0], 0)
         resp = self.rm.get_response_values_as_ndarray((2,2,2,2))
         self.assertEqual(resp[0,0,0,0], 0)
+        self.rm.set_reco_values_from_ndarray(reco)
+        self.rm.set_truth_values_from_ndarray(truth)
+        self.rm.set_truth_values_from_ndarray(truth)
+        self.rm.set_response_values_from_ndarray(resp)
+        self.rm.set_truth_entries_from_ndarray(truth)
+        self.rm.set_truth_entries_from_ndarray(truth)
+        self.rm.set_response_entries_from_ndarray(resp)
+        self.rm.set_truth_sumw2_from_ndarray(truth)
+        self.rm.set_truth_sumw2_from_ndarray(truth)
+        self.rm.set_response_sumw2_from_ndarray(resp)
 
     def test_matrix_consistency(self):
         """Test that matrix and truth vector reproduce the reco vector."""

@@ -282,6 +282,43 @@ class ResponseMatrix(object):
         self.response_binning.reset()
         self._update_filled_indices()
 
+    def set_truth_values_from_ndarray(self, *args, **kwargs):
+        """Set the values of the truth binning as `ndarray`."""
+        self.truth_binning.set_values_from_ndarray(*args, **kwargs)
+
+    def set_truth_entries_from_ndarray(self, *args, **kwargs):
+        """Set the number of entries in the truth binning as `ndarray`."""
+        self.truth_binning.set_entries_from_ndarray(*args, **kwargs)
+        self._update_filled_indices()
+
+    def set_truth_sumw2_from_ndarray(self, *args, **kwargs):
+        """Set the sum of squared weights in the truth binning as `ndarray`."""
+        self.truth_binning.set_sumw2_from_ndarray(*args, **kwargs)
+
+    def set_reco_values_from_ndarray(self, *args, **kwargs):
+        """Set the values of the reco binning as `ndarray`."""
+        self.reco_binning.set_values_from_ndarray(*args, **kwargs)
+
+    def set_reco_entries_from_ndarray(self, *args, **kwargs):
+        """Set the number of entries in the reco binning as `ndarray`."""
+        self.reco_binning.set_entries_from_ndarray(*args, **kwargs)
+
+    def set_reco_sumw2_from_ndarray(self, *args, **kwargs):
+        """Set the sum of squared weights in the reco binning as `ndarray`."""
+        self.reco_binning.set_sumw2_from_ndarray(*args, **kwargs)
+
+    def set_response_values_from_ndarray(self, *args, **kwargs):
+        """Set the values of the response binning as `ndarray`."""
+        self.response_binning.set_values_from_ndarray(*args, **kwargs)
+
+    def set_response_entries_from_ndarray(self, *args, **kwargs):
+        """Set the number of entries in the response binning as `ndarray`."""
+        self.response_binning.set_entries_from_ndarray(*args, **kwargs)
+
+    def set_response_sumw2_from_ndarray(self, *args, **kwargs):
+        """Set the sum of squared weights in the response binning as `ndarray`."""
+        self.response_binning.set_sumw2_from_ndarray(*args, **kwargs)
+
     def get_truth_values_as_ndarray(self, *args, **kwargs):
         """Get the values of the truth binning as `ndarray`."""
         return self.truth_binning.get_values_as_ndarray(*args, **kwargs)
