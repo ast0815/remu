@@ -1508,7 +1508,7 @@ class RectangularBinning(Binning):
 
         self.bins._sumw2_array.flat[:] = arr.flat
 
-    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, denominator=None, sqrt_errors=False, error_xoffset=0., no_plot=False):
+    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, denominator=None, sqrt_errors=False, error_xoffset=0., legendprop={}, no_plot=False):
         """Plot a visual representation of an array containing the entries or values of the binning.
 
         Parameters
@@ -1541,6 +1541,8 @@ class RectangularBinning(Binning):
         kwargs1d, kwargs2d : dict, optional
             Additional keyword arguments for the 1D/2D histograms.
             If the key `label` is present, a legend will be drawn.
+        legendprop : dict, optional
+            Additional `prop` arguments for the legend.
         figax : tuple of (Figure, list of list of Axis), optional
             Pair of figure and axes to be used for plotting.
             Can be used to plot multiple binnings on top of one another.
@@ -1704,7 +1706,9 @@ class RectangularBinning(Binning):
                             ax[i][j].axhline(nn[-1], 1.0, 1.1, color='k', linestyle='dotted', clip_on=False)
 
                         if 'label' in kw1d:
-                            ax[i][j].legend(loc='best', framealpha=0.5, prop={'size':10})
+                            prop = {'size': 10}
+                            prop.update(legendprop)
+                            ax[i][j].legend(loc='best', framealpha=0.5, prop=prop)
 
                     else:
                         # 2D histogram

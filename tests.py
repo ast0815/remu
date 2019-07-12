@@ -556,7 +556,7 @@ class TestRectangularBinnings(unittest.TestCase):
     def test_plots(self):
         """Test plots."""
         with open('/dev/null', 'wb') as f:
-            figax = self.bl.plot_entries(f, kwargs1d={'label': 'entries'})
+            figax = self.bl.plot_entries(f, kwargs1d={'label': 'entries'}, legendprop={'size':6})
             self.bl.plot_values(f, figax=figax)
             self.bl.plot_values(f, variables=(None,None))
 
