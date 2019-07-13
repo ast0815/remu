@@ -16,8 +16,17 @@ detector effects. Intimate knowledge of the detector is only needed to build
 the response matrix, *not* to use it.
 """
 
+def get_version():
+    """Get the version number by parsing the package's __init__.py."""
+    with open("remu/__init__.py", 'rt') as f:
+        for line in f:
+            if line.startswith("__version__ = "):
+                return eval(line[14:])
+        else:
+            raise RuntimeError("Could not determine package version!")
+
 setup(name='remu',
-    version='0.4.1',
+    version=get_version(),
     description=description,
     long_description=long_description,
     url='http://github.com/ast0815/remu',
