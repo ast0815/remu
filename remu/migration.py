@@ -1944,3 +1944,35 @@ class ResponseMatrixArrayBuilder(object):
         M = M * scale[:,np.newaxis,:]
 
         return np.mean(M, axis=0)
+
+    def save(self, filename, compress=False):
+        """Save all necessary information for a :class:`.LikelihoodMachine`.
+
+        Saves all necessary information to create a :class:`.LikelihoodMachine`
+        in a NumPy ``.npz`` archive. This can then be loaded by
+        :meth:`.LikelihoodMachine.from_matrix_builder`.
+
+        Parameters
+        ----------
+
+        filename : str or file
+            Where to store the arrays
+        compress : bool, optional
+            Whether to use compression
+
+        See also
+        --------
+
+        .LikelihoodMachine.from_matrix_builder
+
+        """
+
+        data = {
+            'matrices': self.get_random_response_matrices_as_ndarray(),
+            'truth_entries': self.get_truth_entries_as_ndarray(),
+            }
+
+        if compress:
+            np.savez_compressed(filename, **data)
+        else:
+            np.savez(filename, **data)

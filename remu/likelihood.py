@@ -504,6 +504,37 @@ class LikelihoodMachine(object):
 
     """
 
+    @classmethod
+    def from_matrix_builder(cls, data_vector, filename, **kwargs):
+        """Create a :class:`LikelihoodMachine` using :class:`.ResponseMatrixArrayBuilder` output.
+
+        Parameters
+        ----------
+
+        data_vector : array like
+            The vector with the actual data
+        filename : str or file
+            The output file of :meth:`.ResponseMatrixArrayBuilder.save`
+        **kwargs : optional
+            Additional keyword arguments for the :class:`LikelihoodMachine`
+
+        See also
+        --------
+
+        .migration.ResponseMatrixArrayBuilder.save
+
+        """
+
+        response = np.load(filename)
+        truth_entries = response['truth_entries']
+        args = {
+            'truth_limits': truth_entries,
+            'eff_indices': list(np.flatnonzero(truth_entries)),
+            'is_sparse': True,
+        }
+        args.update(kwargs)
+        return cls(data_vector, response['matrices'], **args)
+
     def __init__(self, data_vector, response_matrix, truth_limits=None, limit_method='raise', eff_threshold=0., eff_indices=None, is_sparse=False, matrix_weights=None):
         self.data_vector = np.array(data_vector)
         self.response_matrix = np.array(response_matrix)
