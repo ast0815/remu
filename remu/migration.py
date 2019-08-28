@@ -1682,32 +1682,34 @@ class ResponseMatrixArrayBuilder(object):
 
     This class is used to generate the random response matrices from multiple
     toy simulations covering the detector uncertainties. Each toy simulation
-    yields one ResponseMatrix object. These ResponseMatrices are then combined
-    with a `ResponseMatrixArrayBuilder`.
+    yields one :class:`ResponseMatrix` object. These are then combined with
+    the :class:`ResponseMatrixArrayBuilder`.
 
-    The `ResponseMatrixArrayBuilder` is designed to use as little memory as
-    possible. It stores only the necessary information of the
-    `ResponseMatrices`, *not* the `ResponseMatrix` objects themselves. It only
-    stores the truth bins that were actually filled.
+    The :class:`ResponseMatrixArrayBuilder` is designed to use as little memory
+    as possible. It stores only the necessary information of the
+    :class:`ResponseMatrix`, *not* the :class:`ResponseMatrix` objects
+    themselves. It only stores the truth bins that were actually filled.
 
     The matrices must have been built using the same truth information! The
     filled bins may only differ in the nuisance bins. When creating the final
-    `ndarray`, missing nuisance columns are filled with default values (0).
+    :class:`ndarray`, missing nuisance columns that were filled in some but not
+    all matrices are filled with default values (0).
 
     The relative efficiencies of the nuisance bins are guaranteed to be
     consistent between the different response matrices. The absolute value of
     the efficiencies is not conserved. In fact, the efficiency for
-    nuisance bin ``j`` in ResponseMatrix ``t`` will be::
+    nuisance bin ``j`` in :class:`ResponseMatrix` ``t`` will be::
 
-        eff_tj = N_tj / sum_t( N_tj)
+        eff_tj = N_tj / max_t( N_tj)
 
-    where ``N_tj`` is the value of nuisance truth bin ``j`` in ResponseMatrix
-    ``t``. This means the efficiency of the nuisance bins decreases with the
-    number of added matrices. This has to be taken into account when creating
-    truth templates for the nuisance bins. They should consist of the *sum* of
-    the selected nuisance events over the different toy simulations. This way,
-    the template multiplied with the ndarray will re-create the number of
-    selected nuisance events in each bin for all toy response matrices.
+    where ``N_tj`` is the value of nuisance truth bin ``j`` in
+    :class:`ResponseMatrix` ``t``. This means the efficiency of the nuisance
+    bins can decrease with the number of added matrices. This has to be taken
+    into account when creating truth templates for the nuisance bins. They
+    should consist of the *max* of the selected nuisance events over the
+    different toy simulations. This way, the template multiplied with the
+    ndarray will re-create the number of selected nuisance events in each bin
+    for all toy response matrices.
 
     """
 
@@ -1732,7 +1734,7 @@ class ResponseMatrixArrayBuilder(object):
         Parameters
         ----------
 
-        response_matrix : ResponseMatrix
+        response_matrix : :class:`ResponseMatrix`
 
         Notes
         -----
@@ -1804,20 +1806,22 @@ class ResponseMatrixArrayBuilder(object):
         use the sum of truth values over all matrices as denominator off the
         efficiency, e.g. the efficiency of nuisance truth bin j in matrix t:
 
-            eff_tj = N_tj / sum_t( N_tj)
+            eff_tj = N_tj / max_t( N_tj)
 
-        This means the efficiency of the nuisance bins goes down with more
-        added toy matrices.  This could be counteracted by multiplying the
-        efficiency with the number of matrices, but that could lead to
-        efficiencies >1, which can lead to mathematical problems further down
-        the line.
+        This means the efficiency of the nuisance bins can decrease with the
+        number of added matrices. This has to be taken into account when
+        creating truth templates for the nuisance bins. They should consist of
+        the *max* of the selected nuisance events over the different toy
+        simulations. This way, the template multiplied with the ndarray will
+        re-create the number of selected nuisance events in each bin for all
+        toy response matrices.
 
         """
 
         all_indices = self._get_filled_truth_indices_set()
         nuisance_indices = set(self._nuisance_indices)
         filled_nuisance_indices = all_indices & nuisance_indices
-        max_tv = np.sum(tv, axis=0)
+        max_tv = np.max(tv, axis=0)
         max_tv = np.where(max_tv > 0, max_tv, 1.0)
         scale = np.ones_like(tv) # Start with scales = 1
         for i in np.searchsorted(sorted(all_indices), sorted(filled_nuisance_indices)):
@@ -1831,15 +1835,16 @@ class ResponseMatrixArrayBuilder(object):
         -------
 
         ndarray
-            A big `ndarray` containing `nstat` generated matrices for each
-            `ResponseMatrix` that has been added.
+            A big :class:`ndarray` containing `nstat` generated matrices for
+            each :class:`ResponseMatrix` that has been added.
 
         Notes
         -----
 
         The returned matrices will only contain the columns, i.e. truth bins,
-        that have been filled in at least one of the added ResponseMatrices.
-        The shape of the returned array will be::
+        that have been filled in at least one of the added
+        :class:`ResponseMatrix` objects. The shape of the returned array will
+        be::
 
             (#(RepsonseMatrices), [nstat,] #(reco bins), #(filled truth bins))
 
@@ -1890,15 +1895,16 @@ class ResponseMatrixArrayBuilder(object):
         -------
 
         ndarray
-            A big `ndarray` containing the mean matrix for each
-            `ResponseMatrix` that has been added.
+            A big :class:`ndarray` containing the mean matrix for each
+            :class:`ResponseMatrix` that has been added.
 
         Notes
         -----
 
         The returned matrices will only contain the columns, i.e. truth bins,
-        that have been filled in at least one of the added ResponseMatrices.
-        The shape of the returned array will be::
+        that have been filled in at least one of the added
+        :class:`ResponseMatrix` objects. The shape of the returned array will
+        be::
 
             (#(RepsonseMatrices), #(reco bins), #(filled truth bins))
 
