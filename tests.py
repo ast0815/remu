@@ -824,15 +824,6 @@ class TestResponseMatrixArrayBuilders(unittest.TestCase):
         M = self.builder.get_truth_entries_as_ndarray()
         self.assertEqual(tuple(M), (2,3,3,2))
 
-    def test_response_values(self):
-        """Test the response values array generation."""
-        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        self.builder.add_matrix(self.rm)
-        self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
-        self.builder.add_matrix(self.rm)
-        M = self.builder.get_response_values_as_ndarray()
-        self.assertEqual(M.shape, (16,))
-
 class TestCompositeHypotheses(unittest.TestCase):
     def setUp(self):
         fun = lambda x: np.insert(x, 0, 0.)

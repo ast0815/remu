@@ -1723,7 +1723,6 @@ class ResponseMatrixArrayBuilder(object):
         self._mean_matrices = []
         self._truth_values = []
         self._truth_entries = None
-        self._response_values = None
         self._filled_indices = []
         self._nuisance_indices = None
 
@@ -1762,7 +1761,6 @@ class ResponseMatrixArrayBuilder(object):
             matrix = response_matrix.get_response_matrix_as_ndarray(truth_indices=filled_indices)
         mean_matrix = response_matrix.get_mean_response_matrix_as_ndarray(truth_indices=filled_indices)
         truth_values = response_matrix.get_truth_values_as_ndarray(indices=filled_indices)
-        response_values = response_matrix.get_response_values_as_ndarray() # We need *all* entries
         truth_entries = response_matrix.get_truth_entries_as_ndarray() # We need *all* entries
 
         self._filled_indices.append(filled_indices)
@@ -1773,10 +1771,6 @@ class ResponseMatrixArrayBuilder(object):
             self._truth_entries = truth_entries
         else:
             self._truth_entries = np.maximum(self._truth_entries, truth_entries)
-        if self._response_values is None:
-            self._response_values = response_values
-        else:
-            self._response_values += response_values
         self.nmatrices += 1
 
     def _get_filled_truth_indices_set(self):
@@ -1799,10 +1793,6 @@ class ResponseMatrixArrayBuilder(object):
     def get_truth_entries_as_ndarray(self):
         """Return the array of maximum entries in the truth bins."""
         return self._truth_entries
-
-    def get_response_values_as_ndarray(self):
-        """Return the mean values of the response bins."""
-        return self._response_values / self.nmatrices
 
     def _get_truth_value_scale(self, tv):
         """Get scale to make nuisance bins consistent.
