@@ -929,7 +929,12 @@ class LikelihoodMachine(object):
         -----
 
         The maximisation is a simple local method starting from the actual data.
-        IT is in no way guaranteed to find a global minimum.
+        It is in no way guaranteed to find a global minimum.
+
+        See also
+        --------
+
+        max_log_likelihood
 
         """
 
@@ -974,6 +979,28 @@ class LikelihoodMachine(object):
                     done = False
 
         return ll(data)
+
+    def pseudo_chi2(self, truth_vector):
+        """Calculate the pseudo chi2 goodness of fit of a truth vector.
+
+        This calculates the likelihood ratio between the given data and the
+        best possible data fit to the truth vector::
+
+            -2 * ln(L(data) / L(best possible data))
+
+        It should *not* be confused with the ratio of likelihoods when
+        maximising over a composite hypothesis parameter space!
+
+        See also
+        --------
+
+        max_likelihood_p_valuey
+        max_likelihood_ratio_p_valuey
+        wilks_max_likelihood_ratio_p_value
+
+        """
+
+        return 2. * (self.best_possible_log_likelihood(truth_vector) - self.log_likelihood(truth_vector))
 
     @staticmethod
     def max_log_probability(data_vector, response_matrix, composite_hypothesis, systematics='marginal', log_matrix_weights=None, disp=False, method='basinhopping', kwargs={}):

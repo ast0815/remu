@@ -995,6 +995,9 @@ class TestLikelihoodMachines(unittest.TestCase):
         ret4 = self.L4.best_possible_log_likelihood(self.truth_vector)
         self.assertAlmostEqual(ret3, ret4)
 
+    def test_pseudo_chi2(self):
+        self.assertAlmostEqual(self.L.pseudo_chi2(self.truth_vector), 0)
+
     def test_max_log_likelihood(self):
         """Test maximum likelihood calculation with CompositeHypotheses"""
         fun = lambda x: np.insert(x, 0, 0.)
