@@ -900,6 +900,11 @@ class TestLikelihoodMachines(unittest.TestCase):
         self.L3 = LikelihoodMachine(data_vector, np.array([response_matrix])[...,[1,2,3]], truth_limits=[np.inf]*4, eff_indices=[1,2,3], is_sparse=True, matrix_weights=[2.,1.])
         self.L4 = LikelihoodMachine(data_vector, np.array([response_matrix[0]]+response_matrix)[...,[1,2,3]], truth_limits=[np.inf]*4, eff_indices=[1,2,3], is_sparse=True)
 
+    def test_truth_folding(self):
+        """Test folding truth vectors into reco space."""
+        self.assertEqual(self.L.fold(self.truth_vector).shape, (4,))
+        self.assertEqual(self.L2.fold(self.truth_vector).shape, (2,4))
+
     def test_log_probabilities(self):
         """Test n-dimensional calculation of probabilities."""
         # Three data sets

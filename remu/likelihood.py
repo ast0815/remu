@@ -689,6 +689,13 @@ class LikelihoodMachine(object):
 
         return reco
 
+    def fold(self, truth_vector):
+        """Fold a truth vector to reco space.
+
+        Will generate one reco space vector for each matrix.
+        """
+        return LikelihoodMachine._translate(self._reduced_response_matrix, self._reduce_truth_vector(truth_vector))
+
     class _LazyLogProbabilityCalculator(object):
         """Class for lazy probability computations.
 
