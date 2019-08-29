@@ -446,8 +446,10 @@ class LikelihoodMachine(object):
 
     data_vector : array like
         The vector with the actual data
-    response_matrix : array like
-        One or more response matrices as ndarrays
+    response_matrix : array like, str, or file
+        One or more response matrices as ndarrays.
+        When using a file exportet by :meth:`.ResponseMatrix.export`,
+        it will set proper default values for the other parameters below.
     truth_limits : array like, optional
         The upper limits of the truth bins up to which the response matrix
         stays valid.
@@ -504,38 +506,60 @@ class LikelihoodMachine(object):
 
     """
 
-    @classmethod
-    def from_matrix_builder(cls, data_vector, filename, **kwargs):
-        """Create a :class:`LikelihoodMachine` using :class:`.ResponseMatrixArrayBuilder` output.
+    @staticmethod
+    def _args_from_matrix_file(filename):
+        """Create arguments for initialisation from :class:`.ResponseMatrix` output file.
 
         Parameters
         ----------
 
-        data_vector : array like
-            The vector with the actual data
         filename : str or file
-            The output file of :meth:`.ResponseMatrixArrayBuilder.save`
-        **kwargs : optional
-            Additional keyword arguments for the :class:`LikelihoodMachine`
+            The output file of :meth:`.ResponseMatrix.save`
+
+        Returns
+        -------
+
+        response_matrix : ndarray
+            The response matrix
+        kwargs : dict
+            Compatible kwargs for the initialisation
 
         See also
         --------
 
+        .migration.ResponseMatrix.save
         .migration.ResponseMatrixArrayBuilder.save
 
         """
 
-        response = np.load(filename)
-        truth_entries = response['truth_entries']
+        response = dict(np.load(filename))
+        matrix = response.pop('matrix')
+        truth_entries = response.pop('truth_entries')
         args = {
             'truth_limits': truth_entries,
-            'eff_indices': list(np.flatnonzero(truth_entries)),
-            'is_sparse': True,
         }
-        args.update(kwargs)
-        return cls(data_vector, response['matrices'], **args)
+        args.update(response)
+        return matrix, args
 
-    def __init__(self, data_vector, response_matrix, truth_limits=None, limit_method='raise', eff_threshold=0., eff_indices=None, is_sparse=False, matrix_weights=None):
+    def __init__(self, data_vector, response_matrix, **kwargs):
+        try:
+            # Load response matrix and necessary arguments from file
+            matrix, args = self._args_from_matrix_file(response_matrix)
+        except TypeError:
+            pass
+        else:
+            response_matrix = matrix
+            args.update(kwargs) # Overwrite automatic arguments with explicit ones
+            kwargs = args
+        truth_limits = kwargs.pop('truth_limits', None)
+        limit_method = kwargs.pop('limit_method', 'raise')
+        eff_threshold = kwargs.pop('eff_threshold', 0.)
+        eff_indices =  kwargs.pop('eff_indices', None)
+        is_sparse = kwargs.pop('is_sparse', False)
+        matrix_weights = kwargs.pop('matrix_weights', None)
+        if len(kwargs) > 0:
+            raise TypeError("Unknown keyword arguments: %s"%(kwargs.keys()))
+
         self.data_vector = np.array(data_vector)
         self.response_matrix = np.array(response_matrix)
         if self.response_matrix.ndim > 3:

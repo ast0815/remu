@@ -1666,6 +1666,59 @@ class ResponseMatrix(object):
         ret._update_filled_indices()
         return ret
 
+    def export(self, filename, compress=False, nstat=None, sparse=True):
+        """Save all necessary information for a :class:`.LikelihoodMachine`.
+
+        Saves all necessary information to create a :class:`.LikelihoodMachine`
+        in a NumPy ``.npz`` archive.
+
+        Parameters
+        ----------
+
+        filename : str or file
+            Where to store the arrays.
+        compress : bool, optional
+            Whether to use compression.
+        nstat : int, optional
+            How many random variations of the matrix to generate.
+            Default: Export mean matrix, no random variation
+        sparse : bool, optional
+            Should a sparse version be exported, or the full matrix.
+
+        See also
+        --------
+
+        .LikelihoodMachine
+        ResponseMatrixArrayBuilder.export
+
+        """
+
+        if nstat is None:
+            matrix = self.get_mean_response_matrix_as_ndarray()
+        else:
+            matrix = self.generate_random_response_matrices(size=nstat)
+        truth_entries = self.get_truth_entries_as_ndarray()
+
+        if sparse:
+            eff_indices = list(np.flatnonzero(truth_entries))
+            matrix = matrix[...,eff_indices]
+            data = {
+                'matrix': matrix,
+                'truth_entries': truth_entries,
+                'eff_indices': eff_indices,
+                'is_sparse': True,
+                }
+        else:
+            data = {
+                'matrix': matrix,
+                'truth_entries': truth_entries,
+                }
+
+        if compress:
+            np.savez_compressed(filename, **data)
+        else:
+            np.savez(filename, **data)
+
 class ResponseMatrixArrayBuilder(object):
     """Class that generates consistent ndarrays from multiple response matrix objects.
 
@@ -1945,12 +1998,11 @@ class ResponseMatrixArrayBuilder(object):
 
         return np.mean(M, axis=0)
 
-    def save(self, filename, compress=False):
+    def export(self, filename, compress=False):
         """Save all necessary information for a :class:`.LikelihoodMachine`.
 
         Saves all necessary information to create a :class:`.LikelihoodMachine`
-        in a NumPy ``.npz`` archive. This can then be loaded by
-        :meth:`.LikelihoodMachine.from_matrix_builder`.
+        in a NumPy ``.npz`` archive.
 
         Parameters
         ----------
@@ -1963,13 +2015,19 @@ class ResponseMatrixArrayBuilder(object):
         See also
         --------
 
-        .LikelihoodMachine.from_matrix_builder
+        .LikelihoodMachine
+        ResponseMatrix.export
 
         """
 
+        matrix =  self.get_random_response_matrices_as_ndarray()
+        truth_entries = self.get_truth_entries_as_ndarray()
+
         data = {
-            'matrices': self.get_random_response_matrices_as_ndarray(),
-            'truth_entries': self.get_truth_entries_as_ndarray(),
+            'matrix': matrix,
+            'truth_entries': truth_entries,
+            'eff_indices': list(np.flatnonzero(truth_entries)),
+            'is_sparse': True,
             }
 
         if compress:
