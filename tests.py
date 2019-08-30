@@ -559,6 +559,8 @@ class TestRectangularBinnings(unittest.TestCase):
             figax = self.bl.plot_entries(f, kwargs1d={'label': 'entries'}, legendprop={'size':6})
             self.bl.plot_values(f, figax=figax)
             self.bl.plot_values(f, variables=(None,None))
+            self.bl.plot_values(f, sqrt_errors=True, error_band=True)
+            self.bl.plot_values(f, sqrt_errors=True, error_band='step')
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""

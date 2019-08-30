@@ -1464,7 +1464,7 @@ class ResponseMatrix(object):
         See also
         --------
 
-        remu.Binning.RectangularBinning.plot_values
+        .RectangularBinning.plot_values
 
         """
 
@@ -1478,7 +1478,7 @@ class ResponseMatrix(object):
         See also
         --------
 
-        remu.binning.RectangularBinning.plot_entries
+        .RectangularBinning.plot_entries
 
         """
 

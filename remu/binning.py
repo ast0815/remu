@@ -1508,7 +1508,7 @@ class RectangularBinning(Binning):
 
         self.bins._sumw2_array.flat[:] = arr.flat
 
-    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, denominator=None, sqrt_errors=False, error_xoffset=0., legendprop={}, no_plot=False):
+    def plot_ndarray(self, filename, arr, variables=None, divide=True, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, denominator=None, sqrt_errors=False, error_xoffset=0., error_band=False, legendprop={}, no_plot=False):
         """Plot a visual representation of an array containing the entries or values of the binning.
 
         Parameters
@@ -1555,8 +1555,11 @@ class RectangularBinning(Binning):
             It is projected the same way `arr` is prior to dividing.
         sqrt_errors : bool, optional
             Plot sqrt(n) error bars.
+            Overrides the plotting of `mean` and `std` in case of 2D arrays.
         error_xoffset : float, optional
             Shifts the error bars in the x direction away from the bin centres.
+        error_band : bool or 'step', optional
+            Fill area instead of drawing error bars.
         no_plot : bool, optional
             Do not plot anything, just create the figure and axes.
 
@@ -1578,9 +1581,15 @@ class RectangularBinning(Binning):
             from matplotlib.colors import LogNorm as _LogNorm
             LogNorm = _LogNorm
 
-        kw1d = {'drawstyle': 'steps-post'}
-        if sqrt_errors or arr.ndim == 2:
-            kw1d['linestyle'] = 'none'
+        if error_band:
+            if error_band == 'step':
+                kw1d = {'step': 'post'}
+            else:
+                kw1d = {}
+        else:
+            kw1d = {'drawstyle': 'steps-post'}
+            if sqrt_errors or arr.ndim == 2:
+                kw1d['linestyle'] = 'none'
 
         kw1d.update(kwargs1d)
         kw2d = {}
@@ -1688,15 +1697,24 @@ class RectangularBinning(Binning):
                                 yerr /= div
 
                         # Double last bin value so it gets actually drawn in full width
-                        nn = np.append(nn, nn[-1])
-                        if yerr is not None:
-                            y_edg = ((y_edg[:-1] + y_edg[1:]) / 2.) + error_xoffset
-                            nn = nn[:-1]
-
+                        if yerr is None:
+                            # No errors
+                            nn = np.append(nn, nn[-1])
+                        else:
+                            if error_band == 'step':
+                                # Also double last error
+                                nn = np.append(nn, nn[-1])
+                                yerr = np.append(yerr, yerr[-1])
+                            else:
+                                # Drawing error bars
+                                y_edg = ((y_edg[:-1] + y_edg[1:]) / 2.) + error_xoffset
 
                         ax[i][j].set_xlabel(y_var)
 
-                        ax[i][j].errorbar(y_edg, nn, yerr=yerr, **kw1d)
+                        if error_band:
+                            ax[i][j].fill_between(y_edg, nn-yerr, nn+yerr, **kw1d)
+                        else:
+                            ax[i][j].errorbar(y_edg, nn, yerr=yerr, **kw1d)
 
                         # Mark open ended bins
                         if not np.isfinite(self.binedges[y_var][0]):
