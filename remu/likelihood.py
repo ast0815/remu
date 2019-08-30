@@ -353,6 +353,14 @@ class JeffreysPrior(object):
     """
 
     def __init__(self, response_matrix, translation_function, parameter_limits, default_values, dx=None, total_truth_limit=None):
+        try:
+            # Load response matrix and necessary arguments from file
+            matrix, args = LikelihoodMachine._args_from_matrix_file(response_matrix)
+        except TypeError:
+            pass
+        else:
+            response_matrix = matrix
+
         old_shape = response_matrix.shape
         new_shape = (int(np.prod(old_shape[:-2])), old_shape[-2], old_shape[-1])
         self.response_matrix = response_matrix.reshape(new_shape)
