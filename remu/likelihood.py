@@ -356,7 +356,7 @@ class JeffreysPrior(object):
         try:
             # Load response matrix and necessary arguments from file
             matrix, args = LikelihoodMachine._args_from_matrix_file(response_matrix)
-        except TypeError:
+        except (TypeError, AttributeError):
             pass
         else:
             response_matrix = matrix
