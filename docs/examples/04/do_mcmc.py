@@ -13,10 +13,8 @@ with open("../01/optimised-truth-binning.yml", 'rt') as f:
 reco_binning.fill_from_csv_file("../00/real_data.txt")
 data = reco_binning.get_entries_as_ndarray()
 
-response_matrix = np.load("../03/response_matrix.npy")
-generator_truth = np.load("../03/generator_truth.npy")
-response_matrix.shape = (np.prod(response_matrix.shape[:-2]),) + response_matrix.shape[-2:]
-lm = likelihood.LikelihoodMachine(data, response_matrix, truth_limits=generator_truth, limit_method='prohibit')
+response_matrix = "../03/response_matrix.npz"
+lm = likelihood.LikelihoodMachine(data, response_matrix, limit_method='prohibit')
 
 truth_binning.fill_from_csv_file("../00/modelA_truth.txt")
 modelA = truth_binning.get_values_as_ndarray()

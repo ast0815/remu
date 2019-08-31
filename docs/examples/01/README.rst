@@ -233,16 +233,12 @@ information for the model comaprisons in later example steps::
     with open("optimised-truth-binning.yml", 'w') as f:
         binning.yaml.dump(optimised.truth_binning, f)
 
-    M = optimised.get_mean_response_matrix_as_ndarray()
-    np.save("response_matrix.npy", M)
+    optimised.export("response_matrix.npz")
 
-    entries = optimised.get_truth_entries_as_ndarray()
-    np.save("generator_truth.npy", entries)
-
-The method ``get_mean_response_matrix_as_ndarray`` takes the statistical
-uncertainties of the matrix elements into account. And just to be sure, we can
-check again whether the matrices generated with the single models A and B are
-still compatible with the optimised truth binning::
+This will export the mean response matrix, according to the statistical
+uncertainties of the matrix elements. And just to be sure, we can check again
+whether the matrices generated with the single models A and B are still
+compatible with the optimised truth binning::
 
     with open("reco-binning.yml", 'rt') as f:
         reco_binning = binning.yaml.load(f)

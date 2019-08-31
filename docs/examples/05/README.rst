@@ -1,4 +1,4 @@
-.. _example04:
+.. _example05:
 
 ========================================================
 Example 05 -- Advanced data loading with pandas and ROOT
@@ -13,7 +13,9 @@ Aims
 Instructions
 ============
 
-Pandas is an open source, BSD-licensed library providing high-performance, easy-to-use data structures and data analysis tools for the Python programming language::
+Pandas is an open source, BSD-licensed library providing high-performance,
+easy-to-use data structures and data analysis tools for the Python programming
+language:
 
 https://pandas.pydata.org/
 
@@ -35,8 +37,8 @@ structured data::
 .. include:: df.txt
     :literal:
 
-ReMU supports :class:`DataFrame` objects as inputs for all :meth:`.fill`
-methods::
+ReMU supports :class:`DataFrame` objects as inputs for all
+:meth:`fill <.Binning.fill>` methods::
 
     with open("muon-binning.yml", 'rt') as f:
         muon_binning = binning.yaml.load(f)
@@ -48,7 +50,7 @@ methods::
 
 This way, ReMU supports the same input file formats as the pandas library,
 e.g. CSV, JSON, HDF5, SQL, etc..
-Using the uproot library, pandas can also be used to load ROOT files::
+Using the uproot library, pandas can also be used to load ROOT files:
 
 https://github.com/scikit-hep/uproot
 
@@ -57,8 +59,9 @@ particle physics:
 
 https://root.cern.ch/
 
-Uproot does *not* need the actual ROOT framework to be installed to work.
-It can convert a flat ROOT :class:`TTree` directly into a usable pandas :class:`DataFrame`::
+Uproot does *not* need the actual ROOT framework to be installed to work. It
+can convert a flat ROOT :class:`TTree` directly into a usable pandas
+:class:`DataFrame`::
 
     import uproot
 
@@ -84,9 +87,10 @@ It can convert a flat ROOT :class:`TTree` directly into a usable pandas :class:`
 
 .. image:: flat_muons.png
 
-ReMU expects exactly one row per event. If the root file is not flat, but
-has a more complicated structure, it must be converted to that structure
-first. For example, let us take a look at a file where each event has varying numbers of reconstructed particles::
+ReMU expects exactly one row per event. If the root file is not flat, but has a
+more complicated structure, it must be converted to that structure first. For
+example, let us take a look at a file where each event has varying numbers of
+reconstructed particles::
 
     structured_tree = uproot.open("HZZ.root")['events']
     print_(structured_tree.keys())
@@ -112,8 +116,9 @@ value or the same number of values are selected::
 .. include:: flattened_df.txt
     :literal:
 
-This double-index structure is still not suitable as input for ReMU, though.
-We can select only the first muon in each event, to get the required "one event per row" structure::
+This double-index structure is still not suitable as input for ReMU, though. We
+can select only the first muon in each event, to get the required "one event
+per row" structure::
 
     df = df.loc[(slice(None),0), :]
     print_(df)

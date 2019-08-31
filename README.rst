@@ -71,8 +71,8 @@ Run all test cases of the framework::
     $ pip install -r test-requirements.txt
     $ ./run_tests.sh
 
-Documentation
-=============
+Online documentation
+====================
 
 Online documentation including examples can be found on the project's readthedocs page:
 

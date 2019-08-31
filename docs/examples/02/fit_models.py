@@ -4,8 +4,7 @@ from matplotlib import pyplot as plt
 from remu import binning
 from remu import likelihood
 
-response_matrix = np.load("../01/response_matrix.npy")
-generator_truth = np.load("../01/generator_truth.npy")
+response_matrix = "../01/response_matrix.npz"
 
 with open("../01/reco-binning.yml", 'rt') as f:
     reco_binning = binning.yaml.load(f)
@@ -15,7 +14,7 @@ with open("../01/optimised-truth-binning.yml", 'rt') as f:
 reco_binning.fill_from_csv_file("../00/real_data.txt")
 data = reco_binning.get_entries_as_ndarray()
 
-lm = likelihood.LikelihoodMachine(data, response_matrix, truth_limits=generator_truth, limit_method='prohibit')
+lm = likelihood.LikelihoodMachine(data, response_matrix, limit_method='prohibit')
 
 truth_binning.fill_from_csv_file("../00/modelA_truth.txt")
 modelA = truth_binning.get_values_as_ndarray()
@@ -46,10 +45,12 @@ with open("fit_p-values.txt", 'w') as f:
     print_(lm.max_likelihood_p_value(modelB_shape, nproc=4), file=f)
 
 figax = reco_binning.plot_values(None, kwargs1d={'label': 'data', 'color': 'k'})
-modelA_reco = response_matrix.dot(modelA_shape.translate(retA.x))
-modelB_reco = response_matrix.dot(modelB_shape.translate(retB.x))
-reco_binning.plot_ndarray(None, modelA_reco, kwargs1d={'label': 'model A', 'color': 'b'}, sqrt_errors=True, error_xoffset=-0.1, figax=figax)
-reco_binning.plot_ndarray("reco-comparison.png", modelB_reco, kwargs1d={'label': 'model B', 'color': 'r'}, sqrt_errors=True, error_xoffset=+0.1, figax=figax)
+modelA_reco = lm.fold(modelA_shape.translate(retA.x))
+modelA_chi2 = lm.pseudo_chi2(modelA_shape.translate(retA.x))
+modelB_reco = lm.fold(modelB_shape.translate(retB.x))
+modelB_chi2 = lm.pseudo_chi2(modelB_shape.translate(retB.x))
+reco_binning.plot_ndarray(None, modelA_reco, kwargs1d={'label': 'model A: $\chi^2=%.1f$'%(modelA_chi2), 'color': 'b'}, sqrt_errors=True, error_xoffset=-0.1, figax=figax)
+reco_binning.plot_ndarray("reco-comparison.png", modelB_reco, kwargs1d={'label': 'model B: $\chi^2=%.1f$'%(modelB_chi2), 'color': 'r'}, sqrt_errors=True, error_xoffset=+0.1, figax=figax)
 
 with open("mix_model_fit.txt", 'w') as f:
     mix_model = likelihood.TemplateHypothesis([modelA, modelB])

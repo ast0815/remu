@@ -483,7 +483,7 @@ class Binning(object):
 
     phasespace : PhaseSpace
         The :class:`PhaseSpace` the Binning resides in.
-    bins : list of :class:`Bin`s
+    bins : list of :class:`Bin`
         The list of disjoint bins on that PhaseSpace.
 
     """

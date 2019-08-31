@@ -27,8 +27,7 @@ matrix::
     from remu import binning
     from remu import likelihood
 
-    response_matrix = np.load("../01/response_matrix.npy")
-    generator_truth = np.load("../01/generator_truth.npy")
+    response_matrix = "../01/response_matrix.npz"
 
     with open("../01/reco-binning.yml", 'rt') as f:
         reco_binning = binning.yaml.load(f)
@@ -38,7 +37,8 @@ matrix::
     reco_binning.fill_from_csv_file("../00/real_data.txt")
     data = reco_binning.get_entries_as_ndarray()
 
-    lm = likelihood.LikelihoodMachine(data, response_matrix, truth_limits=generator_truth, limit_method='prohibit')
+    lm = likelihood.LikelihoodMachine(data, response_matrix,
+        limit_method='prohibit')
 
 Now we need some models to test against the data. We will use the models A and
 B of the previous steps, but we will turn them into area-normalised templates::
@@ -122,11 +122,18 @@ that 4 processes should be used in parallel.
 We can also take a qualitative look at the fit of data and the two models by
 plotting the result in reco space::
 
-    figax = reco_binning.plot_values(None, kwargs1d={'label': 'data', 'color': 'k'})
-    modelA_reco = response_matrix.dot(modelA_shape.translate(retA.x))
-    modelB_reco = response_matrix.dot(modelB_shape.translate(retB.x))
-    reco_binning.plot_ndarray(None, modelA_reco, kwargs1d={'label': 'model A', 'color': 'b'}, sqrt_errors=True, figax=figax)
-    reco_binning.plot_ndarray("reco-comparison.png", modelB_reco, kwargs1d={'label': 'model B', 'color': 'r'}, sqrt_errors=True, figax=figax)
+    figax = reco_binning.plot_values(None,
+        kwargs1d={'label': 'data', 'color': 'k'})
+    modelA_reco = lm.fold(modelA_shape.translate(retA.x))
+    modelA_chi2 = lm.pseudo_chi2(modelA_shape.translate(retA.x))
+    modelB_reco = lm.fold(modelB_shape.translate(retB.x))
+    modelB_chi2 = lm.pseudo_chi2(modelB_shape.translate(retB.x))
+    reco_binning.plot_ndarray(None, modelA_reco,
+        kwargs1d={'label': 'model A: $\chi^2=%.1f$'%(modelA_chi2), 'color': 'b'},
+        sqrt_errors=True, error_xoffset=-0.1, figax=figax)
+    reco_binning.plot_ndarray("reco-comparison.png", modelB_reco,
+        kwargs1d={'label': 'model B: $\chi^2=%.1f$'%(modelB_chi2), 'color': 'r'},
+        sqrt_errors=True, error_xoffset=+0.1, figax=figax)
 
 .. image:: reco-comparison.png
 
@@ -134,6 +141,13 @@ Here the models' expectation values are plotted with ``sqrt(n)`` error bars as
 an approximation of their expected data ranges. The actual likelihood
 calculation uses the correct Poisson probabilities. The models' data points
 are shifted horizontally for readability.
+
+The :meth:`.pseudo_chi2` is calculated from the :meth:`.log_likelihood` of the
+hypothesis given the data, and its :meth:`.best_possible_log_likelihood`, i.e.
+the maximised likelihood over possible data variations). It is not the correct
+number to use for Frequentist exclusions of hypotheses, but it can give an idea
+of the general fit of hypothesis and data.
+
 
 Usually there is more than one template to be fitted to the data. Let's see
 what happens if we allow combinations of model A and B::

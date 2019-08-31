@@ -13,15 +13,12 @@ reco_binning.fill_from_csv_file("../00/real_data.txt")
 data = reco_binning.get_entries_as_ndarray()
 
 # No systematics LikelihoodMachine
-response_matrix = np.load("../01/response_matrix.npy")
-generator_truth = np.load("../01/generator_truth.npy")
-lm = likelihood.LikelihoodMachine(data, response_matrix, truth_limits=generator_truth, limit_method='prohibit')
+response_matrix = "../01/response_matrix.npz"
+lm = likelihood.LikelihoodMachine(data, response_matrix, limit_method='prohibit')
 
 # Systematics LikelihoodMachine
-response_matrix_syst = np.load("response_matrix.npy")
-generator_truth_syst = np.load("generator_truth.npy")
-response_matrix_syst.shape = (np.prod(response_matrix_syst.shape[:-2]),) + response_matrix_syst.shape[-2:]
-lm_syst = likelihood.LikelihoodMachine(data, response_matrix_syst, truth_limits=generator_truth_syst, limit_method='prohibit')
+response_matrix_syst = "response_matrix.npz"
+lm_syst = likelihood.LikelihoodMachine(data, response_matrix_syst, limit_method='prohibit')
 
 truth_binning.fill_from_csv_file("../00/modelA_truth.txt")
 modelA = truth_binning.get_values_as_ndarray()
@@ -48,14 +45,14 @@ with open("modelB_fit_syst.txt", 'w') as f:
     print_(retB_syst, file=f)
 
 figax = reco_binning.plot_values(None, kwargs1d={'color': 'k', 'label': 'data'}, sqrt_errors=True)
-modelA_reco = response_matrix.dot(modelA_shape.translate(retA.x))
-modelB_reco = response_matrix.dot(modelB_shape.translate(retB.x))
-modelA_reco_syst = response_matrix_syst.dot(modelA_shape.translate(retA_syst.x))
-modelB_reco_syst = response_matrix_syst.dot(modelB_shape.translate(retB_syst.x))
-reco_binning.plot_ndarray(None, modelA_reco, kwargs1d={'color': 'b', 'label': 'model A'}, error_xoffset=-.1, figax=figax)
-reco_binning.plot_ndarray(None, modelA_reco_syst, kwargs1d={'color': 'b', 'label': 'model A syst'}, error_xoffset=-.1, figax=figax)
-reco_binning.plot_ndarray(None, modelB_reco, kwargs1d={'color': 'r', 'label': 'model B'}, error_xoffset=+.1, figax=figax)
-reco_binning.plot_ndarray("reco-comparison.png", modelB_reco_syst, kwargs1d={'color': 'r', 'label': 'model B syst'}, error_xoffset=+.1, figax=figax)
+modelA_reco = lm.fold(modelA_shape.translate(retA.x))
+modelB_reco = lm.fold(modelB_shape.translate(retB.x))
+modelA_reco_syst = lm_syst.fold(modelA_shape.translate(retA_syst.x))
+modelB_reco_syst = lm_syst.fold(modelB_shape.translate(retB_syst.x))
+reco_binning.plot_ndarray(None, modelA_reco, kwargs1d={'color': 'b', 'label': 'model A'}, figax=figax)
+reco_binning.plot_ndarray(None, modelA_reco_syst, kwargs1d={'color': 'b', 'label': 'model A syst', 'hatch': '\\\\', 'facecolor': 'none'}, error_band='step', figax=figax)
+reco_binning.plot_ndarray(None, modelB_reco, kwargs1d={'color': 'r', 'label': 'model B'}, figax=figax)
+reco_binning.plot_ndarray("reco-comparison.png", modelB_reco_syst, kwargs1d={'color': 'r', 'label': 'model B syst', 'hatch': '//', 'facecolor': 'none'}, error_band='step', figax=figax)
 
 with open("fit_p-values.txt", 'w') as f:
     print_(lm.max_likelihood_p_value(modelA_shape, nproc=4), file=f)

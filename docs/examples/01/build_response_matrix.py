@@ -73,11 +73,7 @@ optimised.plot_in_bin_variation("optimised_inbin_var.png", variables=(None, None
 with open("optimised-truth-binning.yml", 'w') as f:
     binning.yaml.dump(optimised.truth_binning, f)
 
-M = optimised.get_mean_response_matrix_as_ndarray()
-np.save("response_matrix.npy", M)
-
-entries = optimised.get_truth_entries_as_ndarray()
-np.save("generator_truth.npy", entries)
+optimised.export("response_matrix.npz")
 
 with open("reco-binning.yml", 'rt') as f:
     reco_binning = binning.yaml.load(f)

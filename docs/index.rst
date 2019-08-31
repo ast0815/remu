@@ -1,10 +1,20 @@
 .. Use the repository's README.rst as landing page.
    No need to repeat ourselves.
 
-.. include:: ../README.rst
+################################
+ReMU - Response Matrix Utilities
+################################
 
-Table of contents
-=================
+=======
+Summary
+=======
+
+.. include:: ../README.rst
+    :start-line: 3
+
+=============
+Documentation
+=============
 
 .. toctree::
     :maxdepth: 2

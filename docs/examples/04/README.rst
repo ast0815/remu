@@ -44,10 +44,8 @@ Before we can use the MCMC, we have to create the response matrix,
     reco_binning.fill_from_csv_file("../00/real_data.txt")
     data = reco_binning.get_entries_as_ndarray()
 
-    response_matrix = np.load("../03/response_matrix.npy")
-    generator_truth = np.load("../03/generator_truth.npy")
-    response_matrix.shape = (np.prod(response_matrix.shape[:-2]),) + response_matrix.shape[-2:]
-    lm = likelihood.LikelihoodMachine(data, response_matrix, truth_limits=generator_truth, limit_method='prohibit')
+    response_matrix = "../03/response_matrix.npz"
+    lm = likelihood.LikelihoodMachine(data, response_matrix, limit_method='prohibit')
 
 Because the MCMC is a Bayesian method, we need to define prior probabilities
 for the parameters of the :class:`.CompositeHypothesis` we want to test.
@@ -70,8 +68,10 @@ somewhere around 1000, we will constrain the prior to the interval (0, 2000)::
         else:
             return -np.inf
 
-    modelA_shape = likelihood.TemplateHypothesis([modelA], parameter_priors=[flat_prior], parameter_names=["template_weight"])
-    modelB_shape = likelihood.TemplateHypothesis([modelB], parameter_priors=[flat_prior], parameter_names=["template_weight"])
+    modelA_shape = likelihood.TemplateHypothesis([modelA], parameter_priors=[flat_prior],
+        parameter_names=["template_weight"])
+    modelB_shape = likelihood.TemplateHypothesis([modelB], parameter_priors=[flat_prior],
+        parameter_names=["template_weight"])
 
 The function defining the prior must take one keyword argument ``value`` and
 return the ``log`` of the prior probability. It must define a default value for

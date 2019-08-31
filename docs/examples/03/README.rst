@@ -126,11 +126,7 @@ itself.
 Now we just need to save the set of response matrices for later use in the
 likelihood fits::
 
-    M = builder.get_random_response_matrices_as_ndarray()
-    np.save("response_matrix.npy", M)
-
-    entries = builder.get_truth_entries_as_ndarray()
-    np.save("generator_truth.npy", entries)
+    builder.export("response_matrix.npz")
 
 The :class:`.LikelihoodMachine` is created just like in the previous example::
 
@@ -147,18 +143,12 @@ The :class:`.LikelihoodMachine` is created just like in the previous example::
     data = reco_binning.get_entries_as_ndarray()
 
     # No systematics LikelihoodMachine
-    response_matrix = np.load("../01/response_matrix.npy")
-    generator_truth = np.load("../01/generator_truth.npy")
-    lm = likelihood.LikelihoodMachine(data, response_matrix,
-        truth_limits=generator_truth, limit_method='prohibit')
+    response_matrix = "../01/response_matrix.npz"
+    lm = likelihood.LikelihoodMachine(data, response_matrix, limit_method='prohibit')
 
     # Systematics LikelihoodMachine
-    response_matrix_syst = np.load("response_matrix.npy")
-    generator_truth_syst = np.load("generator_truth.npy")
-    response_matrix_syst.shape = (np.prod(response_matrix_syst.shape[:-2]),) \
-        + response_matrix_syst.shape[-2:]
-    lm_syst = likelihood.LikelihoodMachine(data, response_matrix_syst,
-        truth_limits=generator_truth_syst, limit_method='prohibit')
+    response_matrix_syst = "response_matrix.npz"
+    lm_syst = likelihood.LikelihoodMachine(data, response_matrix_syst, limit_method='prohibit')
 
 To show the influence of the systematic uncertainties, we create two
 :class:`.LikelihoodMachine` objects here. One with the average detector
@@ -212,30 +202,26 @@ Now we can test some models against the data, just like in the previous example:
     :literal:
 
 Let us take another look at how the fitted templates and the data compare in
-reco space. This time we are going to use `ReMU`'s built in function to plot
-the mean and average value of projections of binnings, when given a set of bin
-contents rather than a single one::
+reco space. This time we are going to use `ReMU`'s built in function to plot a
+set of bin contents, i.e. the set of model predictions varied by the detector
+systematics. It will plot the mean and average value of projections of
+binnings, when given a set of bin contents rather than a single one::
 
-    figax = reco_binning.plot_values(None,
-        kwargs1d={'color': 'k', 'label': 'data'}, sqrt_errors=True)
-    modelA_reco = response_matrix.dot(modelA_shape.translate(retA.x))
-    modelB_reco = response_matrix.dot(modelB_shape.translate(retB.x))
-    modelA_reco_syst = response_matrix_syst.dot(
-        modelA_shape.translate(retA_syst.x))
-    modelB_reco_syst = response_matrix_syst.dot(
-        modelB_shape.translate(retB_syst.x))
+    figax = reco_binning.plot_values(None, kwargs1d={'color': 'k', 'label': 'data'}, sqrt_errors=True)
+    modelA_reco = lm.fold(modelA_shape.translate(retA.x))
+    modelB_reco = lm.fold(modelB_shape.translate(retB.x))
+    modelA_reco_syst = lm_syst.fold(modelA_shape.translate(retA_syst.x))
+    modelB_reco_syst = lm_syst.fold(modelB_shape.translate(retB_syst.x))
     reco_binning.plot_ndarray(None, modelA_reco,
-        kwargs1d={'color': 'b', 'label': 'model A'},
-        error_xoffset=-.1, figax=figax)
+        kwargs1d={'color': 'b', 'label': 'model A'}, figax=figax)
     reco_binning.plot_ndarray(None, modelA_reco_syst,
-        kwargs1d={'color': 'b', 'label': 'model A syst'},
-        error_xoffset=-.1, figax=figax)
+        kwargs1d={'color': 'b', 'label': 'model A syst', 'hatch': '\\\\', 'facecolor': 'none'},
+        error_band='step', figax=figax)
     reco_binning.plot_ndarray(None, modelB_reco,
-        kwargs1d={'color': 'r', 'label': 'model B'},
-        error_xoffset=+.1, figax=figax)
+        kwargs1d={'color': 'r', 'label': 'model B'}, figax=figax)
     reco_binning.plot_ndarray("reco-comparison.png", modelB_reco_syst,
-        kwargs1d={'color': 'r', 'label': 'model B syst'},
-        error_xoffset=+.1, figax=figax)
+        kwargs1d={'color': 'r', 'label': 'model B syst', 'hatch': '//', 'facecolor': 'none'},
+        error_band='step', figax=figax)
 
 .. image:: reco-comparison.png
 

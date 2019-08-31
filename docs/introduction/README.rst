@@ -102,10 +102,9 @@ ReMU provides :class:`.Binning` classes to define the truth and reco binning::
 
 .. image:: ../examples/00/real_data.png
 
-These are then combined into a :class:`.ResponseMatrix` object. Currently, the
-only supported method to populate the response matrix is by filling it event by
-event from a CSV file with the reconstructed and true properties of the events.
-Support for ROOT files and pre-calculated linear coefficients is planned::
+These are then combined into a :class:`.ResponseMatrix` object. The default
+method to populate the response matrix is by filling it event by event from a
+CSV file with the reconstructed and true properties of the events::
 
     with open("reco-binning.yml", 'rt') as f:
         reco_binning = binning.yaml.load(f)
@@ -116,6 +115,10 @@ Support for ROOT files and pre-calculated linear coefficients is planned::
     resp.fill_from_csv_file("model_data.txt")
 
 See :ref:`example00` and :ref:`example01` for details.
+
+ReMU also supports Panda's :class:`DataFrame` objects as input for filling
+the matrices. Together with the `uproot` package, this allows it to read
+in ROOT files. See :ref:`example05`.
 
 Detector uncertainties
 ======================
