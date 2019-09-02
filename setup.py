@@ -34,7 +34,7 @@ setup(name='remu',
     author_email='lukas.koch@mailbox.org',
     license='MIT',
     packages=['remu'],
-    install_requires=['ruamel.yaml>=0.11.15', 'numpy>=1.11.3', 'scipy>=0.18.1', 'six>=1.10.0'],
+    install_requires=['ruamel.yaml>=0.11.15,<0.15', 'numpy>=1.11.3', 'scipy>=0.18.1', 'six>=1.10.0'],
     extras_require = {
         "plotting": ['matplotlib>=1.5.3'],
         "mcmc": ['pymc>=2.3.6'],
