@@ -19,6 +19,7 @@ args = parser.parse_args()
 # Nominal detector
 nominal_detector = experiment.Detector()
 # Toy parameters
+np.random.seed(1337) # Make sure the variations are always the same
 n_toys = 100
 eff_slopes = np.abs(1.0 + 0.1 * np.random.randn(n_toys))
 eff_offsets = 0.1 * np.random.randn(n_toys)

@@ -119,6 +119,12 @@ examples and then added to the builder::
             "../00/modelB_truth.txt"], buffer_csv_files=True)
         builder.add_matrix(resp)
 
+.. note::
+    The toy variations in ``modelA_data.txt`` and ``modelB_data.txt``
+    must be identical! Otherwise it is not possible to fill the toy matrices with
+    events from both files. It would mix events reconstructed with different
+    detectors.
+
 The builder generates the actual array of floating point numbers as soon as the
 :class:`.ResponseMatrix` object is added. It retains no connection to the object
 itself.
