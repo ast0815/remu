@@ -588,6 +588,13 @@ class TestResponseMatrices(unittest.TestCase):
             self.rm.plot_distance(f, self.rm)
             self.rm.plot_compatibility(f, self.rm)
 
+    def test_slice(self):
+        """Test ResponseMatrix slicing."""
+        ret = self.rm.slice({'x_truth': slice(0,1), 'y_truth': slice(1,2)})
+        self.assertEqual(len(ret.reco_binning.bins), 4)
+        self.assertEqual(len(ret.truth_binning.bins), 1)
+        self.assertEqual(len(ret.response_binning.bins), 4)
+
     def test_rebin(self):
         """Test ResponseMatrix rebinning."""
         ret = self.rm.rebin({'x_truth': [1], 'y_reco': [2]})

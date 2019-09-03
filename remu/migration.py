@@ -64,6 +64,45 @@ class ResponseMatrix(object):
         self.impossible_indices=impossible_indices
         self._update_filled_indices()
 
+    def slice(self, variable_slices):
+        """Return a new ResponseMatrix containing the given truth variable slices
+
+        Parameters
+        ----------
+
+        variable_slices : dict of slices
+
+            A dictionary specifying the bin slices of each variable. Binning
+            variables that are not part of the dictionary are kept as is.  E.g.
+            if you want the slice of bin 2 in ``var_A`` and bins 1 through to
+            the last in ``var_C``::
+
+                variable_slices = { 'var_A': slice(2,3), 'var_C': slice(1,None) }
+
+            Please note that strides other than 1 are *not* supported.
+
+        Returns
+        -------
+
+        ResponseMatrix
+            The new response matrix with the given bin edges removed.
+
+        Warnings
+        --------
+
+        Please note that the `nuisance_indices` and `impossible_indices` of the
+        new matrix are set to `[]`!
+
+        """
+
+        new_response_binning = self.response_binning.slice(variable_slices)
+        new_truth_binning = self.truth_binning.slice(variable_slices)
+        new_reco_binning = deepcopy(self.reco_binning)
+        new_nuisance_indices = []
+        new_impossible_indices = []
+
+        return ResponseMatrix(reco_binning=new_reco_binning, truth_binning=new_truth_binning, response_binning=new_response_binning, nuisance_indices=new_nuisance_indices, impossible_indices=new_impossible_indices)
+
     def rebin(self, remove_binedges):
         """Return a new ResponseMatrix with the given bin edges removed.
 
@@ -92,7 +131,9 @@ class ResponseMatrix(object):
         Warnings
         --------
 
-        Please note that the `nuisance_indices` and `impossible_indices` of the new matrix are set to `[]`!
+        Please note that the `nuisance_indices` and `impossible_indices` of the
+        new matrix are set to `[]`!
+
         """
 
         new_response_binning = self.response_binning.rebin(remove_binedges)
