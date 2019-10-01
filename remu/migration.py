@@ -1,16 +1,13 @@
 """Module handling the creation and use of migration matrices."""
 
+from __future__ import division
 import numpy as np
 from scipy import stats
 from scipy import linalg
 from copy import copy, deepcopy
 from warnings import warn
 
-# Load matplotlib only on demand
-# from matplotlib import pyplot as plt
-plt = None
-
-from .binning import Binning
+from .binning import Binning, CartesianProductBinning
 
 class ResponseMatrix(object):
     """Matrix that describes the detector response to true events.
@@ -18,20 +15,19 @@ class ResponseMatrix(object):
     Parameters
     ----------
 
-    truth_binning : RectangularBinning
-        The Binning object describing the truth categorization.
     reco_binning : RectangularBinning
         The Binning object describing the reco categorization.
+    truth_binning : RectangularBinning
+        The Binning object describing the truth categorization.
     nuisance_indices : list of ints, optional
         List of indices of nuisance truth bins.
         These are treated like their efficiency is exactly 1.
     impossible_indices :list of ints, optional
         List of indices of impossible reco bins.
         These are treated like their probability is exactly 0.
-    response_binning : RectangularBinning, optional
+    response_binning : CartesianProductBinning, optional
         The Binning object describing the reco and truth categorization.
-        Usually this will be generated from the truth and reco binning using
-        their :meth:`RectangularBinning.cartesian_product` method.
+        Usually this will be generated from the truth and reco binning.
 
     Notes
     -----
@@ -51,100 +47,34 @@ class ResponseMatrix(object):
     binnings in ``respA`` and ``respB`` must be identical for this to make
     sense.
 
+    Attributes
+    ----------
+
+    truth_binning : Binning
+        The :class:`.Binning` object for the truth information of the events.
+    reco_binning : Binning
+        The :class:`.Binning` object for the reco information of the events.
+    response_binning : CartesianProductBinning
+        The :class:`.CartesianProductBinning` of reco and truth binning.
+    nuisance_indices : list of int
+        The truth data indices that will be handled as nuisance bins.
+    impossible_indices : list of int
+        The reco data indices that will be treated as impossible to occur.
+    filled_truth_indices : list of int
+        The data indices of truth bins that have at least one event in them.
+
     """
 
     def __init__(self, reco_binning, truth_binning, nuisance_indices=[], impossible_indices=[], response_binning=None):
         self.truth_binning = truth_binning
         self.reco_binning = reco_binning
         if response_binning is None:
-            self.response_binning = reco_binning.cartesian_product(truth_binning)
+            self.response_binning = CartesianProductBinning([reco_binning.clone(dummy=True), truth_binning.clone(dummy=True)])
         else:
             self.response_binning = response_binning
         self.nuisance_indices=nuisance_indices
         self.impossible_indices=impossible_indices
         self._update_filled_indices()
-
-    def slice(self, variable_slices):
-        """Return a new ResponseMatrix containing the given truth variable slices
-
-        Parameters
-        ----------
-
-        variable_slices : dict of slices
-
-            A dictionary specifying the bin slices of each variable. Binning
-            variables that are not part of the dictionary are kept as is.  E.g.
-            if you want the slice of bin 2 in ``var_A`` and bins 1 through to
-            the last in ``var_C``::
-
-                variable_slices = { 'var_A': slice(2,3), 'var_C': slice(1,None) }
-
-            Please note that strides other than 1 are *not* supported.
-
-        Returns
-        -------
-
-        ResponseMatrix
-            The new response matrix with the given bin edges removed.
-
-        Warnings
-        --------
-
-        Please note that the `nuisance_indices` and `impossible_indices` of the
-        new matrix are set to `[]`!
-
-        """
-
-        new_response_binning = self.response_binning.slice(variable_slices)
-        new_truth_binning = self.truth_binning.slice(variable_slices)
-        new_reco_binning = deepcopy(self.reco_binning)
-        new_nuisance_indices = []
-        new_impossible_indices = []
-
-        return ResponseMatrix(reco_binning=new_reco_binning, truth_binning=new_truth_binning, response_binning=new_response_binning, nuisance_indices=new_nuisance_indices, impossible_indices=new_impossible_indices)
-
-    def rebin(self, remove_binedges):
-        """Return a new ResponseMatrix with the given bin edges removed.
-
-        The values of the bins adjacent to the removed bin edges will be
-        summed up in the resulting larger bin. Please note that bin values
-        are lost if the first or last binedge of a variable are removed.
-
-        Parameters
-        ----------
-
-        remove_binedges : dict of list of ints
-
-            A dictionary specifying the bin edge indices of each variable that
-            should be removed. Binning variables that are not part of the
-            dictionary are kept as is.  E.g. if you want to remove bin edge 2
-            in ``var_A`` and bin edges 3, 4 and 7 in ``var_C``::
-
-                remove_binedges = { 'var_A': [2], 'var_C': [3, 4, 7] }
-
-        Returns
-        -------
-
-        ResponseMatrix
-            The new response matrix with the given bin edges removed.
-
-        Warnings
-        --------
-
-        Please note that the `nuisance_indices` and `impossible_indices` of the
-        new matrix are set to `[]`!
-
-        """
-
-        new_response_binning = self.response_binning.rebin(remove_binedges)
-        rb = dict( (v, remove_binedges[v]) for v in remove_binedges if v in self.reco_binning.variables )
-        new_reco_binning = self.reco_binning.rebin(rb)
-        rb = dict( (v, remove_binedges[v]) for v in remove_binedges if v in self.truth_binning.variables )
-        new_truth_binning = self.truth_binning.rebin(rb)
-        new_nuisance_indices = []
-        new_impossible_indices = []
-
-        return ResponseMatrix(reco_binning=new_reco_binning, truth_binning=new_truth_binning, response_binning=new_response_binning, nuisance_indices=new_nuisance_indices, impossible_indices=new_impossible_indices)
 
     def _update_filled_indices(self):
         """Update the list of filled truth indices."""
@@ -445,7 +375,7 @@ class ResponseMatrix(object):
         if truth_indices is None:
             truth_indices = slice(None, None, None)
 
-        original_shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
+        original_shape = (self.reco_binning.data_size, self.truth_binning.data_size)
 
         # Get the bin response entries
         M = self.get_response_values_as_ndarray(original_shape)[:,truth_indices]
@@ -490,8 +420,8 @@ class ResponseMatrix(object):
             del mask
             del i
 
-        N_reco = len(self.reco_binning.bins)
-        N_truth = len(self.truth_binning.bins)
+        N_reco = self.reco_binning.data_size
+        N_truth = self.truth_binning.data_size
         orig_shape = (N_reco, N_truth)
         epsilon = 1e-50
 
@@ -518,7 +448,8 @@ class ResponseMatrix(object):
         # Since the binning is orthogonal, we expect the number of bins to be roughly 3**N_variables.
         # This leads to prior parameters >1 for degenerate reco binnings with < 3 bins/variable.
         # We protect against that by setting the maximum prior value to 1.
-        prior = min(1., 3.**len(self.reco_binning.variables) / (N_reco - len(impossible_indices)))
+        n_vars = len(self.reco_binning.phasespace)
+        prior = min(1., 3.**n_vars / (N_reco - len(impossible_indices)))
         alpha = np.asfarray(resp_entries) + prior
 
         # Set efficiency of impossible bins to (almost) 0
@@ -586,7 +517,7 @@ class ResponseMatrix(object):
             Default: Use the `nuisance_indices` attribute of the ResponseMatrix.
         impossible_indices : list of ints, optional
             List of reco bin indices. These bins will be treated like their
-            their probability is exactly 0.
+            probability is exactly 0.
             Default: Use the `impossible_indices` attribute of the ResponseMatrix.
         truth_indices : list of ints, optional
             List of truth bin indices. Only return the response of the given
@@ -613,7 +544,7 @@ class ResponseMatrix(object):
         beta0 = beta1 + beta2
         effj = beta1 / beta0
 
-        # Unweighted (multinomial) transistion probabilty
+        # Unweighted (multinomial) smearing probabilty
         # Posterior mean estimate = alpha / alpha0
         alpha0 = np.sum(alpha, axis=0)
         pij = np.asfarray(alpha) / alpha0
@@ -696,7 +627,7 @@ class ResponseMatrix(object):
         If a list of `impossible_indices` is provided, the probabilities of
         reconstructing events in the respective reco categories will be fixed
         to 0. This is useful for bins that are impossible to have any events
-        in them by theiur definition.
+        in them by their definition.
 
         The variances of m_ij is estimated from the errors of the average
         weights in the matrix elements as classical "standard error of the
@@ -720,6 +651,7 @@ class ResponseMatrix(object):
 
         get_mean_response_matrix_as_ndarray
         generate_random_response_matrices
+        get_in_bin_variation_as_ndarray
 
         """
 
@@ -732,7 +664,7 @@ class ResponseMatrix(object):
         # Posterior variance
         effj_var = beta1*beta2 / (beta0**2 * (beta0+1))
 
-        # Unweighted (multinomial) transistion probabilty
+        # Unweighted (multinomial) smearing probabilty
         # Posterior mean estimate = alpha / alpha0
         alpha0 = np.sum(alpha, axis=0)
         pij = np.asfarray(alpha) / alpha0
@@ -763,6 +695,67 @@ class ResponseMatrix(object):
             MM = MM.reshape(shape, order='C')
 
         return MM
+
+    def get_in_bin_variation_as_ndarray(self, shape=None, truth_indices=None, normalize=True, **kwargs):
+        """Get an estimate for the variation of the response within a bin.
+
+        The in-bin variation is estimated from the maximum difference to the
+        surrounding truth bins. The differences can be normalized to the
+        estimated statistical errors, so values close to one indicate a
+        statistically dominated variation.
+
+        Parameters
+        ----------
+
+        shape : tuple of ints, optional
+            The shape of the returned ndarray.
+            Default: ``(#(reco bins), #(truth bins))``
+
+        truth_indices : list of ints, optional
+            Return a sliced matrix with only the given columns.
+
+        normalize : bool, optional
+            Divide the variation by the statistical variance
+
+        **kwargs : optional
+            Additional keyword arguments are passed to
+            :meth:`get_mean_response_matrix_as_ndarray` and
+            :meth:`get_statistical_variance_as_ndarray`.
+
+        Returns
+        -------
+
+        ndarray
+
+        See also
+        --------
+
+        get_statistical_variance_as_ndarray
+
+        """
+        response = self.get_mean_response_matrix_as_ndarray(**kwargs)
+        if normalize:
+            variance = self.get_statistical_variance_as_ndarray(**kwargs)
+        adjacent = self.truth_binning.get_adjacent_data_indices()
+        variation = np.zeros_like(response)
+        for reco_index in range(response.shape[0]):
+            for truth_index in range(response.shape[1]):
+                diff = response[reco_index, truth_index]
+                diff = diff - response[reco_index, adjacent[truth_index]]
+                diff = diff**2
+                if normalize:
+                    var = variance[reco_index, truth_index]
+                    var = var + variance[reco_index, adjacent[truth_index]]
+                    diff = diff/var
+                variation[reco_index, truth_index] = np.sqrt(np.max(diff))
+
+        if truth_indices is not None:
+            variation = variation[:,truth_indices]
+
+        if shape is not None:
+            variation.shape = shape
+
+        return variation
 
     @staticmethod
     def _dirichlet(alpha, size=None):
@@ -889,813 +882,12 @@ class ResponseMatrix(object):
         if shape is None:
             truth_indices = kwargs.pop('truth_indices', None)
             if truth_indices is None:
-                shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
+                shape = (self.reco_binning.data_size, self.truth_binning.data_size)
             else:
-                shape = (len(self.reco_binning.bins), len(truth_indices))
+                shape = (self.reco_binning.data_size, len(truth_indices))
         response = response.reshape(list(response.shape[:-2])+list(shape), order='C')
 
         return response
-
-    def get_in_bin_variation_as_ndarray(self, shape=None, truth_only=True, ignore_variables=[], variable_slices={}, truth_indices=None):
-        """Get an estimate for the variation of the response within a bin.
-
-        The in-bin variation is estimated from the maximum difference to the
-        surrounding bins. The differences are normalized to the estimated
-        statistical errors, so values close to one indicate a statistically
-        dominated variation.
-
-        Parameters
-        ----------
-
-        shape : tuple of ints, optional
-            The shape of the returned ndarray.
-            Default: ``(#(reco bins), #(truth bins))``
-        truth_only : bool, optional
-            Only consider the neighbouring bins along the truth-axes.
-        ignore_variables : list of strings, optional
-            These variables will not be considered. This is useful to exclude
-            categorical variables, where the response is not expected to vary
-            smoothly.
-        variable_slices : dict of slices, optional
-            For variables in `variable_slices` only the specified slice will be
-            used for comparison, e.g. `variable_slices = {'var_A': slice(1,5)}`.
-            Useful if the response is only expected to be smooth over a given
-            range of the variable.
-        truth_indices : list of ints, optional
-            Return a sliced matrix with only the given columns.
-
-        Returns
-        -------
-
-        ndarray
-
-        """
-
-        nbins = self.response_binning.nbins
-        resp_vars = self.response_binning.variables
-        truth_vars = self.truth_binning.variables
-        resp = self.get_mean_response_matrix_as_ndarray(shape=nbins)
-        stat = self.get_statistical_variance_as_ndarray(shape=nbins)
-        ret = np.zeros_like(resp, dtype=float)
-
-        # Generate the shifted matrices
-        for i, var in enumerate(resp_vars):
-            # Ignore non-truth variables if flag says so
-            if truth_only and var not in truth_vars:
-                continue
-
-            # Ignore other specified variables
-            if var in ignore_variables:
-                continue
-
-            # Ignore single-bin variables
-            if resp.shape[i] == 1:
-                continue
-
-            if var in variable_slices:
-                sl = variable_slices[var]
-                # Copy the array
-                shifted_resp = np.array(resp)
-                shifted_stat = np.array(stat)
-                # Roll the slices
-                tup = (slice(None),)*i + (sl, Ellipsis)
-                if resp[tup].shape[i] == 1: # Ignore single-bin slices
-                    continue
-                shifted_resp[tup] = np.roll(resp[tup], 1, axis=i)
-                shifted_stat[tup] = np.roll(stat[tup], 1, axis=i)
-                # Set the 'rolled-in' elements to the values of their neighbours
-                i0 = (slice(None),)*i + (0, Ellipsis)
-                i1 = (slice(None),)*i + (1, Ellipsis)
-                shifted_resp[tup][i0] = shifted_resp[tup][i1]
-                shifted_stat[tup][i0] = shifted_stat[tup][i1]
-            else:
-                # Roll the array
-                shifted_resp = np.roll(resp, 1, axis=i)
-                shifted_stat = np.roll(stat, 1, axis=i)
-                # Set the 'rolled-in' elements to the values of their neighbours
-                i0 = (slice(None),)*i + (0, Ellipsis)
-                i1 = (slice(None),)*i + (1, Ellipsis)
-                shifted_resp[i0] = shifted_resp[i1]
-                shifted_stat[i0] = shifted_stat[i1]
-
-            # Get maximum difference
-            ret = np.maximum(ret, np.abs(resp - shifted_resp) / np.sqrt(stat + shifted_stat))
-
-            # Same in other direction
-            if var in variable_slices:
-                sl = variable_slices[var]
-                # Copy the array
-                shifted_resp = np.array(resp)
-                shifted_stat = np.array(stat)
-                # Roll the slices
-                tup = (slice(None),)*i + (sl, Ellipsis)
-                shifted_resp[tup] = np.roll(resp[tup], -1, axis=i)
-                shifted_stat[tup] = np.roll(stat[tup], -1, axis=i)
-                # Set the 'rolled-in' elements to the values of their neighbours
-                im1 = (slice(None),)*i + (-1, Ellipsis)
-                im2 = (slice(None),)*i + (-2, Ellipsis)
-                shifted_resp[tup][im1] = shifted_resp[tup][im2]
-                shifted_stat[tup][im1] = shifted_stat[tup][im2]
-            else:
-                # Roll the array
-                shifted_resp = np.roll(resp, -1, axis=i)
-                shifted_stat = np.roll(stat, -1, axis=i)
-                # Set the 'rolled-in' elements to the values of their neighbours
-                im1 = (slice(None),)*i + (-1, Ellipsis)
-                im2 = (slice(None),)*i + (-2, Ellipsis)
-                shifted_resp[im1] = shifted_resp[im2]
-                shifted_stat[im1] = shifted_stat[im2]
-
-            # Get maximum difference
-            ret = np.maximum(ret, np.abs(resp - shifted_resp) / np.sqrt(stat + shifted_stat))
-
-        ret = ret.reshape((len(self.reco_binning.bins), len(self.truth_binning.bins)), order='C')
-
-        # Slice the truth bins
-        if truth_indices is not None:
-            ret = np.array(ret[:,truth_indices])
-
-        # Adjust shape
-        if shape is not None:
-            ret = ret.reshape(shape, order='C')
-
-        return ret
-
-    @staticmethod
-    def _max_step(resp, select, ignore_variables, variable_slices, kwargs):
-        variables = resp.truth_binning.variables
-        projection = {}
-        summed = False
-
-        # Get projections of the entries on all variable axes
-        for var in variables:
-            if select == 'entries':
-                projection[var] = resp.truth_binning.project([var]).get_entries_as_ndarray()
-            elif select == 'entries_sum':
-                projection[var] = resp.truth_binning.project([var]).get_entries_as_ndarray()
-                summed = True
-            elif select == 'in-bin':
-                inbin = resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, variable_slices=variable_slices, **kwargs)
-                temp_binning = deepcopy(resp.truth_binning)
-                temp_binning.set_values_from_ndarray(inbin)
-                projection[var] = temp_binning.project([var], reduction_function=np.max).get_values_as_ndarray()
-            elif select == 'in-bin_sum':
-                inbin = resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, variable_slices=variable_slices, **kwargs)
-                temp_binning = deepcopy(resp.truth_binning)
-                temp_binning.set_values_from_ndarray(inbin)
-                projection[var] = temp_binning.project([var], reduction_function=np.max).get_values_as_ndarray()
-                summed = True
-            else:
-                raise ValueError("Unknown selection method.")
-
-        # Get projected bin with lowest number of entries
-        lowest = (None, -1, np.inf, None)
-        for var in projection:
-            if var in ignore_variables:
-                continue
-            if var in variable_slices:
-                sl = variable_slices[var]
-                proj = projection[var][sl]
-            else:
-                sl = slice(None)
-                proj = projection[var]
-            if len(proj) <= 1:
-                continue
-            if summed:
-                proj = np.convolve(proj, [1,1], mode='valid')
-            i = np.argmin(proj)
-            if proj[i] < lowest[2]:
-                lowest = (var, i, proj[i], sl)
-
-        if lowest[0] is None:
-            return None
-
-        # Get lowest neighbour
-        var, i, entries, sl = lowest
-        projection = projection[var][sl]
-        if summed:
-            neighbour = i+1
-        else:
-            if i > 0:
-                neighbour = i-1
-                if i < len(projection)-1 and projection[i+1] < projection[i-1]:
-                    neighbour = i+1
-            else:
-                neighbour = i+1
-
-        # Which binedge to remove
-        i = max(i, neighbour)
-        if sl.start is not None:
-            i += sl.start
-
-        return resp.rebin({var: [i]})
-
-    def maximize_stats_by_rebinning(self, in_bin_variation_limit=5., select='entries', ignore_variables=[], variable_slices={}, **kwargs):
-        """Maximize the number of events per bin by rebinning the matrix.
-
-        Parameters
-        ----------
-
-        in_bin_variation_limit : float, optional
-            Bins will only be merged if the maximum in-bin variation of the
-            resulting matrix does not exceed the `in_bin_variation_limit`.
-        select : {'entries', 'entries_sum', 'in-bin', 'in-bin_sum'}
-            Determines how the merging candidate is selected:
-
-            entries
-                the bin with the lowest number of truth entries
-            entries_sum
-                the pair of bins with the lowest number of truth entries
-            in-bin
-                the bin with the lowest maximum in-bin variation
-            in-bin_sum
-                the pair of bins with the lowest sum of maximum in-bin variations
-
-        kwargs : optional
-            Additional keyword arguments will be passed to the method
-            :meth:`get_in_bin_variation_as_ndarray`.
-
-        See also
-        --------
-
-        get_in_bin_variation_as_ndarray
-
-        """
-
-        resp = deepcopy(self)
-        last_resp = deepcopy(self)
-        var = np.max(resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, variable_slices=variable_slices, **kwargs))
-
-        while var < in_bin_variation_limit:
-            last_resp = resp
-            resp = ResponseMatrix._max_step(resp, select, ignore_variables, variable_slices, kwargs)
-            if resp is None:
-                break
-            var = np.max(resp.get_in_bin_variation_as_ndarray(ignore_variables=ignore_variables, variable_slices=variable_slices, **kwargs))
-
-        return last_resp
-
-    @staticmethod
-    def _block_mahalanobis2(X, mu, inv_cov):
-        """Efficiently calculate squared Mahalanobis distance for diagonal block matrix covariances.
-
-        It returns the squared Mahalanobis distance of each block separately.
-        To get the total distance, one must sum over these numbers.
-
-        Parameters
-        ----------
-
-        X : array_like
-            The objects of which the Mahalanobis distance will be calculated.
-            Must be of shape ``(n, a, b)``.
-        mu : array_like
-            The mean values of the distribution. The Mahalanobis distance is
-            calculated with respect to these.
-            Must be of shape ``(a, b)``.
-        inv_cov : array_like
-            The inverse of the covariance matrix of the distribution.
-            It must be a diagonal block matrix of ``a`` blocks with each block
-            of the shape ``(b, b)``. To save space, the off-diagonal 0s are not stored.
-            Must be of shape ``(a, b, b)``.
-
-        Returns
-        -------
-
-        D_M : ndarray
-            The array of squared Mahalanobis distances of shape ``(n, a)``.
-
-        """
-
-        diff = np.asfarray(X) - np.asfarray(mu)
-        inv_cov = np.asfarray(inv_cov)
-        D_M = np.einsum('...b,...bc,...c', diff, inv_cov, diff)
-        return D_M
-
-    def distance_as_ndarray(self, other, shape=None, N=None, return_distances_from_mean=False, **kwargs):
-        """Calculate the squared Mahalanobis distance of the two matrices for each truth bin.
-
-        Parameters
-        ----------
-
-        other : ResponseMatrix
-            The other ResponseMatrix for the comparison.
-        shape : tuple of ints, optional
-            The shape of the returned matrix.
-            Defaults to ``(#(truth bins),)``.
-        N : int, optional
-            Number of random matrices to be generated for the calculation.
-            This number must be larger than the number of *reco* bins!
-            Otherwise the covariances cannot be calculated correctly.
-            Defaults to ``#(reco bins) + 100)``.
-        return_distances_from_mean : bool, optional
-            Also return the ndarray ``distances_from_mean``.
-        kwargs : optional
-            Additional keyword arguments are passed through to
-            `generate_random_response_matrices`.
-
-        Returns
-        -------
-
-        distance : ndarray
-            Array of shape `shape` with the squared Mahalanobis distance
-            of the mean difference between the matrices for each truth bin:
-            ``D^2( mean(self.random_matrices - other.random_matrices) )``
-        distances_from_mean : ndarray, optional
-            Array of shape ``(N,)+shape`` with the squared Mahalanobis
-            distances between the randomly generated matrix differences
-            and the mean matrix difference for each truth bin:
-            ``D^2( (self.random_matrices - other.random_matrices)
-            - mean(self.random_matrices - other.random_matrices) )``
-
-        """
-
-        n_reco = len(self.reco_binning.bins)
-        if 'truth_indices' in kwargs:
-            n_truth = len(kwargs['truth_indices'])
-        else:
-            n_truth = len(self.truth_binning.bins)
-        n_bins = n_truth * n_reco
-        if N is None:
-            N = n_reco + 100
-
-        # Get the *transposed* set of matrices
-        self_matrices = self.generate_random_response_matrices(size=N, **kwargs).T
-
-        other_matrices = other.generate_random_response_matrices(size=N, **kwargs).T
-        differences = self_matrices - other_matrices
-
-        # Since the detector response is handled completely independently for each truth index,
-        # we can calculate the covariance matrices and distances for each one individually.
-        inv_cov_list = []
-        for i in range(n_truth):
-            cov = np.cov(differences[i])
-            inv_cov_list.append(np.linalg.inv(cov))
-
-        null = np.zeros((n_truth, n_reco))
-        mean = (self.get_mean_response_matrix_as_ndarray(**kwargs)
-            - other.get_mean_response_matrix_as_ndarray(**kwargs)).T
-
-        distance = self._block_mahalanobis2([null], mean, inv_cov_list)[0]
-
-        if shape is not None:
-            distance = distance.reshape(shape, order='C')
-
-        if return_distances_from_mean:
-            differences = differences.transpose((2,0,1)) # (truth, reco, N) -> (N, truth, reco)
-            distances_from_mean = self._block_mahalanobis2(differences, mean, inv_cov_list)
-            return distance, distances_from_mean
-        else:
-            return distance
-
-    def distance(self, other, N=None, return_distances_from_mean=False, **kwargs):
-        """Return the overall squared Mahalanobis distance between the two matrices.
-
-        Parameters
-        ----------
-
-        other : ResponseMatrix
-            The other ResponseMatrix for the comparison.
-        N : int, optional
-            Number of random matrices to be generated for the calculation.
-            This number must be larger than the number of *reco* bins!
-            Otherwise the covariances cannot be calculated correctly.
-            Defaults to ``#(reco bins) + 100)``.
-        return_distances_from_mean : bool, optional
-            Also return the ndarray ``distances_from_mean``.
-        kwargs : optional
-            Additional keyword arguments are passed through to
-            `generate_random_response_matrices`.
-
-        Returns
-        -------
-
-        distance : flaot
-            The squared Mahalanobis distance of the mean difference
-            between the matrices:
-            ``D^2( mean(self.random_matrices - other.random_matrices) )``
-        distances_from_mean : ndarray
-            Array of shape ``(N,)`` with the squared Mahalanobis
-            distances between the randomly generated matrix differences
-            and the mean matrix difference:
-            ``D^2( (self.random_matrices - other.random_matrices)
-            - mean(self.random_matrices - other.random_matrices) )``
-
-        """
-
-        if return_distances_from_mean:
-            null_distance, distances = self.distance_as_ndarray(other, N=N, return_distances_from_mean=True, **kwargs)
-            null_distance = np.sum(null_distance, axis=-1)
-            distances = np.sum(distances, axis=-1)
-            return null_distance, distances
-        else:
-            null_distance = self.distance_as_ndarray(other, N=N, **kwargs)
-            return np.sum(null_distance, axis=-1)
-
-    def compatibility(self, other, N=None, return_all=False, truth_indices=None, **kwargs):
-        """Calculate the compatibility between this and another response matrix.
-
-        Basically, this checks whether the point of "the matrices are
-        identical" is an outlier in the distribution of matrix differences as
-        defined by the statistical uncertainties of the matrix elements. This
-        is done using the Mahalanobis distance as the test statistic. If the
-        point "the matrices are identical" is not a reasonable part of the
-        distribution, it is not reasonable to assume that the true matrices are
-        identical.
-
-        Parameters
-        ----------
-
-        other : ResponseMatrix
-            The other response matrix.
-        N : int, optional
-            Number of random matrices to be generated for the calculation.
-            This number must be larger than the number of *reco* bins!
-            Otherwise the covariances cannot be calculated correctly.
-            Defaults to ``#(reco bins) + 100)``.
-        return_all : bool, optional
-            If ``False``, return only `null_prob_count`, and `null_prob_chi2`.
-        truth_indices : list of ints, optional
-            Only use the given truth indices to calculate the compatibility.
-            If this is not specified, only the indices with at least one entry
-            in *both* matrices are used.
-
-        Returns
-        -------
-
-        null_prob_count : float
-            The Bayesian p-value evaluated by counting the expected number of
-            random matrix differences more extreme than the mean difference.
-        null_prob_chi2 : float
-            The Bayesian p-value evaluated by assuming a chi-square distribution
-            of the squares of Mahalanobis distances.
-        null_distance : float
-            The squared Mahalanobis distance of the mean differences between the
-            two matrices.
-        distances : ndarray
-            The set of squared Mahalanobis distances between randomly generated
-            matrix differences and the mean matrix difference.
-        df : int
-            Degrees of freedom of the assumed chi-squared distribution of the
-            squared Mahalanobis distances. This is equal to the number of matrix
-            elements that are considered for the calculation:
-            ``df = len(truth_indices) * len(reco_bins in matrix)``.
-
-        Notes
-        -----
-
-        The distribution of matrix differences is evaluated by generating ``N``
-        random response matrices from both compared matrices and calculating
-        the (n-dimensional) differences. The resulting set of matrix
-        differences defines the mean ``mean(differences)`` and the covariance
-        matrix ``cov(differences)``. The covariance in turn defines a metric
-        for the Mahalanobis distance ``D_M(x)`` on the space of matrix
-        differences, where ``x`` is a set of matrix element differences.
-
-        The distance between the mean difference and the Null hypothesis, that
-        the two true matrices are identical, is the ``null_distance``::
-
-            null_distance = D_M(0 - mean(differences))
-
-        The compatibility between the matrices is now defined as the Bayesian
-        probability that the true difference between the matrices is more
-        extreme (has a larger distance from the mean difference) than the
-        Null hypothesis. For this, we can just evaluate the set of
-        matrix differences that was used to calculate the covariance matrix::
-
-            distances = D_M(differences - mean(differences))
-            null_prob_count = np.sum(distances >= null_distance) / distances.size
-
-        It will be 1 if the mean difference between the matrices is 0, and tend
-        to 0 when the mean difference between the matrices is far from 0. "Far"
-        in this case is determined by the uncertainty, i.e. the covariance, of
-        the difference determination.
-
-        In the case of normal distributed differences, the distribution of
-        squared Mahalanobis distances becomes chi-squared distributed. The
-        numbers of degrees of freedom of that distribution is the number of
-        variates, i.e. the number of response matrix elements that are being
-        considered. This can be used to calculate a theoretical value for the
-        compatibility::
-
-            df = len(truth_indices) * #(reco_bins)
-            null_prob_chi2 = chi2.sf(null_distance**2, df)
-
-        Since the distribution of differences is not necessarily Gaussian, this
-        is only an estimate. Its advantage is that it is less dependent on the
-        number of randomly drawn matrices.
-
-        """
-
-        if truth_indices is None:
-            # If nothing else is specified, only consider truth bins that have at least one event in them in both matrices.
-            # Empty bins hold no information.
-            truth_indices = list(sorted(set(self.filled_truth_indices) & set(other.filled_truth_indices)))
-
-        n_reco = len(self.reco_binning.bins)
-        n_truth = len(truth_indices)
-        n_bins = n_truth * n_reco
-
-        null_distance, distances = self.distance(other, N=N, truth_indices=truth_indices, return_distances_from_mean=True, **kwargs)
-
-        null_prob_chi2 = stats.chi2.sf(null_distance, n_bins)
-        null_prob_count = float(np.sum(distances >= null_distance)) / distances.size
-
-        if return_all:
-            return null_prob_count, null_prob_chi2, null_distance, distances, n_bins
-        else:
-            return null_prob_count, null_prob_chi2
-
-    def plot_compatibility(self, filename, other):
-        """Plot the compatibility of the two matrices.
-
-        Parameters
-        ----------
-
-        filename : string
-            The filename where the plot will be stored.
-        other : ResponseMatrix
-            The other Response Matrix for the comparison.
-
-        Returns
-        -------
-
-        fig : Figure
-            The figure that was used for plotting.
-        ax : Axis
-            The axis that was used for plotting.
-
-        """
-
-        # Load matplotlib on demand
-        global plt
-        if plt is None:
-            from matplotlib import pyplot as _pyplot
-            plt = _pyplot
-
-        prob_count, prob_chi2, dist, distances, df = self.compatibility(other, return_all=True)
-
-        fig, ax = plt.subplots()
-        ax.set_xlabel(r"$D_M^2$")
-        nbins = max(min(distances.size // 100, 100), 5)
-        ax.hist(distances, nbins, normed=True, histtype='stepfilled', label="actual distribution, C=%.3f"%(prob_count,))
-        x = np.linspace(df-3*np.sqrt(2*df), df+5*np.sqrt(2*df), 50)
-        ax.plot(x, stats.chi2.pdf(x, df), label="$\chi^2$ distribution, C=%.3f"%(prob_chi2,))
-        ax.axvline(dist, color='r', label="null distance")
-        ax.legend(loc='best', framealpha=0.5)
-        fig.savefig(filename)
-
-        return fig, ax
-
-    def plot_distance(self, filename, other, expectation=True, variables=None, kwargs1d={}, kwargs2d={}, figax=None, reduction_function=np.sum, **kwargs):
-        """Plot the squared mahalanobis distance between two matrices.
-
-        Parameters
-        ----------
-
-        filename : string
-            The filename of the plot to be stored.
-        other : ResponseMatrix
-            The other ResponseMatrix for the comparison
-        expectation : bool, optional
-            Plot an approximation of the expected values for identical matrices in the 1D histograms.
-        variables : {None, (None, None), list, (list, list)}, optional
-            ``None``, plot marginal histograms for all variables.
-            ``(None, None)``, plot 2D histograms of all possible variable combinations.
-            ``list``, plot marginal histograms for these variables.
-            ``(list, list)``, plot 2D histograms of the Cartesian product of the two variable lists.
-            2D histograms where both variables are identical are plotted as 1D histograms.
-        kwargs1d, kwargs2d : dict, optional
-            Additional keyword arguments for the 1D/2D histograms.
-             If the key `label` is present, a legend will be drawn.
-        figax : (figure, axes), optional
-            Pair of figure and axes to be used for plotting.
-            Can be used to plot multiple binnings on top of one another.
-            Default: Create new figure and axes.
-        reduction_function : function, optional
-            Use this function to marginalize out variables.
-        kwargs : optional
-            Additional `kwargs` will be passed to `calculate_squared_mahalanobis_distance`.
-
-        Returns
-        -------
-
-        fig : Figure
-            The Figure that was drawn on.
-        ax : Axis
-            The axes objects.
-
-        """
-
-        truth_binning = self.truth_binning
-        distances = self.distance_as_ndarray(other, **kwargs)
-
-        figax = truth_binning.plot_ndarray(filename, distances, variables=variables, divide=False, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, reduction_function=reduction_function)
-        if expectation:
-            any_entries = (self.get_truth_entries_as_ndarray() > 0)
-            any_entries &= (other.get_truth_entries_as_ndarray() > 0)
-            expect = np.where(any_entries, len(self.reco_binning.bins), 0)
-            figax = truth_binning.plot_ndarray(filename, expect, variables=variables, divide=False, kwargs1d={'linestyle': 'dashed'}, kwargs2d={'alpha': 0.}, figax=figax, reduction_function=reduction_function)
-        return figax
-
-    def plot_values(self, *args, **kwargs):
-        """Plot the values of the response binning.
-
-        This plots the distribution of events that have *both* a truth and reco bin.
-
-        See also
-        --------
-
-        .RectangularBinning.plot_values
-
-        """
-
-        return self.response_binning.plot_values(*args, **kwargs)
-
-    def plot_entries(self, *args, **kwargs):
-        """Plot the entries of the response binning.
-
-        This plots the distribution of events that have *both* a truth and reco bin.
-
-        See also
-        --------
-
-        .RectangularBinning.plot_entries
-
-        """
-
-        return self.response_binning.plot_entries(*args, **kwargs)
-
-    def plot_in_bin_variation(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
-        """Plot the maximum in-bin variation.
-
-        Parameters
-        ----------
-
-        filename : string or None
-            The target filename of the plot. If `None`, the plot fill not be
-            saved to disk. This is only useful with the `figax` option.
-        variables : optional
-            One of the following:
-
-            `list of strings`
-                List of variables to plot marginal histograms for.
-            `None`
-                Plot marginal histograms for all variables.
-            `(list of strings, list of strings)`
-                Plot 2D histograms of the cartesian product of the two variable lists.
-                2D histograms where both variables are identical are plotted as 1D histograms.
-            `(None, None)`
-                Plot 2D histograms of all possible variable combinations.
-                2D histograms where both variables are identical are plotted as 1D histograms.
-
-            Default: `None`
-        kwargs1d, kwargs2d : dict, optional
-            Additional keyword arguments for the 1D/2D histograms.
-            If the key `label` is present, a legend will be drawn.
-        figax : tuple of (Figure, list of list of Axis), optional
-            Pair of figure and axes to be used for plotting.
-            Can be used to plot multiple binnings on top of one another.
-            Default: Create new figure and axes.
-        kwargs : optional
-            Additional `kwargs` will be passed on to :meth:`get_in_bin_variation_as_ndarray`.
-
-        Returns
-        -------
-
-        fig : Figure
-            The Figure that was used for plotting.
-        ax : list of list of Axis
-            The axes that were used for plotting.
-
-        See also
-        --------
-
-        get_in_bin_variation_as_ndarray
-
-        """
-
-        truth_binning = self.truth_binning
-        inbin = self.get_in_bin_variation_as_ndarray(**kwargs)
-        inbin = np.max(inbin, axis=0)
-
-        return truth_binning.plot_ndarray(filename, inbin, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.max)
-
-    def plot_statistical_variance(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
-        """Plot the maximum statistical variation for projections on all truth variables.
-
-        Parameters
-        ----------
-
-        filename : string or None
-            The target filename of the plot. If `None`, the plot fill not be
-            saved to disk. This is only useful with the `figax` option.
-        variables : optional
-            One of the following:
-
-            `list of strings`
-                List of variables to plot marginal histograms for.
-            `None`
-                Plot marginal histograms for all variables.
-            `(list of strings, list of strings)`
-                Plot 2D histograms of the cartesian product of the two variable lists.
-                2D histograms where both variables are identical are plotted as 1D histograms.
-            `(None, None)`
-                Plot 2D histograms of all possible variable combinations.
-                2D histograms where both variables are identical are plotted as 1D histograms.
-
-            Default: `None`
-        kwargs1d, kwargs2d : dict, optional
-            Additional keyword arguments for the 1D/2D histograms.
-            If the key `label` is present, a legend will be drawn.
-        figax : tuple of (Figure, list of list of Axis), optional
-            Pair of figure and axes to be used for plotting.
-            Can be used to plot multiple binnings on top of one another.
-            Default: Create new figure and axes.
-        kwargs : optional
-            Additional `kwargs` will be passed on to :meth:`get_statistical_variance_as_ndarray`.
-
-        Returns
-        -------
-
-        fig : Figure
-            The Figure that was used for plotting.
-        ax : list of list of Axis
-            The axes that were used for plotting.
-
-        See also
-        --------
-
-        get_statistical_variance_as_ndarray
-
-        """
-
-        truth_binning = self.truth_binning
-        stat = self.get_statistical_variance_as_ndarray(**kwargs)
-        stat = np.sqrt(np.max(stat, axis=0))
-
-        return truth_binning.plot_ndarray(filename, stat, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.max)
-
-    def plot_expected_efficiency(self, filename, variables=None, kwargs1d={}, kwargs2d={}, figax=None, **kwargs):
-        """Plot expected efficiencies for projections on all truth variables.
-
-        This assumes the truth values are distributed like the generator data.
-        This does *not* consider the statistical uncertainty of the matrix
-        elements.
-
-        Parameters
-        ----------
-
-        filename : string or None
-            The target filename of the plot. If `None`, the plot fill not be
-            saved to disk. This is only useful with the `figax` option.
-        variables : optional
-            One of the following:
-
-            `list of strings`
-                List of variables to plot marginal histograms for.
-            `None`
-                Plot marginal histograms for all variables.
-            `(list of strings, list of strings)`
-                Plot 2D histograms of the cartesian product of the two variable lists.
-                2D histograms where both variables are identical are plotted as 1D histograms.
-            `(None, None)`
-                Plot 2D histograms of all possible variable combinations.
-                2D histograms where both variables are identical are plotted as 1D histograms.
-
-            Default: `None`
-        kwargs1d, kwargs2d : dict, optional
-            Additional keyword arguments for the 1D/2D histograms.
-            If the key `label` is present, a legend will be drawn.
-        figax : tuple of (Figure, list of list of Axis), optional
-            Pair of figure and axes to be used for plotting.
-            Can be used to plot multiple binnings on top of one another.
-            Default: Create new figure and axes.
-        kwargs : optional
-            Additional `kwargs` will be passed to :meth:`get_response_values_as_ndarray`
-            and :meth:`get_truth_values_as_ndarray`.
-
-        Returns
-        -------
-
-        fig : Figure
-            The Figure that was used for plotting.
-        ax : list of list of Axis
-            The axes that were used for plotting.
-
-        """
-
-        nuisance_indices = self.nuisance_indices
-
-        truth_binning = self.truth_binning
-        shape = (len(self.reco_binning.bins), len(self.truth_binning.bins))
-        eff = self.get_response_values_as_ndarray(shape=shape, **kwargs)
-        eff = np.sum(eff, axis=0)
-        eff[nuisance_indices] = 0.
-        truth = self.get_truth_values_as_ndarray(**kwargs)
-        truth = np.where(truth > 0, truth, 1e-50)
-        truth[nuisance_indices] = 1e-50
-
-        return truth_binning.plot_ndarray(filename, eff, variables=variables, kwargs1d=kwargs1d, kwargs2d=kwargs2d, figax=figax, divide=False, reduction_function=np.sum, denominator=truth)
 
     def __add__(self, other):
         """Add two matrices together, combining their data."""
@@ -1760,6 +952,15 @@ class ResponseMatrix(object):
         else:
             np.savez(filename, **data)
 
+    def clone(self):
+        """Create a functioning copy of the response matrix."""
+        reco_binning = self.reco_binning.clone()
+        response_binning = self.response_binning.clone()
+        truth_binning = self.truth_binning.clone()
+        nuisance_indices = deepcopy(self.nuisance_indices)
+        impossible_indices = deepcopy(self.impossible_indices)
+        return ResponseMatrix(reco_binning, truth_binning, nuisance_indices=nuisance_indices, impossible_indices=impossible_indices, response_binning=response_binning)
+
 class ResponseMatrixArrayBuilder(object):
     """Class that generates consistent ndarrays from multiple response matrix objects.
 
@@ -1804,6 +1005,14 @@ class ResponseMatrixArrayBuilder(object):
     different toy simulations. This way, the template multiplied with the
     ndarray will re-create the number of selected nuisance events in each bin
     for all toy response matrices.
+
+    Attributes
+    ----------
+
+    nstat : int
+        The number of statistical throws to generate for each added matrix.
+    nmatrices : int
+        The number of matrices that were added.
 
     """
 

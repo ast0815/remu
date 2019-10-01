@@ -1,5 +1,5 @@
-!RecBinning
-binedges:
+!RectilinearBinning
+bin_edges:
 - - x_truth
   - [0, 1, 2]
 - - y_truth

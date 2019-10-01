@@ -1,12 +1,15 @@
 from __future__ import division
 import sys
 import unittest2 as unittest
-import ruamel.yaml as yaml
+import yaml
 from remu.binning import *
 from remu.migration import *
 from remu.likelihood import *
+from remu.plotting import *
+from remu.matrix_utils import *
+from remu.likelihood_utils import *
 import numpy as np
-from copy import deepcopy
+from numpy import array, inf
 import pandas as pd
 
 if __name__ == '__main__':
@@ -66,6 +69,11 @@ class TestPhasSpaces(unittest.TestCase):
         self.assertFalse(self.psX <= self.psY)
         self.assertFalse(self.psX >= self.psY)
 
+    def test_clone(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.psXYZ
+        self.assertEqual(obj, obj.clone())
+
     def test_repr(self):
         """Test whether the repr reproduces same object."""
         self.assertEqual(self.psX, eval(repr(self.psX)))
@@ -123,6 +131,11 @@ class TestBins(unittest.TestCase):
         self.assertFalse(self.b0 == self.b1)
         self.assertTrue(self.b0 != self.b1)
 
+    def test_clone(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.b0
+        self.assertEqual(obj, obj.clone())
+
     def test_repr(self):
         """Test whether the repr reproduces same object."""
         self.assertEqual(self.b0.phasespace, eval(repr(self.b0)).phasespace)
@@ -132,10 +145,10 @@ class TestBins(unittest.TestCase):
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
-        self.assertEqual(self.b0.phasespace, yaml.load(yaml.dump(self.b0)).phasespace)
-        self.assertEqual(self.b0.value, yaml.load(yaml.dump(self.b0)).value)
-        self.assertEqual(self.b1.value, yaml.load(yaml.dump(self.b1)).value)
-        self.assertEqual(self.b2.value, yaml.load(yaml.dump(self.b2)).value)
+        orig = self.b0
+        yml = yaml.dump(orig)
+        reco = yaml.load(yml)
+        self.assertEqual(orig, reco)
 
 class TestRectangularBins(unittest.TestCase):
     def setUp(self):
@@ -184,28 +197,90 @@ class TestRectangularBins(unittest.TestCase):
         self.assertTrue(self.b != self.c)
         self.assertFalse(self.b == self.c)
 
+    def test_clone(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.b
+        self.assertEqual(obj, obj.clone())
+
+    def test_repr(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.b
+        self.assertEqual(obj, eval(repr(obj)))
+
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b
-        reco = yaml.load(yaml.dump(orig))
-        self.assertEqual(orig.phasespace, reco.phasespace)
-        self.assertEqual(orig.value, reco.value)
-        self.assertEqual(orig.edges, reco.edges)
-        self.assertEqual(orig.include_lower, reco.include_lower)
-        self.assertEqual(orig.include_upper, reco.include_upper)
+        yml = yaml.dump(orig)
+        reco = yaml.load(yml)
+        self.assertEqual(orig, reco)
+
+class TestCartesianProductBins(unittest.TestCase):
+    def setUp(self):
+        self.x0 = RectangularBin(edges={'x':(0,1)}, dummy=True)
+        self.x1 = RectangularBin(edges={'x':(1,2)}, dummy=True)
+        self.y0 = RectangularBin(edges={'y':(0,1)}, dummy=True)
+        self.y1 = RectangularBin(edges={'y':(1,2)}, dummy=True)
+        self.z0 = RectangularBin(edges={'z':(0,1)}, dummy=True)
+        self.z1 = RectangularBin(edges={'z':(1,2)}, dummy=True)
+        self.bx = Binning(bins=[self.x0, self.x1], dummy=True)
+        self.by = Binning(bins=[self.y0, self.y1], dummy=True)
+        self.bz = Binning(bins=[self.z0, self.z1], dummy=True)
+        self.b = CartesianProductBin([(self.bx, 0), (self.by, 1), (self.bz, 0)])
+        self.c = CartesianProductBin([(self.bx, 0), (self.by, 1), (self.bz, 1)])
+
+    def test_inclusion(self):
+        """Test basic inclusion."""
+        self.assertTrue({'x': 0, 'y': 1, 'z': 0} in self.b)
+        self.assertTrue({'x': 0, 'y': 0, 'z': 0} not in self.b)
+        self.assertTrue({'x': 0, 'y': 1, 'z': 1} in self.c)
+        self.assertTrue({'x': 0, 'y': 0, 'z': 1} not in self.c)
+
+    def test_equality(self):
+        """Test equality comparisons between bins."""
+        self.assertTrue(self.b == self.b)
+        self.assertFalse(self.b != self.b)
+        self.assertTrue(self.b != self.c)
+        self.assertFalse(self.b == self.c)
+
+    def test_clone(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.b
+        self.assertEqual(obj, obj.clone())
+
+    def test_repr(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.b
+        self.assertEqual(obj, eval(repr(obj)))
+
+    def test_yaml_representation(self):
+        """Test whether the yaml parsing can reproduce the original object."""
+        orig = self.b
+        yml = yaml.dump(orig)
+        reco = yaml.load(yml)
+        self.assertEqual(orig, reco)
 
 class TestBinnings(unittest.TestCase):
     def setUp(self):
         self.b0 = RectangularBin(edges={'x':(0,1), 'y':(5,float('inf'))})
         self.b1 = RectangularBin(edges={'x':(1,2), 'y':(5,float('inf'))})
-        self.binning = Binning(phasespace=self.b0.phasespace, bins=[self.b0 ,self.b1])
-        self.binning0 = Binning(phasespace=self.b0.phasespace, bins=[self.b0])
+        self.binning = Binning(bins=[self.b0, self.b1])
+        self.binning0 = Binning(phasespace=self.b0.phasespace, bins=[self.b0.clone()])
+        self.binning1 = Binning(bins=[self.b0.clone(), self.b1.clone()], subbinnings={0: self.binning.clone()})
+        self.binning2 = Binning(bins=[self.b0.clone(), self.b1.clone()], subbinnings={0: self.binning1.clone()})
 
-    def test_get_bin_numbers(self):
+    def test_get_bin_indices(self):
         """Test the translation of events to bin numbers."""
-        self.assertEqual(self.binning.get_event_bin_number({'x': 0, 'y': 10}), 0)
-        self.assertEqual(self.binning.get_event_bin_number({'x': 1, 'y': 10}), 1)
-        self.assertTrue(self.binning.get_event_bin_number({'x': 2, 'y': 10}) is None)
+        self.assertEqual(self.binning.get_event_bin_index({'x': 0, 'y': 10}), 0)
+        self.assertEqual(self.binning.get_event_bin_index({'x': 1, 'y': 10}), 1)
+        self.assertTrue(self.binning.get_event_bin_index({'x': 2, 'y': 10}) is None)
+
+    def test_get_data_indices(self):
+        """Test the translation of events to bin numbers."""
+        self.assertEqual(self.binning1.get_event_data_index({'x': 0, 'y': 10}), 0)
+        self.assertEqual(self.binning.get_event_data_index({'x': 1, 'y': 10}), 1)
+        self.assertEqual(self.binning1.get_event_data_index({'x': 1, 'y': 10}), 2)
+        self.assertEqual(self.binning2.get_event_data_index({'x': 1, 'y': 10}), 3)
+        self.assertTrue(self.binning1.get_event_data_index({'x': 2, 'y': 10}) is None)
 
     def test_get_bin(self):
         """Test the translation of events to bins."""
@@ -372,35 +447,239 @@ class TestBinnings(unittest.TestCase):
         new_binning = self.binning + self.binning
         self.assertTrue(np.all(self.binning.get_values_as_ndarray() * 2 == new_binning.get_values_as_ndarray()))
 
+    def test_subbinning_modification(self):
+        """Test marginalizing and inserting subbinnings."""
+        orig = self.binning1
+        orig.fill_from_csv_file('testdata/csv-test.csv')
+        marg = orig.marginalize_subbinnings([0])
+        self.assertEqual(orig.get_values_as_ndarray().sum(), marg.get_values_as_ndarray().sum())
+        insrt = marg.insert_subbinning(0, orig.subbinnings[0].clone())
+        self.assertEqual(orig.get_values_as_ndarray().sum(), insrt.get_values_as_ndarray().sum())
+        self.assertEqual(orig, insrt)
+
+    def test_clone(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.binning
+        self.assertEqual(obj, obj.clone())
+
+    def test_repr(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.binning
+        self.assertEqual(obj, eval(repr(obj)))
+
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.binning
-        reco = yaml.load(yaml.dump(orig))
+        yml = yaml.dump(orig)
+        reco = yaml.load(yml)
+        self.assertEqual(orig, reco)
+        orig = self.binning0
+        yml = yaml.dump(orig)
+        reco = yaml.load(yml)
+        self.assertEqual(orig, reco)
+        orig = self.binning1
+        yml = yaml.dump(orig)
+        reco = yaml.load(yml)
+        self.assertEqual(orig, reco)
+        orig = self.binning2
+        yml = yaml.dump(orig)
+        reco = yaml.load(yml)
+        self.assertEqual(orig, reco)
+
+class TestCartesianProductBinnings(unittest.TestCase):
+    def setUp(self):
+        self.bx = LinearBinning('x', [0, 1, 2], dummy=True)
+        self.by = LinearBinning('y', [0, 1, 2], dummy=True)
+        self.bz = LinearBinning('z', [0, 1, 2], dummy=True)
+        self.bynest = LinearBinning('y', [0, 1, 2], subbinnings={0: self.bz.clone()}, dummy=True)
+        self.b0 = CartesianProductBinning([self.bx, self.bynest], subbinnings={2: self.bz.clone()})
+
+    def test_get_event_data_index(self):
+        """Test that events are put in the right data bins."""
+        self.assertEqual(self.b0.get_event_data_index({'x': 0, 'y': 0, 'z': 0}), 0)
+        self.assertEqual(self.b0.get_event_data_index({'x': 0, 'y': 0, 'z': 1}), 1)
+        self.assertEqual(self.b0.get_event_data_index({'x': 0, 'y': 1, 'z': 0}), 2)
+        self.assertEqual(self.b0.get_event_data_index({'x': 0, 'y': 1, 'z': 1}), 3)
+        self.assertEqual(self.b0.get_event_data_index({'x': 1, 'y': 0, 'z': 0}), 4)
+        self.assertEqual(self.b0.get_event_data_index({'x': 1, 'y': 0, 'z': 1}), 5)
+        self.assertEqual(self.b0.get_event_data_index({'x': 1, 'y': 1, 'z': 0}), 6)
+        self.assertEqual(self.b0.get_event_data_index({'x': 1, 'y': 1, 'z': 1}), 6)
+
+    def test_adjacent_bins(self):
+        """Test that all adjacent bins make sense."""
+        ret = self.b0.get_adjacent_bin_indices()
+        self.assertTrue(np.array_equal(ret[0], np.array([1,3])))
+        self.assertTrue(np.array_equal(ret[1], np.array([0,4])))
+        self.assertTrue(np.array_equal(ret[2], np.array([5])))
+        self.assertTrue(np.array_equal(ret[5], np.array([2])))
+        ret = self.b0.get_adjacent_data_indices()
+        self.assertTrue(np.array_equal(ret[0], np.array([1,4])))
+        self.assertTrue(np.array_equal(ret[1], np.array([0,5])))
+        self.assertTrue(np.array_equal(ret[2], np.array([3])))
+        self.assertTrue(np.array_equal(ret[3], np.array([2])))
+        self.assertTrue(np.array_equal(ret[4], np.array([0,5])))
+        self.assertTrue(np.array_equal(ret[5], np.array([1,4])))
+        self.assertTrue(np.array_equal(ret[6], np.array([])))
+
+    def test_bins(self):
+        """Test that the bin proxy works."""
+        A, B = self.b0.bins[3], CartesianProductBin([(self.bx.clone(), 1), (self.bynest.clone(), 0)])
+        self.assertEqual(A, B)
+
+    def test_marginalization(self):
+        """Test marginalizations of binnings."""
+        self.b0.fill({'x': 0, 'y': 1, 'z': 0})
+        self.b0.fill({'x': 0, 'y': 1, 'z': 1})
+        self.assertEqual(self.b0.entries_array[2], 1)
+        self.assertEqual(self.b0.entries_array[3], 1)
+        self.assertEqual(self.b0.marginalize([0]).binnings[0], self.bynest)
+        self.assertEqual(self.b0.marginalize(0), self.b0.marginalize([0]))
+        self.assertEqual(self.b0.marginalize(0).entries_array[2], 2)
+
+    def test_projection(self):
+        """Test projections of binnings."""
+        self.b0.fill({'x': 0, 'y': 1, 'z': 0})
+        self.b0.fill({'x': 0, 'y': 1, 'z': 1})
+        self.assertEqual(self.b0.entries_array[2], 1)
+        self.assertEqual(self.b0.entries_array[3], 1)
+        self.assertEqual(self.b0.project([1]).binnings[0], self.bynest)
+        self.assertEqual(self.b0.project(1), self.b0.project([1]).binnings[0])
+        self.assertEqual(self.b0.project(0).entries_array[0], 2)
+        self.assertEqual(self.b0.project(1).entries_array[2], 2)
+
+    def test_clone(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.b0
+        self.assertEqual(obj, obj.clone())
+
+    def test_repr(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.b0
+        self.assertEqual(obj, eval(repr(obj)))
+
+    def test_yaml_representation(self):
+        """Test whether the yaml parsing can reproduce the original object."""
+        orig = self.b0
+        yml = yaml.dump(orig)
+        reco = yaml.load(yml)
         self.assertEqual(orig, reco)
 
 class TestRectangularBinnings(unittest.TestCase):
     def setUp(self):
-        self.bl = RectangularBinning(binedges={'x': [0,1,2], 'y': (-10,0,10,20,float('inf'))}, variables=['x', 'y'])
-        self.bl0 = RectangularBinning(binedges={'x': [0,1], 'y': (-10,0,10,20,float('inf'))}, variables=['x', 'y'])
-        self.bu = RectangularBinning(binedges={'x': np.linspace(0,2,3), 'y': (-10,0,10,20,float('inf'))}, variables=['x', 'y'], include_upper=True)
-        self.bxyz = RectangularBinning(binedges={'x': [0,1,2], 'y': (-10,0,10,20,float('inf')), 'z': (0,1,2)}, variables=['x', 'y', 'z'])
+        self.b0 = RectangularBinning(['x','y'], [(0,2,0,2), (0,1,2,3), (1,2,2,3)])
+
+    def test_get_event_data_index(self):
+        """Test that events are put in the right data bins."""
+        self.assertEqual(self.b0.get_event_data_index({'x': 0, 'y': 0}), 0)
+        self.assertEqual(self.b0.get_event_data_index({'x': 1, 'y': 1}), 0)
+        self.assertEqual(self.b0.get_event_data_index({'x': 0, 'y': 2}), 1)
+        self.assertEqual(self.b0.get_event_data_index({'x': 1, 'y': 2}), 2)
+
+    def test_clone(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.b0
+        self.assertEqual(obj, obj.clone())
+
+    def test_repr(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.b0
+        self.assertEqual(obj, eval(repr(obj)))
+
+    def test_yaml_representation(self):
+        """Test whether the yaml parsing can reproduce the original object."""
+        orig = self.b0
+        yml = yaml.dump(orig)
+        reco = yaml.load(yml)
+        self.assertEqual(orig, reco)
+
+class TestLinearBinnings(unittest.TestCase):
+    def setUp(self):
+        self.bx = LinearBinning('x', [0, 1, 2])
+        self.by = LinearBinning('y', [0, 1, 2])
+        self.b0 = LinearBinning('x', [0, 1, 2], subbinnings={0: self.by.clone()})
+
+    def test_get_event_data_index(self):
+        """Test that events are put in the right data bins."""
+        self.assertEqual(self.b0.get_event_data_index({'x': 0, 'y': 0}), 0)
+        self.assertEqual(self.b0.get_event_data_index({'x': 0, 'y': 1}), 1)
+        self.assertEqual(self.b0.get_event_data_index({'x': 1, 'y': 0}), 2)
+        self.assertEqual(self.b0.get_event_data_index({'x': 1, 'y': 1}), 2)
+
+    def test_adjacent_bins(self):
+        """Test that all adjacent bins make sense."""
+        ret = self.b0.get_adjacent_bin_indices()
+        self.assertTrue(np.array_equal(ret[0], np.array([1])))
+        self.assertTrue(np.array_equal(ret[1], np.array([0])))
+        ret = self.b0.get_adjacent_data_indices()
+        self.assertTrue(np.array_equal(ret[0], np.array([1])))
+        self.assertTrue(np.array_equal(ret[1], np.array([0])))
+        self.assertTrue(np.array_equal(ret[2], np.array([])))
+
+    def test_bins(self):
+        """Test that the bin proxy works."""
+        A, B = self.b0.bins[0], RectangularBin({'x': (0,1)})
+        self.assertEqual(A, B)
+
+    def test_slice(self):
+        """Test the slicing into new binning."""
+        self.b0.set_values_from_ndarray([1,2,5])
+        sl = self.b0.slice(1,2)
+        ret = sl.get_values_as_ndarray()
+        self.assertEqual(ret[0], 5)
+
+    def test_remove_bin_edges(self):
+        """Test the merging of bins."""
+        self.b0.set_values_from_ndarray([1,2,5])
+        sl = self.b0.remove_bin_edges([1])
+        ret = sl.get_values_as_ndarray()
+        self.assertEqual(ret[0], 8)
+        sl = self.b0.remove_bin_edges([0])
+        ret = sl.get_values_as_ndarray()
+        self.assertEqual(ret[0], 5)
+        sl = self.b0.remove_bin_edges([2])
+        ret = sl.get_values_as_ndarray()
+        self.assertEqual(ret[0], 3)
+
+    def test_clone(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.b0
+        self.assertEqual(obj, obj.clone())
+
+    def test_repr(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.b0
+        self.assertEqual(obj, eval(repr(obj)))
+
+    def test_yaml_representation(self):
+        """Test whether the yaml parsing can reproduce the original object."""
+        orig = self.b0
+        yml = yaml.dump(orig)
+        reco = yaml.load(yml)
+        self.assertEqual(orig, reco)
+
+class TestRectilinearBinnings(unittest.TestCase):
+    def setUp(self):
+        self.bl = RectilinearBinning(variables=['x', 'y'], bin_edges=[[0,1,2], (-10,0,10,20,float('inf'))])
+        self.bl0 = RectilinearBinning(variables=['x', 'y'], bin_edges=[[0,1], (-10,0,10,20,float('inf'))])
+        self.bu = RectilinearBinning(variables=['x', 'y'], bin_edges=[np.linspace(0,2,3), (-10,0,10,20,float('inf'))], include_upper=True)
+        self.bxyz = RectilinearBinning(variables=['x', 'y', 'z'], bin_edges=[[0,1,2], (-10,0,10,20,float('inf')), (0,1,2)])
 
     def test_tuples(self):
         """Test the translation of tuples to bin numbers and back."""
-        self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(None)), None)
-        self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(-1)), None)
-        self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(0)), 0)
-        self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(5)), 5)
-        self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(7)), 7)
-        self.assertEqual(self.bl.get_tuple_bin_number(self.bl.get_bin_number_tuple(8)), None)
-        self.assertEqual(self.bl.get_bin_number_tuple(self.bl.get_tuple_bin_number((1,3))), (1,3))
-        self.assertEqual(self.bxyz.get_bin_number_tuple(self.bxyz.get_tuple_bin_number((1,3,0))), (1,3,0))
-        self.assertEqual(self.bl.get_tuple_bin_number((1,2)), 6)
-        self.assertEqual(self.bl.get_event_bin_number({'x': 0, 'y': -10}), 0)
-        self.assertEqual(self.bl.get_event_bin_number({'x': 0, 'y': -0}), 1)
-        self.assertEqual(self.bl.get_event_bin_number({'x': 1, 'y': -10}), 4)
-        self.assertEqual(self.bl.get_event_bin_number({'x': -1, 'y': -10}), None)
-        self.assertEqual(self.bu.get_event_bin_number({'x': 2, 'y': 30}), 7)
+        self.assertEqual(self.bl.get_tuple_bin_index(self.bl.get_bin_index_tuple(None)), None)
+        self.assertEqual(self.bl.get_tuple_bin_index(self.bl.get_bin_index_tuple(-1)), None)
+        self.assertEqual(self.bl.get_tuple_bin_index(self.bl.get_bin_index_tuple(0)), 0)
+        self.assertEqual(self.bl.get_tuple_bin_index(self.bl.get_bin_index_tuple(5)), 5)
+        self.assertEqual(self.bl.get_tuple_bin_index(self.bl.get_bin_index_tuple(7)), 7)
+        self.assertEqual(self.bl.get_tuple_bin_index(self.bl.get_bin_index_tuple(8)), None)
+        self.assertEqual(self.bl.get_bin_index_tuple(self.bl.get_tuple_bin_index((1,3))), (1,3))
+        self.assertEqual(self.bxyz.get_bin_index_tuple(self.bxyz.get_tuple_bin_index((1,3,0))), (1,3,0))
+        self.assertEqual(self.bl.get_tuple_bin_index((1,2)), 6)
+        self.assertEqual(self.bl.get_event_bin_index({'x': 0, 'y': -10}), 0)
+        self.assertEqual(self.bl.get_event_bin_index({'x': 0, 'y': -0}), 1)
+        self.assertEqual(self.bl.get_event_bin_index({'x': 1, 'y': -10}), 4)
+        self.assertEqual(self.bl.get_event_bin_index({'x': -1, 'y': -10}), None)
+        self.assertEqual(self.bu.get_event_bin_index({'x': 2, 'y': 30}), 7)
 
     def test_fill(self):
         """Test bin filling"""
@@ -503,12 +782,8 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertFalse(self.bl == self.bl0)
         self.assertTrue(self.bl != self.bu)
         self.assertFalse(self.bl == self.bu)
-
-    def test_cartesian_product(self):
-        """Test combining disjunct binnings."""
-        bz = RectangularBinning(binedges={'z': [0,1,2]}, variables=['z'])
-        bt = self.bl.cartesian_product(bz)
-        self.assertEqual(bt, self.bxyz)
+        self.assertFalse(self.bl == self.bxyz)
+        self.assertFalse(self.bxyz == self.bl)
 
     def test_marginalization(self):
         """Test marginalizations of rectangular binnings."""
@@ -528,23 +803,23 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertEqual(nb.bins[1].entries, 2)
         self.assertEqual(nb.bins[1].value, 3.)
 
-    def test_slicing(self):
+    def test_slice(self):
         """Test slices of rectangular binnings."""
         self.bxyz.fill({'x':0, 'y':10, 'z':0}, weight=2.)
         self.bxyz.fill({'x':1, 'y':10, 'z':1})
         self.bxyz.fill({'x':0, 'y':0, 'z':0}, weight=2.)
-        nb = self.bxyz.slice({'x': slice(0,1), 'y': slice(2,-1)})
+        nb = self.bxyz.slice({'x': (0,1), 'y': (2,-1)})
         val = nb.get_values_as_ndarray()
         ent = nb.get_entries_as_ndarray()
         self.assertEqual(val.sum(), 2)
         self.assertEqual(ent.sum(), 1)
 
-    def test_rebinning(self):
+    def test_remove_bin_edges(self):
         """Test rebinning of rectangular binnings."""
         self.bxyz.fill({'x':0, 'y':10, 'z':0}, weight=2.)
         self.bxyz.fill({'x':1, 'y':10, 'z':1})
         self.bxyz.fill({'x':0, 'y':0, 'z':0}, weight=2.)
-        nb = self.bxyz.rebin({'x': [2], 'y': [0,2]})
+        nb = self.bxyz.remove_bin_edges({'x': [2], 'y': [0,2]})
         val = nb.get_values_as_ndarray()
         ent = nb.get_entries_as_ndarray()
         sw2 = nb.get_sumw2_as_ndarray()
@@ -553,19 +828,21 @@ class TestRectangularBinnings(unittest.TestCase):
         self.assertEqual(ent.sum(), 2)
         self.assertEqual(sw2.sum(), 8)
 
-    def test_plots(self):
-        """Test plots."""
-        with open('/dev/null', 'wb') as f:
-            figax = self.bl.plot_entries(f, kwargs1d={'label': 'entries'}, legendprop={'size':6})
-            self.bl.plot_values(f, figax=figax)
-            self.bl.plot_values(f, variables=(None,None))
-            self.bl.plot_values(f, sqrt_errors=True, error_band=True)
-            self.bl.plot_values(f, sqrt_errors=True, error_band='step')
+    def test_clone(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.bl
+        self.assertEqual(obj, obj.clone())
+
+    def test_repr(self):
+        """Test whether the repr reproduces same object."""
+        obj = self.bl
+        self.assertEqual(obj, eval(repr(obj)))
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.bl
-        reco = yaml.load(yaml.dump(orig))
+        yml = yaml.dump(orig)
+        reco = yaml.load(yml)
         self.assertEqual(orig, reco)
 
 class TestResponseMatrices(unittest.TestCase):
@@ -575,32 +852,6 @@ class TestResponseMatrices(unittest.TestCase):
         with open('testdata/test-reco-binning.yml', 'r') as f:
             self.rb = yaml.load(f)
         self.rm = ResponseMatrix(self.rb, self.tb)
-
-    def test_plots(self):
-        """Test plots."""
-        with open('/dev/null', 'wb') as f:
-            self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-            self.rm.plot_entries(f)
-            self.rm.plot_values(f)
-            self.rm.plot_in_bin_variation(f)
-            self.rm.plot_statistical_variance(f)
-            self.rm.plot_expected_efficiency(f)
-            self.rm.plot_distance(f, self.rm)
-            self.rm.plot_compatibility(f, self.rm)
-
-    def test_slice(self):
-        """Test ResponseMatrix slicing."""
-        ret = self.rm.slice({'x_truth': slice(0,1), 'y_truth': slice(1,2)})
-        self.assertEqual(len(ret.reco_binning.bins), 4)
-        self.assertEqual(len(ret.truth_binning.bins), 1)
-        self.assertEqual(len(ret.response_binning.bins), 4)
-
-    def test_rebin(self):
-        """Test ResponseMatrix rebinning."""
-        ret = self.rm.rebin({'x_truth': [1], 'y_reco': [2]})
-        self.assertEqual(len(ret.reco_binning.bins), 2)
-        self.assertEqual(len(ret.truth_binning.bins), 2)
-        self.assertEqual(len(ret.response_binning.bins), 4)
 
     def test_fill(self):
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
@@ -711,6 +962,17 @@ class TestResponseMatrices(unittest.TestCase):
         mean = self.rm.get_mean_response_matrix_as_ndarray(truth_indices=[0,1])
         self.assertEqual(mean.shape, (4,2))
 
+    def test_in_bin_variation(self):
+        """Test the in-bin variation calculation."""
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        var = self.rm.get_in_bin_variation_as_ndarray()
+        self.assertAlmostEqual(var[0,0], 0.7340425)
+        self.assertAlmostEqual(var[1,1], 0.7340425)
+        self.assertAlmostEqual(var[2,2], 1.1472384)
+        self.assertAlmostEqual(var[3,3], 0.8583145)
+        var = self.rm.get_in_bin_variation_as_ndarray(shape=(2,2,2,1), truth_indices=[0,-1])
+        self.assertEqual(var.shape, (2,2,2,1))
+
     def test_random_generation(self):
         """Test generation of randomly varied matrices."""
         self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
@@ -728,55 +990,6 @@ class TestResponseMatrices(unittest.TestCase):
         self.assertEqual(ret.shape, (2,3,2,8))
         ret = self.rm.generate_random_response_matrices((2,3), shape=(4,3), nuisance_indices=[1,3], truth_indices=[0,2,3])
         self.assertEqual(ret.shape, (2,3,4,3))
-
-    def test_in_bin_variation(self):
-        """Test the in-bin variation calculation."""
-        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        ret = self.rm.get_in_bin_variation_as_ndarray(truth_only=False)
-        self.assertEqual(ret.shape, (4,4))
-        ret_t = self.rm.get_in_bin_variation_as_ndarray(truth_only=True, variable_slices={'x_truth': slice(0,2)})
-        self.assertTrue(np.all(ret_t <= ret))
-        self.assertTrue(np.any(ret_t != ret))
-        self.assertTrue(np.any(ret_t > 0.))
-        ret_t = self.rm.get_in_bin_variation_as_ndarray(truth_only=True, truth_indices=[0,3])
-        self.assertEqual(ret_t.shape, (4,2))
-
-    def test_maximize_stats(self):
-        """Test ResponseMatrix stat maximization by rebinning."""
-        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        ret = self.rm.maximize_stats_by_rebinning(variable_slices={'x_truth': slice(0,None)})
-        self.assertEqual(np.sum(ret.get_truth_entries_as_ndarray()), np.sum(self.rm.get_truth_entries_as_ndarray()))
-        ret = self.rm.maximize_stats_by_rebinning(variable_slices={'x_truth': slice(0,None)}, select='entries_sum')
-        self.assertEqual(np.sum(ret.get_truth_entries_as_ndarray()), np.sum(self.rm.get_truth_entries_as_ndarray()))
-        ret = self.rm.maximize_stats_by_rebinning(variable_slices={'x_truth': slice(0,None)}, select='in-bin')
-        self.assertEqual(np.sum(ret.get_truth_entries_as_ndarray()), np.sum(self.rm.get_truth_entries_as_ndarray()))
-        ret = self.rm.maximize_stats_by_rebinning(variable_slices={'x_truth': slice(0,None)}, select='in-bin_sum')
-        self.assertEqual(np.sum(ret.get_truth_entries_as_ndarray()), np.sum(self.rm.get_truth_entries_as_ndarray()))
-
-    def test_distance(self):
-        rA = self.rm
-        rB = deepcopy(rA)
-        rA.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        null_distance, distances = rA.distance_as_ndarray(rB, return_distances_from_mean=True)
-        self.assertTrue(null_distance.shape == (4,))
-        self.assertTrue(distances.shape == (104,4))
-        self.assertTrue(np.all(null_distance >= 0.))
-        self.assertTrue(np.all(distances >= 0.))
-
-    def test_compatibility(self):
-        rA = self.rm
-        rB = deepcopy(rA)
-        rA.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        p_count, p_chi2, null_distance, distances, n_bins = rA.compatibility(rB, return_all=True)
-        self.assertTrue(p_count >= 0. and p_count <= 1.)
-        self.assertTrue(p_chi2 >= 0. and p_count <= 1.)
-        self.assertTrue(null_distance >= 0.)
-        self.assertTrue(n_bins == 16)
-        self.assertTrue(distances.size == 104)
 
     def test_add(self):
         """Test adding two response matrices."""
@@ -1174,14 +1387,178 @@ class TestLikelihoodMachines(unittest.TestCase):
         PLR, pref = self.L.plr(H0, [[50,50], [51,49]], [[0], [0]], H1, [[50,], [51,]], [[0], [0]])
         self.assertEqual(PLR.size, 4)
 
+class TestPlotting(unittest.TestCase):
+    def setUp(self):
+        pass
+
+    def test_array_plotter(self):
+        array = np.array([1,3,2,5])
+        plt = get_plotter(array, bins_per_row=3)
+        plt.plot_array()
+        plt.plot_array(array*2)
+
+    def test_binning_plotter(self):
+        b0 = RectangularBin(edges={'x':(0,1), 'y':(5,float('inf'))})
+        b1 = RectangularBin(edges={'x':(1,2), 'y':(5,float('inf'))})
+        binning0 = Binning(bins=[b0, b1])
+        binning = Binning(bins=[b0, b1], subbinnings={0: binning0.clone(dummy=True)})
+        binning.set_values_from_ndarray([2.,1.,4.])
+        binning.set_entries_from_ndarray([4,2,8])
+        binning.set_sumw2_from_ndarray([1.,0.5,2.])
+        plt = get_plotter(binning, marginalize_subbinnings=False)
+        plt.plot_values(binning.clone())
+        plt.plot_entries()
+        plt.plot_sumw2()
+        plt = get_plotter(binning, marginalize_subbinnings=True)
+        plt.plot_sumw2(binning.clone(), label='Z')
+        plt.plot_entries(label='Y', hatch='')
+        plt.plot_values(label='X')
+        plt.plot_array(binning.value_array)
+        plt.plot_array(binning0.value_array)
+        plt.legend()
+
+    def test_cartesian_plotter(self):
+        x0 = RectangularBin(edges={'x':(0,1)}, dummy=True)
+        x1 = RectangularBin(edges={'x':(1,2)}, dummy=True)
+        y0 = RectangularBin(edges={'y':(0,1)}, dummy=True)
+        y1 = RectangularBin(edges={'y':(1,2)}, dummy=True)
+        z0 = RectangularBin(edges={'z':(0,1)}, dummy=True)
+        z1 = RectangularBin(edges={'z':(1,2)}, dummy=True)
+        bx = Binning(bins=[x0, x1], dummy=True)
+        by = Binning(bins=[y0, y1], dummy=True)
+        bz = Binning(bins=[z0, z1], dummy=True)
+        bynest = Binning(bins=[y0.clone(), y1.clone()], subbinnings={0: bz.clone()}, dummy=True)
+        b0 = CartesianProductBinning([bx, bynest, bz], subbinnings={2: bz.clone()})
+        b0.set_values_from_ndarray(np.arange(13))
+        b0.set_entries_from_ndarray(np.arange(13)*2)
+        b0.set_sumw2_from_ndarray(np.arange(13)*3)
+        plt = get_plotter(b0)
+        plt.plot_sumw2(label='Z')
+        plt.plot_entries(label='Y')
+        plt.plot_values(label='X')
+        plt.legend()
+
+    def test_linear_plotter(self):
+        b0 = LinearBinning('x', [0,1,5,7,inf])
+        b0.set_values_from_ndarray(np.arange(4))
+        b0.set_entries_from_ndarray(np.arange(4)*2)
+        b0.set_sumw2_from_ndarray(np.arange(4)*3)
+        plt = get_plotter(b0, bins_per_row=2)
+        plt.plot_sumw2(label='Z')
+        plt.plot_entries(label='Y')
+        plt.plot_values(label='X')
+        plt.legend()
+
+    def test_rectilinear_plotter(self):
+        b0 = RectilinearBinning(['x', 'y'], [[-1,0,1,5,7,inf], [-inf,0,5,10,inf]])
+        b0.set_values_from_ndarray(np.arange(20))
+        b0.set_entries_from_ndarray(np.arange(20)*2)
+        b0.set_sumw2_from_ndarray(np.arange(20)*3)
+        plt = get_plotter(b0)
+        plt.plot_sumw2(label='Z', scatter=100)
+        plt.plot_entries(label='Y', scatter=100)
+        plt.plot_values(label='X', scatter=100)
+        plt.legend()
+
+class TestMatrixUtils(unittest.TestCase):
+    def setUp(self):
+        with open('testdata/test-truth-binning.yml', 'r') as f:
+            tb = yaml.load(f)
+        with open('testdata/test-reco-binning.yml', 'r') as f:
+            rb = yaml.load(f)
+        tb = tb.insert_subbinning(3, LinearBinning('y_truth', [1.0,1.5,2.0]))
+        rm = ResponseMatrix(rb, tb)
+        rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        self.rm = rm
+
+    def test_mahalanobis_distance(self):
+        rA = self.rm
+        rB = rA.clone()
+        rA.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        null_distance, distances = mahalanobis_distance(rA, rB, return_distances_from_mean=True)
+        self.assertTrue(null_distance.shape == (5,))
+        self.assertTrue(distances.shape == (104,5))
+        self.assertTrue(np.all(null_distance >= 0.))
+        self.assertTrue(np.all(distances >= 0.))
+
+    def test_compatibility(self):
+        rA = self.rm
+        rB = rA.clone()
+        rA.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        rB.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        p_count, p_chi2, null_distance, distances, n_bins = compatibility(rA, rB, return_all=True, min_quality=0.0)
+        self.assertTrue(p_count >= 0. and p_count <= 1.)
+        self.assertTrue(p_chi2 >= 0. and p_count <= 1.)
+        self.assertTrue(null_distance >= 0.)
+        self.assertEqual(n_bins, 4*5)
+        self.assertEqual(distances.size, 100+4)
+
+    def test_plotting(self):
+        """Test plotting matrices."""
+        plot_compatibility(self.rm, self.rm.clone(), filename=None, min_quality=0.0)
+        plot_mahalanobis_distance(self.rm, self.rm.clone(), plot_expectation=True, filename=None)
+        plot_in_bin_variation(self.rm, filename=None)
+        plot_statistical_uncertainty(self.rm, filename=None)
+        plot_relative_in_bin_variation(self.rm, filename=None)
+        plot_mean_efficiency(self.rm, filename=None)
+        plot_mean_response_matrix(self.rm, filename=None)
+
+    def test_improve_stats(self):
+        """Test the automatic optimization of ResponseMatrices."""
+        rm0 = improve_stats(self.rm)
+        self.assertEqual(self.rm.response_binning.value_array.sum(),
+                         rm0.response_binning.value_array.sum())
+        self.assertEqual(self.rm.truth_binning.value_array.sum(),
+                         rm0.truth_binning.value_array.sum())
+        self.assertEqual(self.rm.reco_binning.value_array.sum(),
+                         rm0.reco_binning.value_array.sum())
+        rm1 = improve_stats(rm0)
+        self.assertEqual(self.rm.response_binning.value_array.sum(),
+                         rm1.response_binning.value_array.sum())
+        self.assertEqual(self.rm.truth_binning.value_array.sum(),
+                         rm1.truth_binning.value_array.sum())
+        self.assertEqual(self.rm.reco_binning.value_array.sum(),
+                         rm1.reco_binning.value_array.sum())
+        rm1 = improve_stats(rm0, data_index=3)
+        self.assertEqual(self.rm.response_binning.value_array.sum(),
+                         rm1.response_binning.value_array.sum())
+        self.assertEqual(self.rm.truth_binning.value_array.sum(),
+                         rm1.truth_binning.value_array.sum())
+        self.assertEqual(self.rm.reco_binning.value_array.sum(),
+                         rm1.reco_binning.value_array.sum())
+        rm1 = improve_stats(self.rm, data_index=3)
+        self.assertEqual(self.rm.response_binning.value_array.sum(),
+                         rm1.response_binning.value_array.sum())
+        self.assertEqual(self.rm.truth_binning.value_array.sum(),
+                         rm1.truth_binning.value_array.sum())
+        self.assertEqual(self.rm.reco_binning.value_array.sum(),
+                         rm1.reco_binning.value_array.sum())
+
+class TestLikelihoodUtils(unittest.TestCase):
+    def setUp(self):
+        with open('testdata/test-truth-binning.yml', 'r') as f:
+            tb = yaml.load(f)
+        with open('testdata/test-reco-binning.yml', 'r') as f:
+            rb = yaml.load(f)
+        rm = ResponseMatrix(rb, tb)
+        rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        data_vector = rm.get_reco_entries_as_ndarray() # Entries because we need integer event numbers
+        self.truth_vector = rm.get_truth_values_as_ndarray()
+        response_matrix = []
+        response_matrix.append(rm.get_response_matrix_as_ndarray())
+        # Create a second response matric for systematics stuff
+        rm.truth_binning.fill_from_csv_file('testdata/test-data.csv')
+        response_matrix.append(rm.get_response_matrix_as_ndarray())
+        self.L = LikelihoodMachine(data_vector, np.array([response_matrix])[...,[1,2,3]], truth_limits=[np.inf]*4, eff_indices=[1,2,3], is_sparse=True, matrix_weights=[2.,1.])
+
     def test_plots(self):
-        """Test plots."""
-        with open('/dev/null', 'wb') as f:
-            self.L.plot_bin_efficiencies(f, plot_limits=True)
-            self.L.plot_truth_bin_traces(f, self.truth_vector, plot_limits=True)
-            self.L.plot_truth_bin_traces(f, self.truth_vector, plot_limits='relative')
-            self.L.plot_reco_bin_traces(f, self.truth_vector, None, plot_data=True)
-            self.L.plot_reco_bin_traces(f, self.truth_vector, None, plot_data='relative')
+        """Test the different plotting functions."""
+        plot_bin_efficiencies(self.L, filename=None)
+        plot_truth_bin_traces(self.L, filename=None, trace=np.random.uniform(size=(50,4)))
+        plot_reco_bin_traces(self.L, filename=None, trace=np.random.uniform(size=(50,4)), toy_index=0)
 
 if __name__ == '__main__':
     np.seterr(all='raise')

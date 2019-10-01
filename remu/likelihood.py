@@ -10,11 +10,9 @@ from scipy.misc import derivative
 import inspect
 from warnings import warn
 
-# Load multiprocess, matplotlib, and pymc on demand
-#rom multiprocess import Pool
+# Load multiprocess, and pymc on demand
+#from multiprocess import Pool
 Pool = None
-#from matplotlib import pyplot as plt
-plt = None
 #import pymc
 pymc = None
 
@@ -66,6 +64,16 @@ class CompositeHypothesis(object):
 
     Depending on the use case, one can provide `parameter_limits` and/or
     `parameter_priors`, but they are *not* checked for consistency!
+
+    Attributes
+    ----------
+
+    parameter_limits : list of (float, float) or None
+        The lower and upper limits for the parameters
+    parameter_priors : list of function or None
+        The priors of the parameters
+    paramter_names : list of str
+        The names of the parameters
 
     """
 
@@ -181,6 +189,20 @@ class LinearHypothesis(CompositeHypothesis):
 
     TemplateHypothesis
 
+    Attributes
+    ----------
+
+    M : 2D array
+        The matrix of the linear relationship.
+    b : 1D array or None
+        The constant added in the linear relationship.
+    parameter_limits : list of (float, float) or None
+        The lower and upper limits for the parameters
+    parameter_priors : list of function or None
+        The priors of the parameters
+    paramter_names : list of str
+        The names of the parameters
+
     """
 
     def __init__(self, M, b=None, *args, **kwargs):
@@ -280,6 +302,20 @@ class TemplateHypothesis(LinearHypothesis):
 
     LinearHypothesis
 
+    Attributes
+    ----------
+
+    M : 2D array
+        The matrix of the linear relationship.
+    b : 1D array or None
+        The constant added in the linear relationship.
+    parameter_limits : list of (float, float)
+        The lower and upper limits for the parameters
+    parameter_priors : list of function or None
+        The priors of the parameters
+    paramter_names : list of str
+        The names of the parameters
+
     """
 
     def __init__(self, templates, constant=None, parameter_limits=None, *args, **kwargs):
@@ -350,6 +386,22 @@ class JeffreysPrior(object):
     should be removed. It simply cannot be constrained with the given
     detector response.
 
+    Attributes
+    ----------
+
+    response_matrix : ndarray
+        The response matrix used to calculate the Fisher matrix.
+    default_values : ndarray
+        The default values of the parameters.
+    lower_limits : ndarray
+        Lower limits of the parameters.
+    upper_limits : ndarray
+        Upper limits of the parameters.
+    total_truth_limit : float
+        The upper limit of total number of true events.
+    dx : ndarray
+        Array of step sizes to be used in numerical differentiation.
+
     """
 
     def __init__(self, response_matrix, translation_function, parameter_limits, default_values, dx=None, total_truth_limit=None):
@@ -365,7 +417,7 @@ class JeffreysPrior(object):
         new_shape = (int(np.prod(old_shape[:-2])), old_shape[-2], old_shape[-1])
         self.response_matrix = response_matrix.reshape(new_shape)
 
-        self.translate = translation_function
+        self._translate = translation_function
 
         limits = list(zip(*parameter_limits))
         self.lower_limits = np.array([ x if x is not None else -np.inf for x in limits[0] ])
@@ -379,6 +431,24 @@ class JeffreysPrior(object):
         self._nreco = response_matrix.shape[-2]
         self._i_diag = np.diag_indices(self._npar)
         self.dx = dx or np.full(self._npar, 1e-3)
+
+    def translate(self, parameters):
+        """Translate the parameter vector to a truth vector.
+
+        Parameters
+        ----------
+
+        parameters : ndarray like
+            Vector of the hypothesis parameters.
+
+        Returns
+        -------
+
+        ndarray
+            Vector of the corresponding truth space expectation values.
+
+        """
+        return self._translate(parameters)
 
     def fisher_matrix(self, parameters, toy_index=0):
         """Calculate the Fisher information matrix for the given parameters.
@@ -511,6 +581,20 @@ class LikelihoodMachine(object):
     If the matrix is sparse, the vector of truth limits *must* be provided.
     Its length must be that of the non-sparse response matrix, i.e. the
     number of truth bins irrespective of efficient indices.
+
+    Attributes
+    ----------
+
+    data_vector : ndarray
+        The vector of observed data.
+    response_matrix : ndarray
+        The (set of) response matrix to translate truth to reco space.
+    truth_limits : ndarray
+        The upper limits for truth values.
+    limit_method : str
+        The method used to enforce the truth limits.
+    log_matrix_weights : ndarray or None
+        The relative weights applied to the matrices.
 
     """
 
@@ -1932,8 +2016,6 @@ class LikelihoodMachine(object):
         --------
 
         plr
-        plot_truth_bin_traces
-        plot_reco_bin_traces
         likelihood_p_value
         max_likelihood_p_value
         max_likelihood_ratio_p_value
@@ -2118,8 +2200,6 @@ class LikelihoodMachine(object):
         --------
 
         mcmc
-        plot_truth_bin_traces
-        plot_reco_bin_traces
 
         """
 
@@ -2130,201 +2210,3 @@ class LikelihoodMachine(object):
         PLR = np.array(np.meshgrid(L1, -L0)).T.sum(axis=-1).flatten()
         preference = float(np.count_nonzero(PLR > 0)) / PLR.size
         return PLR, preference
-
-    def plot_bin_efficiencies(self, filename, plot_limits=False, bins_per_plot=20):
-        """Plot bin by bin efficiencies.
-
-        Uses Matplotlibs ``boxplot``, showing the median (line), quartiles
-        (box), 5% and 95% percentile (error bars), and mean (point) of the
-        efficiencies over all matrices.
-
-        Parameters
-        ----------
-
-        filename : string
-            Where to save the plot.
-        plot_limits : bool, optional
-            Also plot the truth limits for each bin on a second axis.
-        bins_per_plot : int, optional
-            How many bins are combined into a single plot.
-
-        Returns
-        -------
-
-        fig : Figure
-        ax : list of Axis
-
-        """
-
-        # Load matplotlib on demand
-        global plt
-        if plt is None:
-            from matplotlib import pyplot as _plt
-            plt = _plt
-
-        eff = self.response_matrix.sum(axis=-2)
-        eff.shape = (np.prod(eff.shape[:-1], dtype=int), eff.shape[-1])
-        if eff.shape[0] == 1:
-            # Trick boxplot into working even if there is only one efficiency per bin
-            eff = np.broadcast_to(eff, (2, eff.shape[1]))
-
-        nplots = int(np.ceil(eff.shape[-1] / bins_per_plot))
-        fig, ax= plt.subplots(nplots, squeeze=False, figsize=(8,nplots*3), sharey=True)
-        ax = ax[:,0]
-        for i in range(nplots):
-            x = np.arange(i*bins_per_plot, min((i+1)*bins_per_plot, eff.shape[-1]), dtype=int)
-            ax[i].set_ylabel("Efficiency")
-            ax[i].boxplot(eff[:,i*bins_per_plot:(i+1)*bins_per_plot], whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=x)
-            # TODO: Weightes plot for weighted matrices?
-            if plot_limits:
-                ax2 = ax[i].twinx()
-                ax2.plot(x, self.truth_limits[i*bins_per_plot:(i+1)*bins_per_plot], drawstyle='steps-mid', color='green')
-                ax2.set_ylabel("Truth limits")
-        ax[-1].set_xlabel("Truth bin #")
-        fig.tight_layout()
-        fig.savefig(filename)
-
-        return fig, ax
-
-    def plot_truth_bin_traces(self, filename, trace, plot_limits=False, bins_per_plot=20):
-        """Plot bin by bin MCMC truth traces.
-
-        Uses Matplotlibs ``boxplot``, showing the traces' median (line),
-        quartiles (box), 5% and 95% percentile (error bars), and mean (point).
-
-        Parameters
-        ----------
-
-        filename : string
-            Where to save the plot.
-        trace : array like
-            The posterior trace of the truth bin values of an MCMC.
-        plot_limits : bool or 'relative', optional
-            Also plot the truth limits.
-            If 'relative', the values are divided by the limits before plotting.
-        bins_per_plot : int, optional
-            How many bins are combined into a single plot.
-
-        Returns
-        -------
-
-        fig : Figure
-        ax : list of Axis
-
-        See also
-        --------
-
-        mcmc
-        plot_reco_bin_traces
-
-        """
-
-        # Load matplotlib on demand
-        global plt
-        if plt is None:
-            from matplotlib import pyplot as _plt
-            plt = _plt
-
-        trace = trace.reshape( (np.prod(trace.shape[:-1], dtype=int), trace.shape[-1]) )
-        if trace.shape[0] == 1:
-            # Trick boxplot into working even if there is only one trace entry per bin
-            trace = np.broadcast_to(trace, (2, trace.shape[1]))
-
-        if plot_limits == 'relative':
-            trace = trace / np.where(self.truth_limits > 0, self.truth_limits, 1.)
-
-        nplots = int(np.ceil(trace.shape[-1] / bins_per_plot))
-        fig, ax= plt.subplots(nplots, squeeze=False, figsize=(8,nplots*3), sharey=True)
-        ax = ax[:,0]
-        for i in range(nplots):
-            x = np.arange(i*bins_per_plot, min((i+1)*bins_per_plot, trace.shape[-1]), dtype=int)
-            ax[i].boxplot(trace[:,i*bins_per_plot:(i+1)*bins_per_plot], whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=x)
-            if plot_limits == 'relative':
-                ax[i].set_ylabel("Value / Truth limit")
-            else:
-                ax[i].set_ylabel("Value")
-                if plot_limits:
-                    ax[i].plot(x, self.truth_limits[i*bins_per_plot:(i+1)*bins_per_plot], drawstyle='steps-mid', color='green', label="Truth limit")
-                    ax[i].legend(loc='best')
-        ax[-1].set_xlabel("Truth bin #")
-        fig.tight_layout()
-        fig.savefig(filename)
-
-        return fig, ax
-
-    def plot_reco_bin_traces(self, filename, trace, toy_index=None, plot_data=False, bins_per_plot=20):
-        """Plot bin by bin MCMC reco traces.
-
-        Uses Matplotlibs ``boxplot``, showing the traces' median (line),
-        quartiles (box), 5% and 95% percentile (error bars), and mean (point).
-
-        Parameters
-        ----------
-
-        filename : string
-            Where to save the plot.
-        trace : array like
-            The posterior trace of the *truth* bin values of an MCMC.
-        toy_index : array like, optional
-            The posterior trace of the chosen toy matrices of an MCMC.
-        plot_data : bool or 'relative', optional
-            Also plot the actual data content of the reco bins.
-            If 'relative', the values are divided by the data before plotting.
-        bins_per_plot : int, optional
-            How many bins are combined into a single plot.
-
-        Returns
-        -------
-
-        fig : Figure
-        ax : list of Axis
-
-        See also
-        --------
-
-        mcmc
-        plot_truth_bin_traces
-
-        """
-
-        # Load matplotlib on demand
-        global plt
-        if plt is None:
-            from matplotlib import pyplot as _plt
-            plt = _plt
-
-        resp = self._reduced_response_matrix
-        if toy_index is not None:
-            resp = resp[toy_index,...]
-
-        trace = self._reduce_truth_vector(trace)[...,np.newaxis,:]
-        trace = np.einsum('...i,...i->...', resp, trace)
-
-        # Reshape for boxplotting
-        trace = trace.reshape( (np.prod(trace.shape[:-1], dtype=int), trace.shape[-1]) )
-
-        # Trick boxplot into working even if there is only one trace entry per bin
-        if trace.shape[0] == 1:
-            trace = np.broadcast_to(trace, (2,) + trace.shape[1:])
-
-        if plot_data == 'relative':
-            trace = trace / np.where(self.data_vector > 0, self.data_vector, 1.)
-
-        nplots = int(np.ceil(trace.shape[-1] / bins_per_plot))
-        fig, ax= plt.subplots(nplots, squeeze=False, figsize=(8,nplots*3), sharey=True)
-        ax = ax[:,0]
-        for i in range(nplots):
-            x = np.arange(i*bins_per_plot, min((i+1)*bins_per_plot, trace.shape[-1]), dtype=int)
-            ax[i].boxplot(trace[:,i*bins_per_plot:(i+1)*bins_per_plot], whis=[5., 95.], sym='|', showmeans=True, whiskerprops={'linestyle': 'solid'}, positions=x)
-            if plot_data == 'relative':
-                ax[i].set_ylabel("Value / Data")
-            else:
-                ax[i].set_ylabel("Value")
-                if plot_data:
-                    ax[i].plot(x, self.data_vector[i*bins_per_plot:(i+1)*bins_per_plot], drawstyle='steps-mid', color='green', label="Data")
-                    ax[i].legend(loc='best')
-        ax[-1].set_xlabel("Reco bin #")
-        fig.tight_layout()
-        fig.savefig(filename)
-
-        return fig, ax
