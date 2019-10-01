@@ -1,9 +1,8 @@
-import matplotlib.pyplot as plt
 import numpy as np
-from scipy import stats
 from remu import binning
 from remu import migration
-from copy import deepcopy
+from remu import plotting
+from remu import matrix_utils
 
 with open("reco-binning.yml", 'rt') as f:
     reco_binning = binning.yaml.load(f)
@@ -11,24 +10,33 @@ with open("coarse-truth-binning.yml", 'rt') as f:
     truth_binning = binning.yaml.load(f)
 
 respA = migration.ResponseMatrix(reco_binning, truth_binning)
-reco_binning = deepcopy(reco_binning)
-truth_binning = deepcopy(truth_binning)
-respB = migration.ResponseMatrix(reco_binning, truth_binning)
 
 respA.fill_from_csv_file("../00/modelA_data.txt")
 respA.fill_up_truth_from_csv_file("../00/modelA_truth.txt")
-respA.plot_values("response_matrixA.png", variables=(None, None))
-respA.plot_expected_efficiency("efficiencyA.png")
-respA.plot_in_bin_variation("inbin_var_A.png", variables=(None, None))
 
-respB.fill_from_csv_file(["../00/modelB_data.txt"])
-respB.fill_up_truth_from_csv_file(["../00/modelB_truth.txt"])
-respB.plot_values("response_matrixB.png", variables=(None, None))
-respB.plot_expected_efficiency("efficiencyB.png")
-respB.plot_in_bin_variation("inbin_var_B.png", variables=(None, None))
+matrix_utils.plot_mean_response_matrix(respA, "response_matrix_A.png")
 
-respA.plot_distance("mahalanobis_distance.png", respB, expectation=True, variables=(None, None))
-respA.plot_compatibility("compatibility.png", respB)
+plt = plotting.get_plotter(respA.truth_binning)
+plt.plot_entries()
+plt.savefig("entries_A.png")
+
+plt = plotting.get_plotter(respA.truth_binning)
+plt.plot_entries(density=False, hatch=None)
+plt.savefig("abs_entries_A.png")
+
+reco_binning = reco_binning.clone()
+truth_binning = truth_binning.clone()
+reco_binning.reset()
+truth_binning.reset()
+respB = migration.ResponseMatrix(reco_binning, truth_binning)
+
+respB.fill_from_csv_file("../00/modelB_data.txt")
+respB.fill_up_truth_from_csv_file("../00/modelB_truth.txt")
+
+matrix_utils.plot_mean_response_matrix(respB, "response_matrix_B.png")
+
+matrix_utils.plot_mahalanobis_distance(respA, respB, "mahalanobis_distance.png")
+matrix_utils.plot_compatibility(respA, respB, "compatibility.png")
 
 with open("reco-binning.yml", 'rt') as f:
     reco_binning = binning.yaml.load(f)
@@ -36,44 +44,58 @@ with open("fine-truth-binning.yml", 'rt') as f:
     truth_binning = binning.yaml.load(f)
 
 respA = migration.ResponseMatrix(reco_binning, truth_binning)
-reco_binning = deepcopy(reco_binning)
-truth_binning = deepcopy(truth_binning)
+reco_binning = reco_binning.clone()
+truth_binning = truth_binning.clone()
 respB = migration.ResponseMatrix(reco_binning, truth_binning)
 
 respA.fill_from_csv_file("../00/modelA_data.txt")
 respA.fill_up_truth_from_csv_file("../00/modelA_truth.txt")
-respA.plot_values("fine_response_matrixA.png", variables=(None, None))
-respA.plot_statistical_variance("fine_stat_varA.png", variables=(None, None))
-respA.plot_expected_efficiency("fine_efficiencyA.png")
-respA.plot_in_bin_variation("fine_inbin_varA.png", variables=(None, None))
 
-respB.fill_from_csv_file(["../00/modelB_data.txt"])
-respB.fill_up_truth_from_csv_file(["../00/modelB_truth.txt"])
-respB.plot_values("fine_response_matrixB.png", variables=(None, None))
-respB.plot_statistical_variance("fine_stat_varB.png", variables=(None, None))
-respB.plot_expected_efficiency("fine_efficiencyB.png")
-respB.plot_in_bin_variation("fine_inbin_varB.png", variables=(None, None))
+respB.fill_from_csv_file("../00/modelB_data.txt")
+respB.fill_up_truth_from_csv_file("../00/modelB_truth.txt")
 
-respA.plot_distance("fine_mahalanobis_distance.png", respB, expectation=True, variables=(None, None))
-respA.plot_compatibility("fine_compatibility.png", respB)
+plt = plotting.get_plotter(respB.truth_binning)
+plt.plot_entries()
+plt.savefig("fine_entries_B.png")
+
+matrix_utils.plot_mean_response_matrix(respB, "fine_response_matrix_A.png")
+
+matrix_utils.plot_mean_efficiency(respA, "fine_efficiency_A.png")
+
+matrix_utils.plot_mean_efficiency(respB, "fine_efficiency_B.png")
+
+matrix_utils.plot_mahalanobis_distance(respA, respB, "fine_mahalanobis_distance.png")
+matrix_utils.plot_compatibility(respA, respB, "fine_compatibility.png")
 
 resp = respA + respB
-resp.plot_values("fine_response_matrix.png", variables=(None, None))
-resp.plot_statistical_variance("fine_stat_var.png", variables=(None, None))
-resp.plot_in_bin_variation("fine_inbin_var.png", variables=(None, None))
 
-entries = resp.get_response_entries_as_ndarray()
-optimised = resp.maximize_stats_by_rebinning()
-entries = optimised.get_response_entries_as_ndarray()
-optimised.plot_values("optimised_response_matrix.png", variables=(None, None))
-optimised.plot_statistical_variance("optimised_stat_var.png", variables=(None, None))
-optimised.plot_expected_efficiency("optimised_efficiency.png", variables=(None, None))
-optimised.plot_in_bin_variation("optimised_inbin_var.png", variables=(None, None))
+matrix_utils.plot_in_bin_variation(resp, "fine_inbin_var.png")
+matrix_utils.plot_statistical_uncertainty(resp, "fine_stat_var.png")
+matrix_utils.plot_relative_in_bin_variation(resp, "fine_rel_inbin_var.png")
 
-with open("optimised-truth-binning.yml", 'w') as f:
-    binning.yaml.dump(optimised.truth_binning, f)
+plt = plotting.get_plotter(resp.truth_binning)
+plt.plot_entries()
+plt.savefig("fine_entries.png")
 
-optimised.export("response_matrix.npz")
+entries = resp.get_truth_entries_as_ndarray()
+optimised = resp
+while np.min(entries) < 10:
+    optimised = matrix_utils.improve_stats(optimised)
+    entries = optimised.get_truth_entries_as_ndarray()
+
+plt = plotting.get_plotter(optimised.truth_binning)
+plt.plot_entries()
+plt.savefig("optimised_entries.png")
+
+plt = plotting.get_plotter(optimised.truth_binning)
+plt.plot_entries(density=False, label="min", hatch=None, margin_function=np.min)
+plt.plot_entries(density=False, label="max", hatch=None, margin_function=np.max)
+plt.plot_entries(density=False, label="median", hatch=None, margin_function=np.median)
+plt.legend()
+plt.savefig("optimised_abs_entries.png")
+
+matrix_utils.plot_mean_efficiency(optimised, "optimised_efficiency.png")
+matrix_utils.plot_relative_in_bin_variation(optimised, "optimised_rel_inbin_var.png")
 
 with open("reco-binning.yml", 'rt') as f:
     reco_binning = binning.yaml.load(f)
@@ -81,12 +103,17 @@ with open("optimised-truth-binning.yml", 'rt') as f:
     truth_binning = binning.yaml.load(f)
 
 respA = migration.ResponseMatrix(reco_binning, truth_binning)
-reco_binning = deepcopy(reco_binning)
-truth_binning = deepcopy(truth_binning)
+reco_binning = reco_binning.clone()
+truth_binning = truth_binning.clone()
 respB = migration.ResponseMatrix(reco_binning, truth_binning)
 respA.fill_from_csv_file("../00/modelA_data.txt")
 respA.fill_up_truth_from_csv_file("../00/modelA_truth.txt")
 respB.fill_from_csv_file(["../00/modelB_data.txt"])
 respB.fill_up_truth_from_csv_file(["../00/modelB_truth.txt"])
-respA.plot_distance("optimised_mahalanobis_distance.png", respB, expectation=True, variables=(None, None))
-respA.plot_compatibility("optimised_compatibility.png", respB)
+matrix_utils.plot_mahalanobis_distance(respA, respB, "optimised_mahalanobis_distance.png")
+matrix_utils.plot_compatibility(respA, respB, "optimised_compatibility.png")
+
+with open("optimised-truth-binning.yml", 'w') as f:
+    binning.yaml.dump(optimised.truth_binning, f)
+
+optimised.export("response_matrix.npz")

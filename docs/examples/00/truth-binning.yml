@@ -1,5 +1,5 @@
-!RecBinning
-binedges:
+!RectilinearBinning
+bin_edges:
 - - true_x
   - [-.inf,
     -3.0,

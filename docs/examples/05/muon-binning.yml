@@ -1,4 +1,4 @@
-!RecBinning
+!RectangularBinning
 binedges:
 - - px
   - [-.inf,
