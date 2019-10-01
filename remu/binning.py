@@ -5,7 +5,7 @@
 from __future__ import division
 from six.moves import map, zip
 from copy import copy, deepcopy
-import ruamel.yaml as yaml
+import yaml
 import re
 import numpy as np
 from numpy.lib.recfunctions import rename_fields

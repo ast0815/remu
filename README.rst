@@ -27,7 +27,6 @@ system::
     $ pip install -r requirements.txt
     $ # Install optional packages
     $ pip install -r pymc-requirements.txt
-    $ pip install -r matplotlib-requirements.txt
     $ pip install -r multiprocess-requirements.txt
     $ # Install actual package
     $ pip install -e .
@@ -37,11 +36,7 @@ PyMC, Matplotlib, and Multiprocess are optional dependencies. They are only
 needed if one actually wants to do any Marcov Chain Monte Carlo, plotting, or
 parallel computing respectively.
 
-ReMU requires Python 2.7 or >=3.4 for best functionality. Python 2.6 is
-supported, but a lot of required packages have dropped support for Python 2.6
-in newer releases. The file ``requirements26.txt`` can be used instead of
-``requirements.txt`` in the instructions above to install the packages in
-versions that still support Python 2.6.
+ReMU requires Python 2.7 or >=3.4.
 
 Installing official releases with ``pip``
 -----------------------------------------
@@ -61,7 +56,7 @@ If you want to make sure the optional dependencies are also installed,
 use pip's 'Extras' syntax::
 
     $ # install remu including all optional dependencies
-    $ pip install remu[mcmc,plotting,parallel]==1.0.0
+    $ pip install remu[mcmc,parallel]==1.0.0
 
 Tests
 =====

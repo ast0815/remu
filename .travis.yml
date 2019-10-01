@@ -4,19 +4,16 @@ language: python
 cache: pip # Cache pip for faster builds
 
 python:
-  - "2.6"
   - "2.7"
   - "3.4"
 
 matrix:
   fast_finish: true
-  allow_failures:
-    - python: "2.6"
 
 addons:
   apt:
     packages:
-      # Packages we need to compile scipy for Python 2.6
+      # Packages we need
       - libopenblas-base
       - libopenblas-dev
       - liblapack-dev
@@ -29,9 +26,7 @@ before_install:
 
 # command to install dependencies
 install:
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install -r requirements26.txt; fi
-  - if [[ $TRAVIS_PYTHON_VERSION != '2.6' ]]; then pip install -r requirements.txt; fi
-  - pip install -r matplotlib-requirements.txt
+  - pip install -r requirements.txt
   - pip install -r pymc-requirements.txt
   - pip install -r multiprocess-requirements.txt
   - pip install -r test-requirements.txt
@@ -39,8 +34,7 @@ install:
 # command to run tests
 script:
   - echo $TRAVIS_PYTHON_VERSION
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then ./run_tests.sh --noproc --verbose ; fi # Travis CI's Python2.6 environment is not able to deal with multiprocess for some reason
-  - if [[ $TRAVIS_PYTHON_VERSION != '2.6' ]]; then ./run_tests.sh --verbose ; fi
+  - ./run_tests.sh --verbose
 
 # command to run after tests
 after_success:

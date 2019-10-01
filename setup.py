@@ -34,13 +34,12 @@ setup(name='remu',
     author_email='lukas.koch@mailbox.org',
     license='MIT',
     packages=['remu'],
-    install_requires=['ruamel.yaml>=0.11.15,<0.15', 'numpy>=1.11.3', 'scipy>=0.18.1', 'six>=1.10.0'],
+    install_requires=['ruamel.yaml>=0.11.15,<0.15', 'numpy>=1.11.3', 'scipy>=0.18.1', 'six>=1.10.0', 'matplotlib>=2.2.4'],
     extras_require = {
-        "plotting": ['matplotlib>=1.5.3'],
         "mcmc": ['pymc>=2.3.6'],
         "parallel": ['multiprocess>=0.70.5', 'dill>=0.2.7.1'],
     },
-    python_requires='>=2.6, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
+    python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
     classifiers=[
       # How mature is this project? Common values are
       #   3 - Alpha
@@ -59,7 +58,6 @@ setup(name='remu',
       # Specify the Python versions you support here. In particular, ensure
       # that you indicate whether you support Python 2, Python 3 or both.
       'Programming Language :: Python :: 2',
-      'Programming Language :: Python :: 2.6',
       'Programming Language :: Python :: 2.7',
       'Programming Language :: Python :: 3',
       'Programming Language :: Python :: 3.4',

@@ -1,4 +1,5 @@
-ruamel.yaml==0.11.15
+pyyaml==3.13
 numpy==1.16.2
 scipy==1.0.0
 six==1.10.0
+matplotlib==2.2.4
