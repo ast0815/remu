@@ -10,7 +10,7 @@ using the ``binning.yaml`` module::
         binning.yaml.dump(some_binning, f)
 
     with open("filename.yml", 'r') as f:
-        some_binning = binning.yaml.load(f)
+        some_binning = binning.yaml.full_load(f)
 
 """
 
@@ -24,7 +24,7 @@ from numpy.lib.recfunctions import rename_fields
 import csv
 from tempfile import TemporaryFile
 
-class PhaseSpace(object):
+class PhaseSpace(yaml.YAMLObject):
     """A PhaseSpace defines the possible combinations of variables that characterize an event.
 
     Parameters
@@ -120,21 +120,19 @@ class PhaseSpace(object):
         """Return a copy of the object."""
         return deepcopy(self)
 
-    @staticmethod
-    def _yaml_representer(dumper, obj):
-        """Represent PhaseSpaces in a YAML file."""
+    @classmethod
+    def to_yaml(cls, dumper, obj):
         return dumper.represent_sequence('!PhaseSpace', list(obj.variables))
 
-    @staticmethod
-    def _yaml_constructor(loader, node):
-        """Reconstruct PhaseSpaces from YAML files."""
+    @classmethod
+    def from_yaml(cls, loader, node):
         seq = loader.construct_sequence(node)
-        return PhaseSpace(variables=seq)
+        return cls(variables=seq)
 
-yaml.add_representer(PhaseSpace, PhaseSpace._yaml_representer)
-yaml.add_constructor(u'!PhaseSpace', PhaseSpace._yaml_constructor)
+    yaml_loader = yaml.FullLoader
+    yaml_tag = u'!PhaseSpace'
 
-class Bin(object):
+class Bin(yaml.YAMLObject):
     """A Bin is a container for a value that is defined on a subset of an n-dimensional phase space.
 
     Parameters
@@ -356,27 +354,20 @@ class Bin(object):
         args = self._get_clone_kwargs(**kwargs)
         return type(self)(**args)
 
-    @staticmethod
-    def _yaml_representer(dumper, obj):
-        """Represent Bin in a YAML file."""
-        dic = {
-                'phasespace': obj.phasespace,
-              }
-        try:
-            obj.value_array
-        except AttributeError:
-            # Dummy binning
-            dic['dummy'] = True
-        return dumper.represent_mapping('!Bin', dic)
+    @classmethod
+    def to_yaml(cls, dumper, obj):
+        dic = obj._get_clone_kwargs(dummy=True)
+        if not obj.is_dummy():
+            del dic['dummy']
+        return dumper.represent_mapping(cls.yaml_tag, dic)
 
-    @staticmethod
-    def _yaml_constructor(loader, node):
-        """Reconstruct Bin from YAML files."""
-        dic = loader.construct_mapping(node)
-        return Bin(**dic)
+    @classmethod
+    def from_yaml(cls, loader, node):
+        dic = loader.construct_mapping(node, deep=True)
+        return cls(**dic)
 
-yaml.add_representer(Bin, Bin._yaml_representer)
-yaml.add_constructor(u'!Bin', Bin._yaml_constructor)
+    yaml_loader = yaml.FullLoader
+    yaml_tag = u'!Bin'
 
 class RectangularBin(Bin):
     """A Bin defined by min and max values in all variables.
@@ -384,12 +375,20 @@ class RectangularBin(Bin):
     Parameters
     ----------
 
-    edges : dict
-        A `dict` of ``{'varname': (lower_edge, upper_edge)}``
+    variables : iterable of str
+        The variables with defined edges.
+
+    edges : iterable of (int, int)
+        lower and upper edges for all variables::
+
+            [[x_lower, x_upper], [y_lower, y_upper], ...]
+
     include_lower : bool, optional
         Does the bin include the lower edges?
+
     include_upper : bool, optional
         Does the bin include the upper edges?
+
     **kwargs : optional
         Additional keyword arguments are passed to :class:`Bin`.
 
@@ -404,40 +403,39 @@ class RectangularBin(Bin):
         The sum of squared weights in the bin.
     phasespace : PhaseSpace
         The :class:`PhaseSpace` the bin is defined on
-    edges : dict
-        A `dict` of ``{'varname': (lower_edge, upper_edge)}``
-    include_lower : bool, optional
+    variables : tuple of str
+        The variable names.
+    edges : tuple of (int, int)
+        The bin edges for each variable.
+    include_lower : bool
         Does the bin include the lower edges?
-    include_upper : bool, optional
+    include_upper : bool
         Does the bin include the upper edges?
 
     """
 
-    def __init__(self, edges, include_lower=True, include_upper=False, **kwargs):
-        self.include_lower = include_lower
-        self.include_upper = include_upper
-        self.edges = edges
-        if self.edges is None:
-            raise TypeError("Edges are not defined")
+    def __init__(self, variables, edges, include_lower=True, include_upper=False, **kwargs):
+        self.variables = tuple(variables)
+        self.edges = tuple(tuple(x) for x in edges)
+        self.include_lower = bool(include_lower)
+        self.include_upper = bool(include_upper)
 
         # Create PhaseSpace from edges if necessary
         phasespace = kwargs.get('phasespace', None)
         if phasespace is None:
-            kwargs['phasespace'] = PhaseSpace(self.edges.keys())
+            kwargs['phasespace'] = PhaseSpace(self.variables)
 
         # Handle default bin initialization
         Bin.__init__(self, **kwargs)
 
         # Check that all edges are valid tuples
-        for var in self.edges:
+        for i, var in enumerate(self.variables):
             if var not in self.phasespace:
                 raise ValueError("Variable not part of PhaseSpace: %s"%(var,))
-            mi, ma = self.edges[var]
+            mi, ma = self.edges[i]
 
             if ma < mi:
                 raise ValueError("Upper edge is smaller than lower edge for variable %s."%(var,))
-
-            self.edges[var] = (mi, ma)
 
     def event_in_bin(self, event):
         """Check whether an event is within all bin edges.
@@ -461,8 +459,8 @@ class RectangularBin(Bin):
 
         inside = True
 
-        for var in self.edges:
-            mi, ma = self.edges[var]
+        for i, var in enumerate(self.variables):
+            mi, ma = self.edges[i]
             val = event[var]
             if self.include_lower:
                 if val < mi:
@@ -489,66 +487,33 @@ class RectangularBin(Bin):
         Returns
         -------
 
-        dict
+        ndarray
             The center coordinates for each variable.
 
         """
-        center = {}
-        for key, (mi, ma) in self.edges.items():
-            center[key] = (float(mi) + float(ma)) / 2.
-        return center
+        arr = np.asfarray(self.edges)
+        return arr.sum(axis=1)/2.
 
     def __eq__(self, other):
         """RectangularBins are equal if they have the same edges."""
         return (Bin.__eq__(self, other)
-            and self.edges == other.edges
+            and sorted(zip(self.variables, self.edges)) == sorted(zip(other.variables, other.edges))
             and self.include_lower == other.include_lower
             and self.include_upper == other.include_upper)
 
     def _get_clone_kwargs(self, **kwargs):
         """Get the necessary arguments to clone this object."""
 
-        args = Bin._get_clone_kwargs(self, **kwargs)
-        args.update({
+        args = {
             'include_upper': self.include_upper,
             'include_lower': self.include_lower,
-            'edges': self.edges,
-            })
+            'variables': list(self.variables),
+            'edges': np.asarray(self.edges).tolist(),
+            }
+        args.update(Bin._get_clone_kwargs(self, **kwargs))
         return args
 
-    @staticmethod
-    def _yaml_representer(dumper, obj):
-        """Represent RectangularBin in a YAML file."""
-        dic = {
-                'phasespace': obj.phasespace,
-                'include_upper': obj.include_upper,
-                'include_lower': obj.include_lower,
-              }
-        edges = copy(obj.edges)
-        for var in edges:
-            # Convert bin edges to lists for prettier YAML
-            edges[var] = list(edges[var])
-        dic['edges'] = edges
-        try:
-            obj.value_array
-        except AttributeError:
-            # Dummy binning
-            dic['dummy'] = True
-        return dumper.represent_mapping('!RectangularBin', dic)
-
-    @staticmethod
-    def _yaml_constructor(loader, node):
-        """Reconstruct RectangularBin from YAML files."""
-        dic = loader.construct_mapping(node, deep=True)
-        edges = dic['edges']
-        for var in edges:
-            # Convert lists back to tuples
-            edges[var] = tuple(edges[var])
-        dic['edges'] = edges
-        return RectangularBin(**dic)
-
-yaml.add_representer(RectangularBin, RectangularBin._yaml_representer)
-yaml.add_constructor(u'!RectangularBin', RectangularBin._yaml_constructor)
+    yaml_tag = u'!RectangularBin'
 
 class CartesianProductBin(Bin):
     """A Bin that is part of a CartesianProductBinning.
@@ -559,7 +524,8 @@ class CartesianProductBin(Bin):
     Parameters
     ----------
 
-    binning_data_indices : list of (Binning, int)
+    binnings : iterable of Binning
+    data_indices : iterable of int
         Specifies the constituent binnings and the respective data indices.
     **kwargs : optional
         Additional keyword arguments are passed to :class:`Bin`.
@@ -575,18 +541,20 @@ class CartesianProductBin(Bin):
         The sum of squared weights in the bin.
     phasespace : PhaseSpace
         The :class:`PhaseSpace` the bin is defined on
-    binning_data_indices : list of (Binning, int)
+    binnings : tuple of Binning
+    data_indices : tuple of int
         Specifies the constituent binnings and the respective data indices.
 
     """
 
-    def __init__(self, binning_data_indices, **kwargs):
-        self.binning_data_indices = binning_data_indices
+    def __init__(self, binnings, data_indices, **kwargs):
+        self.binnings = tuple(binnings)
+        self.data_indices = tuple(data_indices)
 
         # Create PhaseSpace from binnings if necessary
         if 'phasespace' not in kwargs:
             kwargs['phasespace'] = PhaseSpace([])
-            for binning, index in self.binning_data_indices:
+            for binning in self.binnings:
                 kwargs['phasespace'] *= binning.phasespace
 
         Bin.__init__(self, **kwargs)
@@ -612,7 +580,7 @@ class CartesianProductBin(Bin):
         """
 
         # Check that the event is at the right data position in all binnings
-        for binning, i in self.binning_data_indices:
+        for binning, i in zip(self.binnings, self.data_indices):
             if binning.get_event_data_index(event) != i:
                 return False
         else:
@@ -621,12 +589,13 @@ class CartesianProductBin(Bin):
     def __eq__(self, other):
         """CartesianProductBins are equal, if the binnings and indices are equal."""
         try:
+            if len(self.binnings) != len(other.binnings):
+                return False
             # Try both combinations of self and other
-            for A, B in [(self.binning_data_indices, other.binning_data_indices),
-                (other.binning_data_indices, self.binning_data_indices)]:
-                for self_binning, i in A:
+            for A, B in [(self, other), (other, self)]:
+                for self_binning, i in zip(A.binnings, A.data_indices):
                     # For each binning and index in self...
-                    for other_binning, j in B:
+                    for other_binning, j in zip(B.binnings, B.data_indices):
                         # ... check that there is a matchin binning and index in other
                         if self_binning == other_binning and i == j:
                             break
@@ -641,36 +610,16 @@ class CartesianProductBin(Bin):
     def _get_clone_kwargs(self, **kwargs):
         """Get the necessary arguments to clone this object."""
 
-        args = Bin._get_clone_kwargs(self, **kwargs)
-        args.update({
-            'binning_data_indices': [(binning.clone(dummy=True), i) for binning, i in self.binning_data_indices]
-            })
+        args = {
+            'binnings': [binning.clone(dummy=True) for binning in self.binnings],
+            'data_indices': list(self.data_indices),
+            }
+        args.update(Bin._get_clone_kwargs(self, **kwargs))
         return args
 
-    @staticmethod
-    def _yaml_representer(dumper, obj):
-        """Represent CartesianProductBin in a YAML file."""
-        dic = {
-                'binning_data_indices': list(obj.binning_data_indices),
-                'phasespace': obj.phasespace,
-              }
-        try:
-            obj.value_array
-        except AttributeError:
-            # Dummy binning
-            dic['dummy'] = True
-        return dumper.represent_mapping('!CartesianProductBin', dic)
+    yaml_tag = u'!CartesianProductBin'
 
-    @staticmethod
-    def _yaml_constructor(loader, node):
-        """Reconstruct CartesianProductBin from YAML files."""
-        dic = loader.construct_mapping(node, deep=True)
-        return CartesianProductBin(**dic)
-
-yaml.add_representer(CartesianProductBin, CartesianProductBin._yaml_representer)
-yaml.add_constructor(u'!CartesianProductBin', CartesianProductBin._yaml_constructor)
-
-class Binning(object):
+class Binning(yaml.YAMLObject):
     """A Binning is a set of disjunct Bins.
 
     Parameters
@@ -694,7 +643,7 @@ class Binning(object):
     Attributes
     ----------
 
-    bins : list of Bin
+    bins : tuple of Bin
         The list of disjoint bins on the PhaseSpace.
     nbins : int
         The number of bins in the binning.
@@ -732,8 +681,11 @@ class Binning(object):
     def __init__(self, bins, subbinnings={}, value_array=None, entries_array=None,
                  sumw2_array=None, phasespace=None, dummy=False):
 
-        self.bins = bins
-        self.subbinnings = subbinnings
+        if isinstance(bins, _BinProxy):
+            self.bins = bins
+        else:
+            self.bins = tuple(bins)
+        self.subbinnings = dict(subbinnings)
         self.phasespace = phasespace
         if self.phasespace is None:
             self.phasespace = self._get_phasespace()
@@ -1612,27 +1564,20 @@ class Binning(object):
     def __repr__(self):
         return '%s(%s)'%(type(self).__name__, ", ".join(["%s=%r"%(k,v) for k,v in self._get_clone_kwargs().items()]))
 
-    @staticmethod
-    def _yaml_representer(dumper, obj):
-        """Represent Binning in a YAML file."""
-        dic = {
-            'bins': [bin.clone(dummy=True) for bin in obj.bins],
-            'phasespace': obj.phasespace,
-            }
-        if len(obj.subbinnings) > 0:
-            dic['subbinnings'] = dict((i, binning.clone(dummy=True)) for i, binning in obj.subbinnings.items())
-        if obj.is_dummy():
-            dic['dummy'] = True
-        return dumper.represent_mapping('!Binning', dic)
+    @classmethod
+    def to_yaml(cls, dumper, obj):
+        dic = obj._get_clone_kwargs(dummy=True)
+        if not obj.is_dummy():
+            del dic['dummy']
+        return dumper.represent_mapping(cls.yaml_tag, dic)
 
-    @staticmethod
-    def _yaml_constructor(loader, node):
-        """Reconstruct Binning from YAML files."""
+    @classmethod
+    def from_yaml(cls, loader, node):
         dic = loader.construct_mapping(node, deep=True)
-        return Binning(**dic)
+        return cls(**dic)
 
-yaml.add_representer(Binning, Binning._yaml_representer)
-yaml.add_constructor(u'!Binning', Binning._yaml_constructor)
+    yaml_loader = yaml.FullLoader
+    yaml_tag = u'!Binning'
 
 class RectangularBinning(Binning):
     """Binning that contains only :class:`RectangularBin`
@@ -1643,13 +1588,13 @@ class RectangularBinning(Binning):
     variables : list of str
         The variables the binning is defined on.
 
-    bin_edges : list of (float, float, ...)
+    bin_edges : list of ((float, float), (float, float), ...)
         The list of bin edges defining the bins. The tuples contain the lower
         and upper edges of all `variables`, e.g.::
 
             [
-            (x_low, x_high, y_low, y_high),
-            (x_low, x_high, y_low, y_high),
+            ((x_low, x_high), (y_low, y_high)),
+            ((x_low, x_high), (y_low, y_high)),
             ...
             ]
 
@@ -1659,18 +1604,18 @@ class RectangularBinning(Binning):
     Attributes
     ----------
 
-    variables : list of str
+    variables : tuple of str
         The variables corresponding to the bin edges.
     include_upper : bool
         Include the upper rather than the lower bin edges.
-    bins : list of Bin
-        The list of RectangularBins.
+    bins : tuple of Bin
+        The tuple of RectangularBins.
     nbins : int
         The number of bins in the binning.
     data_size : int
         The number of elements in the data arrays.
         Might differ from ``nbins`` due to subbinnings.
-    subbinnings : dict of {bin_index: Binning}, optional
+    subbinnings : dict of {bin_index: Binning}
         Subbinnings to replace certain bins.
     value_array : slice of ndarray
         A slice of a numpy array, where the values of the bins are stored.
@@ -1684,14 +1629,12 @@ class RectangularBinning(Binning):
     """
 
     def __init__(self, variables, bin_edges, include_upper=False, **kwargs):
-        self.variables = list(variables)
+        self.variables = tuple(variables)
         self.include_upper = bool(include_upper)
         bins = []
-        for edges in bin_edges:
-            dic = {}
-            for i, var in enumerate(variables):
-                dic[var] = tuple(edges[i*2:(i+1)*2])
-            bins.append(RectangularBin(edges=dic,
+        for i, edges in enumerate(bin_edges):
+            bins.append(RectangularBin(variables=variables,
+                edges=bin_edges[i],
                 include_upper=self.include_upper,
                 include_lower=not self.include_upper,
                 dummy=True))
@@ -1701,38 +1644,20 @@ class RectangularBinning(Binning):
     def _get_clone_kwargs(self, **kwargs):
         """Get the necessary arguments to clone this object."""
 
-        args = Binning._get_clone_kwargs(self, bins=None, **kwargs)
-        del args['bins']
         variables = list(self.variables)
-        bin_edges = []
+        bin_edges = [] # Turn all tuples into lists
         for bn in self.bins:
-            edg = []
-            for var in variables:
-                edg.extend(bn.edges[var])
-            bin_edges.append(edg)
-        args.update({
-            'variables': variables,
+            bin_edges.append([list(x) for x in bn.edges])
+        args = {
+            'variables': list(variables),
             'bin_edges': bin_edges,
             'include_upper': self.include_upper,
-            })
+            }
+        args.update(Binning._get_clone_kwargs(self, bins=None, **kwargs))
+        del args['bins']
         return args
 
-    @staticmethod
-    def _yaml_representer(dumper, obj):
-        """Represent RectangularBinning in a YAML file."""
-        dic = obj._get_clone_kwargs(dummy=True)
-        if not obj.is_dummy():
-            del dic['dummy']
-        return dumper.represent_mapping('!RectangularBinning', dic)
-
-    @staticmethod
-    def _yaml_constructor(loader, node):
-        """Reconstruct RectangularBinning from YAML files."""
-        dic = loader.construct_mapping(node, deep=True)
-        return RectangularBinning(**dic)
-
-yaml.add_representer(RectangularBinning, RectangularBinning._yaml_representer)
-yaml.add_constructor(u'!RectangularBinning', RectangularBinning._yaml_constructor)
+    yaml_tag = u'!RectangularBinning'
 
 class _BinProxy(object):
     """Base class for all bin proxies."""
@@ -1763,10 +1688,12 @@ class _CartesianProductBinProxy(_BinProxy):
         val_slice = self.binning.value_array[index:index+1]
         ent_slice = self.binning.entries_array[index:index+1]
         sumw2_slice = self.binning.sumw2_array[index:index+1]
-        binning_data_indices = []
+        binnings = []
+        data_indices = []
         for i,j in enumerate(tup):
-            binning_data_indices.append((self.binning.binnings[i], j))
-        bin = CartesianProductBin(binning_data_indices, value_array=val_slice, entries_array=ent_slice, sumw2_array=sumw2_slice)
+            binnings.append(self.binning.binnings[i])
+            data_indices.append(j)
+        bin = CartesianProductBin(binnings, data_indices, value_array=val_slice, entries_array=ent_slice, sumw2_array=sumw2_slice)
         return bin
 
 class CartesianProductBinning(Binning):
@@ -1781,16 +1708,19 @@ class CartesianProductBinning(Binning):
     Attributes
     ----------
 
-    binnings : list of Binning
+    binnings : tuple of Binning
         The :class:`Binning` objects that make up the Cartesian product.
-    bins : list of Bin
-        The :class:`CartesianProductBin` instances.
+    bins : proxy for Bins
+        Proxy that will generate :class:`CartesianProductBin` instances,
+        when accessed.
     nbins : int
         The number of bins in the binning.
+    bins_shape : tuple of int
+        The sizes of the constituent binnings.
     data_size : int
         The number of elements in the data arrays.
         Might differ from ``nbins`` due to subbinnings.
-    subbinnings : dict of {bin_index: Binning}, optional
+    subbinnings : dict of {bin_index: Binning}
         Subbinnings to replace certain bins.
     value_array : slice of ndarray
         A slice of a numpy array, where the values of the bins are stored.
@@ -1810,7 +1740,7 @@ class CartesianProductBinning(Binning):
     """
 
     def __init__(self, binnings, **kwargs):
-        self.binnings = binnings
+        self.binnings = tuple(binnings)
 
         self.bins_shape = tuple(binning.data_size for binning in self.binnings)
         self._stepsize = [1]
@@ -2059,34 +1989,14 @@ class CartesianProductBinning(Binning):
     def _get_clone_kwargs(self, **kwargs):
         """Get the necessary arguments to clone this object."""
 
-        args = Binning._get_clone_kwargs(self, bins=None, **kwargs)
-        del args['bins']
-        args.update({
+        args = {
             'binnings': list(binning.clone(dummy=True) for binning in self.binnings),
-            })
+            }
+        args.update(Binning._get_clone_kwargs(self, bins=None, **kwargs))
+        del args['bins']
         return args
 
-    @staticmethod
-    def _yaml_representer(dumper, obj):
-        """Represent CartesianProductBinning in a YAML file."""
-        dic = {
-            'binnings': list(binning.clone(dummy=True) for binning in obj.binnings),
-            'phasespace': obj.phasespace,
-            }
-        if len(obj.subbinnings) > 0:
-            dic['subbinnings'] = dict((i, binning.clone(dummy=True)) for i, binning in obj.subbinnings.items())
-        if obj.is_dummy():
-            dic['dummy'] = True
-        return dumper.represent_mapping('!CartesianProductBinning', dic)
-
-    @staticmethod
-    def _yaml_constructor(loader, node):
-        """Reconstruct CartesianProductBinning from YAML files."""
-        dic = loader.construct_mapping(node, deep=True)
-        return CartesianProductBinning(**dic)
-
-yaml.add_representer(CartesianProductBinning, CartesianProductBinning._yaml_representer)
-yaml.add_constructor(u'!CartesianProductBinning', CartesianProductBinning._yaml_constructor)
+    yaml_tag = u'!CartesianProductBinning'
 
 class _LinearBinProxy(_BinProxy):
     """Indexable class that creates bins on the fly."""
@@ -2098,7 +2008,8 @@ class _LinearBinProxy(_BinProxy):
         upper = self.binning.bin_edges[index+1]
         data_index = self.binning.get_bin_data_index(index)
         args = {
-            'edges': {variable: (lower, upper)},
+            'variables': [variable],
+            'edges': [(lower, upper)],
             'include_lower': not self.binning.include_upper,
             'include_upper': self.binning.include_upper,
             }
@@ -2135,8 +2046,9 @@ class LinearBinning(Binning):
         The bin edges.
     include_upper : bool
         Are the upper edges included in each bin?
-    bins : list of Bin
-        The :class:`RectangularBin` instances.
+    bins : proxy for Bins
+        Proxy that will generate :class:`RectangularBin` instances,
+        when accessed.
     nbins : int
         The number of bins in the binning.
     data_size : int
@@ -2158,7 +2070,7 @@ class LinearBinning(Binning):
     def __init__(self, variable, bin_edges, include_upper=False, **kwargs):
         self.variable = variable
         self.bin_edges = np.asfarray(bin_edges)
-        self.include_upper = include_upper
+        self.include_upper = bool(include_upper)
         self.nbins = self.bin_edges.size - 1
 
         phasespace = kwargs.get('phasespace', None)
@@ -2320,13 +2232,13 @@ class LinearBinning(Binning):
     def _get_clone_kwargs(self, **kwargs):
         """Get the necessary arguments to clone this object."""
 
-        args = Binning._get_clone_kwargs(self, bins=None, **kwargs)
-        del args['bins']
-        args.update({
+        args = {
             'variable': self.variable,
-            'bin_edges': self.bin_edges,
+            'bin_edges': self.bin_edges.tolist(),
             'include_upper': self.include_upper,
-            })
+            }
+        args.update(Binning._get_clone_kwargs(self, bins=None, **kwargs))
+        del args['bins']
         return args
 
     def __eq__(self, other):
@@ -2337,28 +2249,7 @@ class LinearBinning(Binning):
             and self.include_upper == other.include_upper
             and self.subbinnings == other.subbinnings)
 
-    @staticmethod
-    def _yaml_representer(dumper, obj):
-        """Represent LinearBinning in a YAML file."""
-        dic = {
-            'variable': obj.variable,
-            'bin_edges': obj.bin_edges.tolist(),
-            'phasespace': obj.phasespace,
-            }
-        if len(obj.subbinnings) > 0:
-            dic['subbinnings'] = dict((i, binning.clone(dummy=True)) for i, binning in obj.subbinnings.items())
-        if obj.is_dummy():
-            dic['dummy'] = True
-        return dumper.represent_mapping('!LinearBinning', dic)
-
-    @staticmethod
-    def _yaml_constructor(loader, node):
-        """Reconstruct LinearBinning from YAML files."""
-        dic = loader.construct_mapping(node, deep=True)
-        return LinearBinning(**dic)
-
-yaml.add_representer(LinearBinning, LinearBinning._yaml_representer)
-yaml.add_constructor(u'!LinearBinning', LinearBinning._yaml_constructor)
+    yaml_tag = u'!LinearBinning'
 
 class _RectilinearBinProxy(_BinProxy):
     """Indexable class that creates bins on the fly."""
@@ -2366,9 +2257,10 @@ class _RectilinearBinProxy(_BinProxy):
     def __getitem__(self, index):
         """Dynamically build a RectangularBin when requested."""
         tup = self.binning.get_bin_index_tuple(index)
-        edges = dict( (var, (edg[j], edg[j+1])) for var, edg, j in zip(self.binning.variables, self.binning.bin_edges, tup))
+        edges = tuple( (edg[j], edg[j+1]) for edg, j in zip(self.binning.bin_edges, tup))
         data_index = self.binning.get_bin_data_index(index)
         args = {
+            'variables': self.binning.variables,
             'edges': edges,
             'include_lower': not self.binning.include_upper,
             'include_upper': self.binning.include_upper,
@@ -2387,8 +2279,8 @@ class RectilinearBinning(CartesianProductBinning):
 
     Parameters
     ----------
-    variables : list of str
-    bin_edges :  list of iterable of float
+    variables : iterable of str
+    bin_edges :  iterable of iterable of float
         The variable names and bin edges for the LinearBinnings.
     include_upper : bool, optional
         Make bins include upper edges instead of lower edges.
@@ -2410,6 +2302,8 @@ class RectilinearBinning(CartesianProductBinning):
         The :class:`RectangularBin` instances.
     nbins : int
         The number of bins in the binning.
+    bins_shape : tuple of int
+        The sizes of the constituent binnings.
     data_size : int
         The number of elements in the data arrays.
         Might differ from ``nbins`` due to subbinnings.
@@ -2429,7 +2323,7 @@ class RectilinearBinning(CartesianProductBinning):
     def __init__(self, variables, bin_edges, include_upper=False, **kwargs):
         self.variables = tuple(variables)
         self.bin_edges = tuple(np.array(edg) for edg in bin_edges)
-        self.include_upper = include_upper
+        self.include_upper = bool(include_upper)
 
         binnings = []
         for var, edges in zip(self.variables, self.bin_edges):
@@ -2665,36 +2559,13 @@ class RectilinearBinning(CartesianProductBinning):
     def _get_clone_kwargs(self, **kwargs):
         """Get the necessary arguments to clone this object."""
 
-        args = Binning._get_clone_kwargs(self, bins=None, **kwargs)
-        del args['bins']
-        args.update({
-            'variables': deepcopy(self.variables),
-            'bin_edges': deepcopy(self.bin_edges),
+        args = {
+            'variables': list(self.variables),
+            'bin_edges': [ edg.tolist() for edg in self.bin_edges ],
             'include_upper': self.include_upper,
-            })
+            }
+        args.update(Binning._get_clone_kwargs(self, bins=None, **kwargs))
+        del args['bins']
         return args
 
-    @staticmethod
-    def _yaml_representer(dumper, obj):
-        """Represent RectilinearBinning in a YAML file."""
-        dic = {
-            'include_upper': obj.include_upper,
-            # Binedges must be in the right order!
-            'bin_edges': [ [var, edg.tolist()] for var, edg in zip(obj.variables, obj.bin_edges) ],
-            'phasespace': obj.phasespace,
-            }
-        if len(obj.subbinnings) > 0:
-            dic['subbinnings'] = dict((i, binning.clone(dummy=True)) for i, binning in obj.subbinnings.items())
-        if obj.is_dummy():
-            dic['dummy'] = True
-        return dumper.represent_mapping('!RectilinearBinning', dic)
-
-    @staticmethod
-    def _yaml_constructor(loader, node):
-        """Reconstruct RectilinearBinning from YAML files."""
-        dic = loader.construct_mapping(node, deep=True)
-        bin_edges = np.array(dic.pop('bin_edges'))
-        return RectilinearBinning(variables=bin_edges[:,0], bin_edges=bin_edges[:,1], **dic)
-
-yaml.add_representer(RectilinearBinning, RectilinearBinning._yaml_representer)
-yaml.add_constructor(u'!RectilinearBinning', RectilinearBinning._yaml_constructor)
+    yaml_tag = u'!RectilinearBinning'

@@ -1,8 +1,7 @@
 !RectilinearBinning
+variables:
+- x_reco
+- y_reco
 bin_edges:
-- - x_reco
-  - [0, 1, 2]
-- - y_reco
-  - [0, 1, 2]
-include_upper: false
-phasespace: !PhaseSpace [x_reco, y_reco]
+- [0, 1, 2]
+- [0, 1, 2]

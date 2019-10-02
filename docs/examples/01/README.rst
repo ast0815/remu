@@ -31,9 +31,9 @@ response matrix object is created using the respective binning objects::
     from remu import matrix_utils
 
     with open("reco-binning.yml", 'rt') as f:
-        reco_binning = binning.yaml.load(f)
+        reco_binning = binning.yaml.full_load(f)
     with open("coarse-truth-binning.yml", 'rt') as f:
-        truth_binning = binning.yaml.load(f)
+        truth_binning = binning.yaml.full_load(f)
 
     respA = migration.ResponseMatrix(reco_binning, truth_binning)
 
@@ -142,9 +142,9 @@ So let us re-do the previous steps with a finer truth-binning, also taking
 ``y`` into account::
 
     with open("reco-binning.yml", 'rt') as f:
-        reco_binning = binning.yaml.load(f)
+        reco_binning = binning.yaml.full_load(f)
     with open("fine-truth-binning.yml", 'rt') as f:
-        truth_binning = binning.yaml.load(f)
+        truth_binning = binning.yaml.full_load(f)
 
     respA = migration.ResponseMatrix(reco_binning, truth_binning)
     reco_binning = reco_binning.clone()
@@ -299,10 +299,10 @@ As well as that the in-bin variation is reasonable::
 And just to be sure, we can check again whether the matrices generated with the
 single models A and B are still compatible with the optimised truth binning::
 
-    with open("reco-binning.yml", 'rt') as f:
-        reco_binning = binning.yaml.load(f)
-    with open("optimised-truth-binning.yml", 'rt') as f:
-        truth_binning = binning.yaml.load(f)
+    reco_binning = optimised.reco_binning.clone()
+    reco_binning.reset()
+    truth_binning = optimised.truth_binning.clone()
+    truth_binning.reset()
 
     respA = migration.ResponseMatrix(reco_binning, truth_binning)
     reco_binning = reco_binning.clone()

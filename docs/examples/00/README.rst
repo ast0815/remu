@@ -39,15 +39,16 @@ The file ``reco-binning.yml`` contains a :class:`.RectilinearBinning` object
 for the reconstructed information::
 
     !RectilinearBinning
+    variables:
+    - reco_x
+    - reco_y
     binedges:
-    - - reco_x
-      - [-.inf,
-        ...
-        .inf]
-    - - reco_y
-      - [-.inf,
-        ...
-        .inf]
+    - [-.inf,
+      ...
+      .inf]
+    - [-.inf,
+      ...
+      .inf]
     include_upper: false
 
 A :class:`.RectilinearBinning` object defines bin edges in multiple variables.
@@ -61,7 +62,7 @@ distributions::
     from remu import plotting
 
     with open("reco-binning.yml", 'r') as f:
-        reco_binning = binning.yaml.load(f)
+        reco_binning = binning.yaml.full_load(f)
 
     reco_binning.fill_from_csv_file("real_data.txt")
 
@@ -122,7 +123,7 @@ We can do the same with the true information and its respective binning in
 'truth-binning.yml'::
 
     with open("truth-binning.yml", 'r') as f:
-        truth_binning = binning.yaml.load(f)
+        truth_binning = binning.yaml.full_load(f)
 
     truth_binning.fill_from_csv_file("modelA_truth.txt")
 

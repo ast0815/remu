@@ -5,9 +5,9 @@ from remu import plotting
 from remu import matrix_utils
 
 with open("reco-binning.yml", 'rt') as f:
-    reco_binning = binning.yaml.load(f)
+    reco_binning = binning.yaml.full_load(f)
 with open("coarse-truth-binning.yml", 'rt') as f:
-    truth_binning = binning.yaml.load(f)
+    truth_binning = binning.yaml.full_load(f)
 
 respA = migration.ResponseMatrix(reco_binning, truth_binning)
 
@@ -39,9 +39,9 @@ matrix_utils.plot_mahalanobis_distance(respA, respB, "mahalanobis_distance.png")
 matrix_utils.plot_compatibility(respA, respB, "compatibility.png")
 
 with open("reco-binning.yml", 'rt') as f:
-    reco_binning = binning.yaml.load(f)
+    reco_binning = binning.yaml.full_load(f)
 with open("fine-truth-binning.yml", 'rt') as f:
-    truth_binning = binning.yaml.load(f)
+    truth_binning = binning.yaml.full_load(f)
 
 respA = migration.ResponseMatrix(reco_binning, truth_binning)
 reco_binning = reco_binning.clone()
@@ -97,10 +97,10 @@ plt.savefig("optimised_abs_entries.png")
 matrix_utils.plot_mean_efficiency(optimised, "optimised_efficiency.png")
 matrix_utils.plot_relative_in_bin_variation(optimised, "optimised_rel_inbin_var.png")
 
-with open("reco-binning.yml", 'rt') as f:
-    reco_binning = binning.yaml.load(f)
-with open("optimised-truth-binning.yml", 'rt') as f:
-    truth_binning = binning.yaml.load(f)
+reco_binning = optimised.reco_binning.clone()
+reco_binning.reset()
+truth_binning = optimised.truth_binning.clone()
+truth_binning.reset()
 
 respA = migration.ResponseMatrix(reco_binning, truth_binning)
 reco_binning = reco_binning.clone()

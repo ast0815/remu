@@ -2,7 +2,7 @@ from remu import binning
 from remu import plotting
 
 with open("reco-binning.yml", 'r') as f:
-    reco_binning = binning.yaml.load(f)
+    reco_binning = binning.yaml.full_load(f)
 
 reco_binning.fill_from_csv_file("real_data.txt")
 
@@ -38,7 +38,7 @@ plt.legend()
 plt.savefig("compare_data.png")
 
 with open("truth-binning.yml", 'r') as f:
-    truth_binning = binning.yaml.load(f)
+    truth_binning = binning.yaml.full_load(f)
 
 truth_binning.fill_from_csv_file("modelA_truth.txt")
 
