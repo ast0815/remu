@@ -1,0 +1,73 @@
+!LinearBinning
+bin_edges:
+- -1.5
+- -0.5
+- 0.5
+- 1.5
+include_upper: false
+phasespace: !PhaseSpace
+- event_type
+subbinnings:
+  1: !RectilinearBinning
+    bin_edges:
+    - - -.inf
+      - -0.5
+      - 0.0
+      - 0.5
+      - 1.0
+      - 1.5
+      - .inf
+    - - -.inf
+      - -0.25
+      - 0.0
+      - 0.25
+      - 0.5
+      - 0.75
+      - 1.0
+      - 1.5
+      - .inf
+    dummy: true
+    include_upper: false
+    phasespace: !PhaseSpace
+    - true_y
+    - true_x
+    subbinnings: {}
+    variables:
+    - true_x
+    - true_y
+  2: !RectilinearBinning
+    bin_edges:
+    - - -.inf
+      - -2.0
+      - -1.5
+      - -1.0
+      - -0.5
+      - 0.0
+      - 0.5
+      - 1.0
+      - 1.5
+      - 2.0
+      - .inf
+    - - -.inf
+      - -1.5
+      - -1.0
+      - -0.75
+      - -0.5
+      - -0.25
+      - 0.0
+      - 0.25
+      - 0.5
+      - 0.75
+      - 1.0
+      - 1.5
+      - .inf
+    dummy: true
+    include_upper: false
+    phasespace: !PhaseSpace
+    - true_y
+    - true_x
+    subbinnings: {}
+    variables:
+    - true_x
+    - true_y
+variable: event_type

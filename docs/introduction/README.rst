@@ -124,7 +124,7 @@ See :ref:`example00` and :ref:`example01` for details.
 
 ReMU also supports Panda's :class:`DataFrame` objects as input for filling
 the matrices. Together with the `uproot` package, this allows it to read
-in ROOT files. See :ref:`example05`.
+in ROOT files. See :ref:`examplePD`.
 
 Detector uncertainties
 ======================
@@ -304,4 +304,4 @@ made a part of the response matrix:
 
 .. image:: template-BG.svg
 
-TODO: A detailed example of background treatment
+See :ref:`example05` for details.

@@ -50,6 +50,26 @@ class ModelBGenerator(Generator):
         x, y = np.random.multivariate_normal(mean=[0.0, 0.0], cov=[[1.0,0.5],[0.5,1.0]], size=n).T
         return build_array({'true_x': x, 'true_y': y})
 
+class BGGenerator(Generator):
+    """Background
+
+    x, y ~ Normal(mean=[0.5, 0.5], cov=[[0.2,0.0],[0.0,0.2]])
+    """
+
+    def _generate(self, n):
+        x, y = np.random.multivariate_normal(mean=[0.5, 0.5], cov=[[0.5,0.0],[0.0,0.5]], size=n).T
+        return build_array({'true_x': x, 'true_y': y})
+
+class NoiseGenerator(Generator):
+    """Noise
+
+    x, y ~ Normal(mean=[0.0, 0.0], cov=[[4.0,0.0],[0.0,4.0]])
+    """
+
+    def _generate(self, n):
+        x, y = np.random.multivariate_normal(mean=[0.0, 0.0], cov=[[4.0,0.0],[0.0,4.0]], size=n).T
+        return build_array({'reco_x': x, 'reco_y': y})
+
 class Detector(object):
     """Turn truth data into reconstructed events.
 
