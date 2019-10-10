@@ -9,12 +9,12 @@
    xmlns="http://www.w3.org/2000/svg"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   width="178.43332mm"
-   height="110.12668mm"
-   viewBox="0 0 178.43332 110.12668"
+   width="188.43332mm"
+   height="120.12668mm"
+   viewBox="0 0 188.43332 120.12668"
    version="1.1"
    id="svg5374"
-   inkscape:version="0.92.3 (2405546, 2018-03-11)"
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
    sodipodi:docname="template-BG.svg">
   <defs
      id="defs5368" />
@@ -26,11 +26,20 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="0.35"
-     inkscape:cx="70.053954"
-     inkscape:cy="-43.31515"
+     inkscape:cx="88.951591"
+     inkscape:cy="-24.417501"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
-     showgrid="false" />
+     showgrid="false"
+     fit-margin-top="5"
+     fit-margin-left="5"
+     fit-margin-bottom="5"
+     fit-margin-right="5"
+     inkscape:window-width="1920"
+     inkscape:window-height="1000"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1" />
   <metadata
      id="metadata5371">
     <rdf:RDF>
@@ -47,7 +56,7 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(37.055942,-27.246185)">
+     transform="translate(42.055942,-22.246185)">
     <g
        transform="matrix(0.50335572,0,0,0.50335572,-56.686815,-622.07766)"
        id="g3950">
@@ -289,11 +298,11 @@
            style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
         <polygon
            id="polygon2676"
-           points="309,1365 319,1360 309,1355 "
+           points="309,1355 309,1365 319,1360 "
            style="fill:#000000" />
         <polygon
            id="polygon2678"
-           points="309,1365 319,1360 309,1355 "
+           points="309,1355 309,1365 319,1360 "
            style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
       </g>
       <g
@@ -373,11 +382,11 @@
            style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
         <polygon
            id="polygon2712"
-           points="279,1475 289,1470 279,1465 "
+           points="279,1465 279,1475 289,1470 "
            style="fill:#000000" />
         <polygon
            id="polygon2714"
-           points="279,1475 289,1470 279,1465 "
+           points="279,1465 279,1475 289,1470 "
            style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
       </g>
       <g
@@ -389,11 +398,11 @@
            style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
         <polygon
            id="polygon2724"
-           points="203.707,1381 209.282,1380.59 200.851,1387.93 200.035,1376.78 "
+           points="200.851,1387.93 200.035,1376.78 203.707,1381 209.282,1380.59 "
            style="fill:#000000" />
         <polygon
            id="polygon2726"
-           points="203.707,1381 209.282,1380.59 200.851,1387.93 200.035,1376.78 "
+           points="200.851,1387.93 200.035,1376.78 203.707,1381 209.282,1380.59 "
            style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
       </g>
       <g
@@ -405,11 +414,11 @@
            style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
         <polygon
            id="polygon2732"
-           points="165.384,1438.11 162.6,1442.96 161.237,1431.86 170.932,1437.43 "
+           points="161.237,1431.86 170.932,1437.43 165.384,1438.11 162.6,1442.96 "
            style="fill:#000000" />
         <polygon
            id="polygon2734"
-           points="165.384,1438.11 162.6,1442.96 161.237,1431.86 170.932,1437.43 "
+           points="161.237,1431.86 170.932,1437.43 165.384,1438.11 162.6,1442.96 "
            style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
       </g>
       <g
@@ -738,11 +747,11 @@
            style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
         <polygon
            id="polygon2858"
-           points="209.575,1431.81 211.13,1437.18 202.199,1430.45 212.939,1427.34 "
+           points="202.199,1430.45 212.939,1427.34 209.575,1431.81 211.13,1437.18 "
            style="fill:#000000" />
         <polygon
            id="polygon2860"
-           points="209.575,1431.81 211.13,1437.18 202.199,1430.45 212.939,1427.34 "
+           points="202.199,1430.45 212.939,1427.34 209.575,1431.81 211.13,1437.18 "
            style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
       </g>
     </g>
