@@ -1,7 +1,6 @@
 """Module that deals with the calculations of likelihoods."""
 
 from __future__ import division
-from copy import deepcopy
 from six.moves import map, zip
 import numpy as np
 from scipy import stats
@@ -10,320 +9,8 @@ from scipy.misc import derivative
 import inspect
 from warnings import warn
 
-# Load multiprocess, and pymc on demand
-#from multiprocess import Pool
-Pool = None
-#import pymc
-pymc = None
-
-class CompositeHypothesis(object):
-    """A CompositeHypothesis translates a set of parameters into a truth vector.
-
-    Parameters
-    ----------
-
-    translation_function : function
-        The function to translate a vector of parameters into a vector of truth
-        expectation values::
-
-            truth_vector = translation_function(parameter_vector)
-
-        It must support translating arrays of parameter vectors into arrays of
-        truth vectors::
-
-            [truth_vector, ...] = translation_function([parameter_vector, ...])
-
-    parameter_limits : iterable of tuples of floats, optional
-        An iterable of lower and upper limits of the hypothesis' parameters.
-        The number of limits determines the number of parameters. Parameters
-        can be `None`. This sets no limit in that direction.
-        ::
-
-            [ (x1_min, x1_max), (x2_min, x2_max), ... ]
-
-        Parameter limits are used in likelihood maximization.
-
-    parameter_priors : iterable of functions, optional
-        An iterable of prior probability density functions. The number of
-        priors determines the number of parameters. Each function must return
-        the logarithmic probability density, given a value of the corresponding
-        parameter::
-
-            prior(value=default) = log( pdf(value) )
-
-        They should return ``-numpy.inf`` for excluded values. The function's
-        argument *must* be named `value` and a default *must* be provided.
-        Parameter priors are used in Marcov Chain Monte Carlo evaluations.
-
-    parameter_names : iterable of strings, optional
-        Iterable of the parameter names. These names will be used in some
-        plotting comvenience functions.
-
-    Notes
-    -----
-
-    Depending on the use case, one can provide `parameter_limits` and/or
-    `parameter_priors`, but they are *not* checked for consistency!
-
-    Attributes
-    ----------
-
-    parameter_limits : list of (float, float) or None
-        The lower and upper limits for the parameters
-    parameter_priors : list of function or None
-        The priors of the parameters
-    paramter_names : list of str
-        The names of the parameters
-
-    """
-
-    def __init__(self, translation_function, parameter_limits=None, parameter_priors=None, parameter_names=None):
-        if parameter_limits is None and parameter_priors is None:
-            raise TypeError("Must provide at least one of `parameter_lmits` and/or `parameter_priors`")
-
-        self.parameter_limits = parameter_limits
-        self.parameter_priors = parameter_priors
-        self.parameter_names = parameter_names
-        self._translate = translation_function
-
-    def translate(self, parameters):
-        """Translate the parameter vector to a truth vector.
-
-        Parameters
-        ----------
-
-        parameters : ndarray like
-            Vector of the hypothesis parameters.
-
-        Returns
-        -------
-
-        ndarray
-            Vector of the corresponding truth space expectation values.
-
-        """
-        return self._translate(parameters)
-
-    def fix_parameters(self, fix_values):
-        """Return a new CompositeHypothesis by fixing some parameters.
-
-        Parameters
-        ----------
-
-        fix_values : iterable of values
-
-            This iterable must have the same length as the vector of parameters
-            of the CompositeHypothesis. The parameters of the new
-            CompositeHypothesis are fixed to the given values. Parameters that
-            should not be fixed must be specified with ``None``. For example,
-            to fix the first and third parameter of a 3-parameter hypothesis,
-            `fix_values` must look like this::
-
-                (1.23, None, 9.87)
-
-            The resulting CompositeHypothesis has one free parameter, the
-            second parameter of the original hypothesis.
-
-        """
-
-        fix_values = np.array(fix_values, dtype=float)
-        unfixed = np.where(np.isnan(fix_values))
-
-        def new_translation_function(new_parameters,
-                _fix_values=fix_values, _unfixed=unfixed,
-                _old_translation_function=self._translate):
-            _fix_values[unfixed] = new_parameters
-            return _old_translation_function(_fix_values)
-
-        if self.parameter_limits is None:
-            new_parameter_limits = None
-        else:
-            new_parameter_limits = []
-            for i, v in enumerate(fix_values):
-                if np.isnan(v):
-                    new_parameter_limits.append(self.parameter_limits[i])
-
-        if self.parameter_priors is None:
-            new_parameter_priors = None
-        else:
-            new_parameter_priors = []
-            for i, v in enumerate(fix_values):
-                if np.isnan(v):
-                    new_parameter_priors.append(self.parameter_priors[i])
-
-        if self.parameter_names is None:
-            new_parameter_names = None
-        else:
-            new_parameter_names = []
-            for i, v in enumerate(fix_values):
-                if np.isnan(v):
-                    new_parameter_names.append(self.parameter_names[i])
-
-        return CompositeHypothesis(
-            translation_function=new_translation_function,
-            parameter_limits=new_parameter_limits,
-            parameter_priors=new_parameter_priors,
-            parameter_names=new_parameter_names)
-
-class LinearHypothesis(CompositeHypothesis):
-    """Special case of CompositeHypothesis for linear combinations.
-
-    Parameters
-    ----------
-
-    M : 2-dimensional ndarray
-        The matrix translating the parameter vector into a truth vector::
-
-            truth = M.dot(parameters)
-
-    b : ndarray, optional
-        A constant (vector) to be added to the truth vector::
-
-            truth = M.dot(parameters) + b
-
-    *args, **kwargs : optional
-        Other arguments are passed on to the `CompositeHypothesis` init method.
-
-    See also
-    --------
-
-    TemplateHypothesis
-
-    Attributes
-    ----------
-
-    M : 2D array
-        The matrix of the linear relationship.
-    b : 1D array or None
-        The constant added in the linear relationship.
-    parameter_limits : list of (float, float) or None
-        The lower and upper limits for the parameters
-    parameter_priors : list of function or None
-        The priors of the parameters
-    paramter_names : list of str
-        The names of the parameters
-
-    """
-
-    def __init__(self, M, b=None, *args, **kwargs):
-        self.M = np.array(M, dtype=float)
-        if b is None:
-            self.b = None
-        else:
-            self.b = np.array(b, dtype=float)
-
-        if b is None:
-            translate = lambda par: np.tensordot(par, self.M, axes=(-1,-1))
-        else:
-            if self.M.size == 0:
-                translate = lambda par: self.b
-            else:
-                translate = lambda par: np.tensordot(par, self.M, axes=(-1,-1)) + self.b
-
-        CompositeHypothesis.__init__(self, translate, *args, **kwargs)
-
-    def fix_parameters(self, fix_values):
-        """Return a new LinearHypothesis by fixing some parameters.
-
-        Parameters
-        ----------
-
-        fix_values : iterable of values
-
-            This iterable must have the same length as the vector of parameters
-            of the LinearHypothesis. The parameters of the new LinearHypothesis
-            are fixed to the given values. Parameters that should not be fixed
-            must be specified with ``None``. For example, to fix the first and
-            third parameter of a 3-parameter hypothesis, `fix_values` must look
-            like this::
-
-                (1.23, None, 9.87)
-
-            The resulting LinearHypothesis has one free parameter, the second
-            parameter of the original hypothesis.
-
-        """
-
-
-        fix_values = np.array(fix_values, dtype=float)
-        unfixed = np.isnan(fix_values)
-
-        if self.parameter_limits is None:
-            new_parameter_limits = None
-        else:
-            new_parameter_limits = []
-            for i, v in enumerate(fix_values):
-                if np.isnan(v):
-                    new_parameter_limits.append(self.parameter_limits[i])
-
-        if self.parameter_priors is None:
-            new_parameter_priors = None
-        else:
-            new_parameter_priors = []
-            for i, v in enumerate(fix_values):
-                if np.isnan(v):
-                    new_parameter_priors.append(self.parameter_priors[i])
-
-        if self.parameter_names is None:
-            new_parameter_names = None
-        else:
-            new_parameter_names = []
-            for i, v in enumerate(fix_values):
-                if np.isnan(v):
-                    new_parameter_names.append(self.parameter_names[i])
-
-        fix_values[unfixed] = 0.
-        new_b = self.translate(fix_values)
-        new_M = np.array(self.M[:,unfixed])
-
-        return LinearHypothesis(M=new_M, b=new_b,
-            parameter_limits=new_parameter_limits,
-            parameter_priors=new_parameter_priors,
-            parameter_names=new_parameter_names)
-
-class TemplateHypothesis(LinearHypothesis):
-    """Convenience class to turn truth templates into a CompositeHypothesis.
-
-    Parameters
-    ----------
-
-    templates : iterable of ndarrays
-        Iterable of truth vector templates.
-    constant : ndarray, optional
-        Constant offset to be added to the truth vector.
-    parameter_limits : iterable of tuple of floats, optional
-        An iterable of lower and upper limits of the hypothesis' parameters.
-        Defaults to non-negative parameter values.
-    *args, **kwargs : optional
-        Other arguments are passed to the `LinearHypothesis` init method.
-
-    See also
-    --------
-
-    LinearHypothesis
-
-    Attributes
-    ----------
-
-    M : 2D array
-        The matrix of the linear relationship.
-    b : 1D array or None
-        The constant added in the linear relationship.
-    parameter_limits : list of (float, float)
-        The lower and upper limits for the parameters
-    parameter_priors : list of function or None
-        The priors of the parameters
-    paramter_names : list of str
-        The names of the parameters
-
-    """
-
-    def __init__(self, templates, constant=None, parameter_limits=None, *args, **kwargs):
-        M = np.array(templates, dtype=float).T
-        if parameter_limits is None:
-            parameter_limits = [(0,None)]*M.shape[-1]
-
-        LinearHypothesis.__init__(self, M, constant, parameter_limits, *args, **kwargs)
+# Use this function/object for parallelization where possible
+mapper = map
 
 class JeffreysPrior(object):
     """Universal non-informative prior for use in Bayesian MCMC analysis.
@@ -516,952 +203,831 @@ class JeffreysPrior(object):
 
         return 0.5*log_det
 
-class LikelihoodMachine(object):
-    """Class that calculates likelihoods for truth vectors.
+class DataModel(object):
+    """Base class for representation of data statistical models.
+
+    The resulting object can be called like a function::
+
+        log_likelihood = likelihood_calculator(prediction)
 
     Parameters
     ----------
 
-    data_vector : array like
-        The vector with the actual data
-    response_matrix : array like, str, or file
-        One or more response matrices as ndarrays.
-        When using a file exportet by :meth:`.ResponseMatrix.export`,
-        it will set proper default values for the other parameters below.
-    truth_limits : array like, optional
-        The upper limits of the truth bins up to which the response matrix
-        stays valid.
-    limit_method : {'raise', 'prohibit'}, optional
-        How to handle truth values outside their limits.
-    eff_threshold : float, optional
-        Only consider truth bins with an efficienct above this threshold.
-    eff_indices : list of ints, optional
-        Use only these truth bins for likelihood calculations.
-    is_sparse : bool, optional
-        Assume that the response matrix is already a sparse matrix with only
-        the `eff_indices` being present.
-    matrix_weights : array like, optional
-        Relative weights of the response matrices, to be used in 'marignal'
-        or 'average' likelihood calculations.
-
-    Notes
-    -----
-
-    The optional `truth_limits` tells the LikelihoodMachine up to which
-    truth bin value the response matrix stays valid. If the machine is
-    asked to calculate the likelihood of an out-of-bounds truth vector, it
-    is handled according to `limit_method`:
-
-    'raise' (default)
-        An exception is raised.
-    'prohibit'
-        A likelihood of 0 (log likelihood of `-inf`)is returned.
-
-    This can be used to constrain the testable theories to events that have
-    been simulated enough times in the detector Monte Carlo data. I.e. if
-    one wants demands a 10x higher MC statistic::
-
-        truth_limits = generator_truth_vector / 10.
-
-    The `eff_threshold` determines above which total reconstruction
-    efficiency a truth bin counts as efficient. Is the total efficiency
-    equal to or below the threshold, the bin is ignored in all likelihood
-    calculations.
-
-    Alternatively, a list of `eff_indices` can be provided. Only the
-    specified truth bins are used for likelihood calculations in that case.
-    If the flag `is_sparse` is set to `True`, the provided
-    `response_matrix` is *not* sliced according to the `eff_indices`.
-    Instead it is assumed that the given matrix already only contains the
-    columns as indicated by the `eff_indices` array, i.e. it must fulfill
-    the following condition::
-
-        response_matrix.shape[-1] == len(eff_indixes)
-
-    If the matrix is sparse, the vector of truth limits *must* be provided.
-    Its length must be that of the non-sparse response matrix, i.e. the
-    number of truth bins irrespective of efficient indices.
+    data_vector : array_like
+        Shape: ``([a,b,...,]n_reco_bins,)``
 
     Attributes
     ----------
 
     data_vector : ndarray
-        The vector of observed data.
-    response_matrix : ndarray
-        The (set of) response matrix to translate truth to reco space.
-    truth_limits : ndarray
-        The upper limits for truth values.
-    limit_method : str
-        The method used to enforce the truth limits.
-    log_matrix_weights : ndarray or None
-        The relative weights applied to the matrices.
+        The data vector ``k``.
+
+    """
+
+    def __init__(self, data_vector):
+        self.data_vector = np.asarray(data_vector)
+
+    def log_likelihood(self, reco_vector):
+        """Calculate the likelihood of the provided expectation values.
+
+        The reco vector can have a shape ``([c,d,]n_reco_bins,)``. Assuming the
+        data is of shape ``([a,b,...,]n_reco_bins,)``, the output will be of
+        shape ``([a,b,...,][c,d,...,])``.
+
+        """
+
+        raise NotImplementedError("Must be implemented in a subclass!")
+
+    @classmethod
+    def generate_toy_data(cls, reco_vector, size=None):
+        """Generate toy data according to the expectation values.
+
+        The reco vector can have a shape ``([c,d,]n_reco_bins,)``. Assuming the
+        data is of shape ``([a,b,...,]n_reco_bins,)``, the output will be of
+        shape ``([a,b,...,][c,d,...,])``.
+
+        """
+
+        raise NotImplementedError("Must be implemented in a subclass!")
+
+    @classmethod
+    def generate_toy_data_model(cls, *args, **kwargs):
+        """Generate toy data model according to the expectation values.
+
+        All arguments are passed to :meth:`generate_toy_data`.
+
+        """
+
+        return cls(cls.generate_toy_data(*args, **kwargs))
+
+    def __call__(self, *args, **kwargs):
+        return self.log_likelihood(*args, **kwargs)
+
+class PoissonData(DataModel):
+    """Class for fast Poisson likelihood calculations.
+
+    The resulting object can be called like a function::
+
+        log_likelihood = likelihood_calculator(prediction)
+
+    Parameters
+    ----------
+
+    data_vector : array_like int
+        Shape: ``([a,b,...,]n_reco_bins,)``
+
+    Notes
+    -----
+
+    Assumes that data does not change to avoid re-calculating things::
+
+        Poisson PMF:
+        p(k, mu) = (mu^k / k!) * exp(-mu)
+        ln(p(k, mu)) = k*ln(mu) - mu - ln(k!)
+        ln(k!) = -ln(p(k,mu)) + k*ln(mu) - mu = -ln(p(k,1.)) - 1.
+
+    Attributes
+    ----------
+
+    data_vector : ndarray
+        The data vector ``k``.
+    k0 : ndarray
+        Mask where ``k == 0``.
+    ln_k_factorial : ndarray
+        The precomputed ``ln(k!)``.
+
+    """
+
+    def __init__(self, data_vector):
+        # Save constants for PMF calculation
+        with np.errstate(divide='ignore', invalid='ignore'):
+            self.data_vector = np.asarray(data_vector, dtype=int)
+            k = self.data_vector
+            self.k0 = (k == 0)
+            self.ln_k_factorial = -(
+                stats.poisson.logpmf(k, np.ones_like(k, dtype=float)) + 1.)
+
+    @staticmethod
+    def _poisson_logpmf(k, k0, ln_k_factorial, mu):
+        with np.errstate(divide='ignore', invalid='ignore'):
+            pmf = k*np.log(mu) - ln_k_factorial - mu
+        # Need to take care of special case mu=0:  k=0 -> logpmf=0,  k>=1 -> logpmf=-inf
+        mu0 = (mu==0)
+        pmf[mu0 & k0] = 0
+        pmf[mu0 & ~k0] = -np.inf
+        pmf[~np.isfinite(pmf)] = -np.inf
+        pmf = np.sum(pmf, axis=-1)
+        return pmf
+
+    def log_likelihood(self, reco_vector):
+        """Calculate the likelihood of the provided expectation values.
+
+        The reco vector can have a shape ``([c,d,]n_reco_bins,)``. Assuming the
+        data is of shape ``([a,b,...,]n_reco_bins,)``, the output will be of
+        shape ``([a,b,...,][c,d,...,])``.
+
+        """
+
+        reco_vector = np.asfarray(reco_vector)
+
+        data_shape = self.data_vector.shape # = ([a,b,...,]n_reco_bins,)
+        reco_shape = reco_vector.shape # = ([c,d,...,]n_reco_bins,)
+
+        # Cast vectors to the shape ([a,b,...,][c,d,...,]n_reco_bins,)
+        data_index = ((slice(None),)*(len(data_shape)-1)
+                    + (np.newaxis,)*(len(reco_shape)-1) + (slice(None),))
+        reco_index = ((np.newaxis,)*(len(data_shape)-1)
+                    + (slice(None),)*(len(reco_shape)-1) + (slice(None),))
+
+        # Calculate the log probabilities of shape ([a,b,...,][c,d,...,]).
+        return self._poisson_logpmf(self.data_vector[data_index],
+                                    self.k0[data_index],
+                                    self.ln_k_factorial[data_index],
+                                    reco_vector[reco_index])
+
+    @classmethod
+    def generate_toy_data(cls, reco_vector, size=None):
+        """Generate toy data according to the expectation values.
+
+        The reco vector can have a shape ``([c,d,]n_reco_bins,)``. Assuming the
+        data is of shape ``([a,b,...,]n_reco_bins,)``, the output will be of
+        shape ``([a,b,...,][c,d,...,])``.
+
+        """
+
+        mu = reco_vector
+        if size is not None:
+            # Append truth vector shape to requested shape of data sets
+            try:
+                shape = list(size)
+            except TypeError:
+                shape = [size]
+            shape.extend(mu.shape)
+            size = shape
+
+        data = np.random.poisson(mu, size=size)
+        return data
+
+class SystematicsConsumer(object):
+    """Class that consumes the systematics axis on an array of log likelihoods."""
+
+    @staticmethod
+    def consume_axis(log_likelihood, weights=None):
+        """Collapse the systematic axes according to the systematics mode."""
+        raise NotImplementedError("Must be implemented in a subclass!")
+
+    def __call__(self, *args, **kwargs):
+        return self.consume_axis(*args, **kwargs)
+
+class NoSystematics(SystematicsConsumer):
+    """SystematicsConsumer that does nothing."""
+
+    @staticmethod
+    def consume_axis(log_likelihood, weights=None):
+        return log_likelihood
+
+class MarginalLikelihoodSystematics(SystematicsConsumer):
+    """SystematicsConsumer that averages over the systematic axis.
+
+    Optionally applies weights.
 
     """
 
     @staticmethod
-    def _args_from_matrix_file(filename):
-        """Create arguments for initialisation from :class:`.ResponseMatrix` output file.
-
-        Parameters
-        ----------
-
-        filename : str or file
-            The output file of :meth:`.ResponseMatrix.save`
-
-        Returns
-        -------
-
-        response_matrix : ndarray
-            The response matrix
-        kwargs : dict
-            Compatible kwargs for the initialisation
-
-        See also
-        --------
-
-        .migration.ResponseMatrix.save
-        .migration.ResponseMatrixArrayBuilder.save
-
-        """
-
-        response = dict(np.load(filename))
-        matrix = response.pop('matrix')
-        truth_entries = response.pop('truth_entries')
-        args = {
-            'truth_limits': truth_entries,
-        }
-        args.update(response)
-        return matrix, args
-
-    def __init__(self, data_vector, response_matrix, **kwargs):
-        try:
-            # Load response matrix and necessary arguments from file
-            matrix, args = self._args_from_matrix_file(response_matrix)
-        except (TypeError, AttributeError):
-            pass
-        else:
-            response_matrix = matrix
-            args.update(kwargs) # Overwrite automatic arguments with explicit ones
-            kwargs = args
-        truth_limits = kwargs.pop('truth_limits', None)
-        limit_method = kwargs.pop('limit_method', 'raise')
-        eff_threshold = kwargs.pop('eff_threshold', 0.)
-        eff_indices =  kwargs.pop('eff_indices', None)
-        is_sparse = kwargs.pop('is_sparse', False)
-        matrix_weights = kwargs.pop('matrix_weights', None)
-        if len(kwargs) > 0:
-            raise TypeError("Unknown keyword arguments: %s"%(kwargs.keys()))
-
-        self.data_vector = np.array(data_vector)
-        self.response_matrix = np.array(response_matrix)
-        if self.response_matrix.ndim > 3:
-            # Multiple matrices could come arranged as a n-dimensional array.
-            # In principle this should not be a problem, but some places in the
-            # code seem to assume at most a 1D list of matrices. It is simplest
-            # to ensure that shape here. Might revisit this decision if a
-            # n-dimensional array of matrices ever actually becomes
-            # necessary/useful.
-            self.response_matrix.shape = (np.prod(self.response_matrix.shape[:-2]),) + self.response_matrix.shape[-2:]
-        if truth_limits is None:
-            self.truth_limits = np.full(self.response_matrix.shape[-1], np.inf)
-        else:
-            self.truth_limits = np.array(truth_limits)
-        self.limit_method = limit_method
-
-        if matrix_weights is None:
-            self.log_matrix_weights = None
-        else:
-            self.log_matrix_weights = np.log(matrix_weights).flatten()
-
-        # Calculate the reduced response matrix for speedier calculations
-        if eff_indices is None:
-            self._reduced_response_matrix, self._i_eff = LikelihoodMachine._reduce_response_matrix(self.response_matrix, threshold=eff_threshold)
-            self._n_eff = np.size(self._i_eff)
-        else:
-            self._i_eff = np.array(eff_indices)
-            self._n_eff = np.size(self._i_eff)
-            if is_sparse:
-                if truth_limits is None:
-                    raise ValueError("Must provide truth limits for sparse arrays.")
-                self._reduced_response_matrix = self.response_matrix
-            else:
-                self._reduced_response_matrix = np.array(self.response_matrix[...,self._i_eff])
-
-    @staticmethod
-    def _reduce_response_matrix(response_matrix, threshold=0.):
-        """Calculate a reduced response matrix, eliminating columns with 0. efficiency.
-
-        Parameters
-        ----------
-
-        response_matrix : ndarray
-        threshold : float, optional
-
-        Returns
-        -------
-
-        reduced_response_matrix : view of ndarray
-            A view of the matrix with reduced number of columns.
-        efficiency_vector : ndarray
-            A vector of boolean values, describing which columns were kept.
-
-        Notes
-        -----
-
-        How to use the reduced reposne matrix:
-
-            reco = reduced_response_matrix.dot(truth_vector[efficiency_vector])
-
-        """
-        # Only deal with truth bins that have a efficiency > 0 in any of the response matrices
-        eff = np.sum(response_matrix, axis=-2)
-        if eff.ndim > 1:
-            eff = np.max(eff, axis=tuple(range(eff.ndim-1)))
-        eff = np.argwhere( eff > threshold ).flatten()
-
-        reduced_response_matrix = response_matrix[...,eff]
-
-        return reduced_response_matrix, eff
-
-    @staticmethod
-    def _create_vector_array(vector, shape, append=True):
-        """Create an array containing multiple copies of a vector.
-
-        Notes
-        -----
-
-        The resulting shape depends on the `append` parameter.
-        ::
-
-            vector.shape = (a,b,...)
-            shape = (c,d,...)
-
-        If `append` is `True`::
-
-            ret.shape = (c,d,...,a,b,...)
-
-        If `append` is `False`::
-
-            ret.shape = (a,b,...,c,d,...)
-
-        """
-
-        if append:
-            arr = np.broadcast_to(vector, list(shape) + list(vector.shape))
-        else:
-            arr = np.broadcast_to(vector.T, list(shape[::-1]) + list(vector.shape)[::-1]).T
-
-        return arr
-
-    @staticmethod
-    def _translate(response_matrix, truth_vector):
-        """Use the response matrix to translate the truth values into reco values."""
-
-        # We need to set the terms of the einstein sum according to the number of axes.
-        # N-dimensional case: 'a...dkl,e...fl->a...de...fk'
-        ax_resp = response_matrix.ndim
-        if ax_resp == 2:
-            ein_resp = ''
-        elif ax_resp == 3:
-            ein_resp = 'd'
-        elif ax_resp == 4:
-            ein_resp = 'ad'
-        elif ax_resp > 4:
-            ein_resp = 'a...d'
-        ax_truth = truth_vector.ndim
-        if ax_truth == 1:
-            ein_truth = ''
-        elif ax_truth == 2:
-            ein_truth = 'f'
-        elif ax_truth == 3:
-            ein_truth = 'ef'
-        elif ax_truth > 3:
-            ein_truth = 'e...f'
-        reco = np.einsum(ein_resp+'kl,'+ein_truth+'l->'+ein_resp+ein_truth+'k', response_matrix, truth_vector)
-
-        return reco
-
-    def fold(self, truth_vector):
-        """Fold a truth vector to reco space.
-
-        Will generate one reco space vector for each matrix.
-        """
-        return LikelihoodMachine._translate(self._reduced_response_matrix, self._reduce_truth_vector(truth_vector))
-
-    class _LazyLogProbabilityCalculator(object):
-        """Class for lazy probability computations.
-
-        Assumes that data and response matrix do not change to avoid re-calculating things.
-        ::
-
-            Poisson PMF:
-            p(k, mu) = (mu^k / k!) * exp(-mu)
-            ln(p(k, mu)) = k*ln(mu) - mu - ln(k!)
-            ln(k!) = -ln(p(k,mu)) + k*ln(mu) - mu = -ln(p(k,1.)) - 1.
-
-        """
-
-        def __init__(self, data_vector, response_matrix, _constant=None):
-            self.data_shape = data_vector.shape
-            self.response_shape = response_matrix.shape
-            self._constant = _constant
-
-            # Extend response_matrix to shape (a,b,...,c,d,...,n_data,n_truth)
-            self.resp = LikelihoodMachine._create_vector_array(response_matrix, self.data_shape[:-1])
-
-            # Save constants for PMF calculation
-            with np.errstate(divide='ignore', invalid='ignore'):
-                self.k = data_vector
-                self.k0 = (data_vector == 0)
-                self.ln_k_factorial = -(stats.poisson.logpmf(self.k, np.ones_like(self.k, dtype=float)) + 1.)
-
-        @staticmethod
-        def _poisson_logpmf(k, k0, ln_k_factorial, mu):
-            with np.errstate(divide='ignore', invalid='ignore'):
-                pmf = k*np.log(mu) - ln_k_factorial - mu
-            # Need to take care of special case mu=0:  k=0 -> logpmf=0,  k>=1 -> logpmf=-inf
-            mu0 = (mu==0)
-            pmf[mu0 & k0] = 0
-            pmf[mu0 & ~k0] = -np.inf
-            pmf[~np.isfinite(pmf)] = -np.inf
-            pmf = np.sum(pmf, axis=-1)
-            return pmf
-
-        def __call__(self, truth_vector):
-            truth_shape = truth_vector.shape
-
-            # Reco expectation values of shape (a,b,...,c,d,...,e,f,...,n_data)
-            if self._constant is None:
-                reco = LikelihoodMachine._translate(self.resp, truth_vector)
-            else:
-                reco = LikelihoodMachine._translate(self.resp, truth_vector) + self._constant
-
-            # Create a data vector of the shape (a,b,...,n_data,c,d,...,e,f,...)
-            shape = list(self.response_shape[:-2])+list(truth_shape[:-1])
-            k = LikelihoodMachine._create_vector_array(self.k, shape, append=False)
-            k0 = LikelihoodMachine._create_vector_array(self.k0, shape, append=False)
-            ln_k_factorial = LikelihoodMachine._create_vector_array(
-                self.ln_k_factorial, shape, append=False)
-
-            # Move axis so we get (a,b,...,c,d,...,e,f,...,n_data)
-            shape = len(self.data_shape)-1
-            k              = np.moveaxis(k,              shape, -1)
-            k0             = np.moveaxis(k0,             shape, -1)
-            ln_k_factorial = np.moveaxis(ln_k_factorial, shape, -1)
-
-            # Calculate the log probabilities and sum over the axis `n_data`.
-            return self._poisson_logpmf(k, k0, ln_k_factorial, reco)
-
-    @staticmethod
-    def log_probability(data_vector, response_matrix, truth_vector, _constant=None):
-        """Calculate the log probabilty of some data given a response matrix and truth vector.
-
-        Parameters
-        ----------
-
-        data_vector : array like
-            The measured data.
-        response_matrix : array like
-            The detector response matrix as ndarray.
-        truth_vector : array like
-            The vector of truth expectation values.
-
-        Returns
-        -------
-
-        p : ndarray
-            The log likelihood of `data_vector` given the `response_matrix`
-            and `truth_vector`.
-
-        Notes
-        -----
-
-        Each of the three objects can actually be an array of vectors/matrices::
-
-            data_vector.shape = (a,b,...,n_data)
-            response_matrix.shape = (c,d,...,n_data,n_truth)
-            truth_vector.shape = (e,f,...,n_truth)
-
-        In this case, the return value will have the following shape::
-
-            p.shape = (a,b,...,c,d,...,e,f,...)
-
-        """
-
-        return LikelihoodMachine._LazyLogProbabilityCalculator(data_vector, response_matrix, _constant)(truth_vector)
-
-    @staticmethod
-    def _collapse_systematics_axes(ll, systaxis, systematics, log_weights=None):
-        """Collapse the given axes according to the systematics mode."""
-
-        if type(systematics) is tuple:
-            # Return specific result
-            index = tuple([ slice(None) ] * min(systaxis) + list(systematics) + [Ellipsis])
-            ll = ll[index]
-        elif isinstance(systematics, np.ndarray):
-            # Return specific result for each non-systematics index
-            # The shape of `systematics` must match the shape of the non-systemtic axes:
-            #
-            #     systematics.shape = (a,b,c,...,len(systaxis))
-            oi = np.indices(systematics.shape[:-1])
-            index = tuple([ i for i in oi[:min(systaxis)] ] + [ systematics[...,i] for i in range(len(systaxis)) ] + [ i for i in oi[min(systaxis):] ])
-            ll = ll[index]
-        elif systematics == 'profile' or systematics == 'maximum':
-            # Return maximum
-            ll = np.max(ll, axis=systaxis)
-        elif systematics == 'marginal' or systematics == 'average':
-            # Return average
-            if log_weights is None:
-                N = np.prod(np.array(ll.shape)[np.array(systaxis, dtype=int)])
-                ll = np.logaddexp.reduce(ll, axis=systaxis) - np.log(N)
-            else:
-                log_sum_weights = np.logaddexp.reduce(log_weights, axis=systaxis)
-                ll = np.logaddexp.reduce(ll + log_weights, axis=systaxis) - log_sum_weights
-        else:
-            raise ValueError("Unknown systematics method!")
-
-        return ll
-
-    def _reduced_log_likelihood(self, reduced_truth_vector, systematics='marginal'):
-        """Calculate a more efficient log likelihood using only truth values that have an influence."""
-        ll = LikelihoodMachine.log_probability(self.data_vector, self._reduced_response_matrix, reduced_truth_vector)
-
-        # Deal with systematics, i.e. multiple response matrices
-        systaxis = tuple(range(self.data_vector.ndim-1, self.data_vector.ndim-1+self._reduced_response_matrix.ndim-2))
-        if systematics is not None and len(systaxis) > 0:
-            ll = LikelihoodMachine._collapse_systematics_axes(ll, systaxis, systematics, log_weights=self.log_matrix_weights)
-
-        return ll
-
-    def _reduce_truth_vector(self, truth_vector):
-        """Return a reduced truth vector view."""
-        return np.array(np.asarray(truth_vector)[...,self._i_eff])
-
-    def _reduce_matrix(self, truth_vector):
-        """Return a reduced matrix view."""
-        return np.array(np.asarray(truth_vector)[...,self._i_eff,:])
-
-    def log_likelihood(self, truth_vector, systematics='marginal'):
-        """Calculate the log likelihood of a vector of truth expectation values.
-
-        Parameters
-        ----------
-
-        truth_vector : array like
-            Array of truth expectation values. Can be a multidimensional array
-            of truth vectors. The shape of the array must be `(a, b, c, ...,
-            n_truth_values)`.
-
-        systematics : {'profile', 'marginal'} or tuple or ndarray or None
-            How to deal with detector systematics, i.e. multiple response
-            matrices:
-
-            'profile', 'maximum'
-                Choose the response matrix that yields the highest probability.
-            'marginal', 'average'
-                Take the arithmetic average probability yielded by the
-                matrices.
-            `tuple(index)`
-                Select one specific matrix.
-            `array(indices)`
-                Select a specific matrix for each truth vector. Must have the
-                shape ``(a, b, c, ..., len(index))``.
-            `None`
-                Do nothing, return multiple likelihoods.
-
-        """
-
-        if np.any(truth_vector > self.truth_limits):
-            if self.limit_method == 'raise':
-                i = np.argwhere(truth_vector > self.truth_limits)[0,-1]
-                raise RuntimeError("Truth value %d is above allowed limits!"%(i,))
-            elif self.limit_method == 'prohibit':
-                return -np.inf
-            else:
-                raise ValueError("Unknown limit method: '%s'"%(self.limit_method))
-
-        # Use reduced truth values for efficient calculations.
-        reduced_truth_vector = self._reduce_truth_vector(truth_vector)
-
-        ll = self._reduced_log_likelihood(reduced_truth_vector, systematics=systematics)
-
-        return ll
-
-    def best_possible_log_likelihood(self, truth_vector, systematics='marginal'):
-        """Calculate the best possible log likelihood of a vector of truth expectation values.
-
-        Maximises the likelihood over possible data.
-
-        Parameters
-        ----------
-
-        truth_vector : array like
-            Array of truth expectation values. Can be a multidimensional array
-            of truth vectors. The shape of the array must be `(a, b, c, ...,
-            n_truth_values)`.
-
-        systematics : {'profile', 'marginal'} or tuple or ndarray or None
-            How to deal with detector systematics, i.e. multiple response
-            matrices:
-
-            'profile', 'maximum'
-                Choose the response matrix that yields the highest probability.
-            'marginal', 'average'
-                Take the arithmetic average probability yielded by the
-                matrices.
-            `tuple(index)`
-                Select one specific matrix.
-            `array(indices)`
-                Select a specific matrix for each truth vector. Must have the
-                shape ``(a, b, c, ..., len(index))``.
-            `None`
-                Do nothing, return multiple likelihoods.
-
-        Notes
-        -----
-
-        The maximisation is a simple local method starting from the actual data.
-        It is in no way guaranteed to find a global minimum.
-
-        See also
-        --------
-
-        max_log_likelihood
-
-        """
-
-        if np.any(truth_vector > self.truth_limits):
-            if self.limit_method == 'raise':
-                i = np.argwhere(truth_vector > self.truth_limits)[0,-1]
-                raise RuntimeError("Truth value %d is above allowed limits!"%(i,))
-            elif self.limit_method == 'prohibit':
-                return -np.inf
-            else:
-                raise ValueError("Unknown limit method: '%s'"%(self.limit_method))
-
-        # Use reduced truth values for efficient calculations.
-        reduced_truth_vector = self._reduce_truth_vector(truth_vector)
-
-        def ll(data):
-            ll = LikelihoodMachine.log_probability(data, self._reduced_response_matrix, reduced_truth_vector)
-
-            # Deal with systematics, i.e. multiple response matrices
-            systaxis = tuple(range(data.ndim-1, data.ndim-1+self._reduced_response_matrix.ndim-2))
-            if systematics is not None and len(systaxis) > 0:
-                ll = LikelihoodMachine._collapse_systematics_axes(ll, systaxis, systematics, log_weights=self.log_matrix_weights)
-            # Maximise over whatever is left
-            ll = LikelihoodMachine._collapse_systematics_axes(ll, tuple(range(ll.ndim)), 'maximum')
-
-            return ll
-
-        # Find a local maximum by stepping through neighbouring values one by one
-        # TODO: This is quite slow
-        done = False
-        data = np.array(self.data_vector)
-        while not done:
-            done = True
-            for i in range(len(data)):
-                step = np.zeros_like(data)
-                step[i] = 1
-                while ll(data) < ll(data + step):
-                    data += step
-                    done = False
-                while ll(data) < ll(data - step):
-                    data -= step
-                    done = False
-
-        return ll(data)
-
-    def pseudo_chi2(self, truth_vector):
-        """Calculate the pseudo chi2 goodness of fit of a truth vector.
-
-        This calculates the likelihood ratio between the given data and the
-        best possible data fit to the truth vector::
-
-            -2 * ln(L(data) / L(best possible data))
-
-        It should *not* be confused with the ratio of likelihoods when
-        maximising over a composite hypothesis parameter space!
-
-        See also
-        --------
-
-        max_likelihood_p_valuey
-        max_likelihood_ratio_p_valuey
-        wilks_max_likelihood_ratio_p_value
-
-        """
-
-        return 2. * (self.best_possible_log_likelihood(truth_vector) - self.log_likelihood(truth_vector))
-
-    @staticmethod
-    def max_log_probability(data_vector, response_matrix, composite_hypothesis, systematics='marginal', log_matrix_weights=None, disp=False, method='basinhopping', kwargs={}):
-        """Calculate the maximum possible probability of the data in a CompositeHypothesis.
-
-        Parameters
-        ----------
-
-        data_vector : array like
-            Vector of measured values.
-
-        response_matrix : array like
-            The response matrix that translates truth into reco space. Can be
-            an arbitrarily shaped array of response matrices.
-
-        composite_hypothesis : CompositeHypothesis
-            The hypothesis to be evaluated.
-
-        systematics : {'profile', 'marginal'}, optional
-            How to deal with detector systematics, i.e. multiple response
-            matrices:
-
-            'profile', 'maximum'
-                Choose the response matrix that yields the highest probability.
-            'marginal', 'average'
-                Take the arithmetic average probability yielded by the matrices.
-
-        log_matrix_weights : array like, optional
-            Logarithm of the matrix weights used for the 'average' or 'marginal'
-            probability calculation.
-
-        disp : bool, optional
-            Display status messages during optimization.
-
-        method : {'differential_evolution', 'basinhopping'}, optional
-            Select the method to be used for maximization.
-
-        kwargs : dict, optional
-            Keyword arguments to be passed to the minimizer.
-            If empty, reasonable default values will be used.
-
-        Returns
-        -------
-
-        res : OptimizeResult
-            Object containing the maximum log probability ``res.P``.
-            In case of ``systematics=='profile'``, it also contains the index
-            of the response matrix that yielded the maximum likelihood
-            ``res.i``.
-
-        """
-        if isinstance(composite_hypothesis, LinearHypothesis):
-            # Special case!
-            # Since the parameter translation is just a matrix multiplication,
-            # we can save a lot of computing time by pre-calculating the combined
-            # matrix.
-            R = np.tensordot(response_matrix, composite_hypothesis.M, axes=(-1,-2))
-            b = composite_hypothesis.b
-            if b is None:
-                likfun = LikelihoodMachine._LazyLogProbabilityCalculator(data_vector, R)
-            else:
-                const = LikelihoodMachine._translate(response_matrix, b)
-                likfun = LikelihoodMachine._LazyLogProbabilityCalculator(data_vector, R, _constant=const)
-        else:
-            probfun = LikelihoodMachine._LazyLogProbabilityCalculator(data_vector, response_matrix)
-            likfun = lambda x : probfun(composite_hypothesis.translate(x))
-
-        # Negative log probability function
-        if systematics == 'profile' or systematics == 'maximum':
-            nll = lambda x: -np.max(likfun(x))
-        elif systematics == 'marginal' or systematics == 'average':
-            if log_matrix_weights is None:
-                N_resp = np.prod(response_matrix.shape[:-2])
-                nll = lambda x: -(np.logaddexp.reduce(likfun(x)) - np.log(N_resp))
-            else:
-                log_sum_weights = np.logaddexp.reduce(log_matrix_weights)
-                nll = lambda x: -(np.logaddexp.reduce(likfun(x) + log_matrix_weights) - log_sum_weights)
-        else:
-            raise ValueError("Unknown systematics method!")
-
-        if len(composite_hypothesis.parameter_limits) == 0:
-            # Special case!
-            # We seem to be dealing with a degenerate CompositeHypothesis with no free parameters.
-            # Just return a dummy optimisation result.
-            res = optimize.OptimizeResult()
-            res.x = np.ndarray(0)
-            res.fun = nll(res.x)
-            res.P = -res.fun
-            if systematics == 'profile' or systematics == 'maximum':
-                res.i = np.argmax(LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(res.x)))
-            return res
-
-        # Parameter limits
-        bounds = composite_hypothesis.parameter_limits
-        def limit(bounds):
-            l=[0.,0.]
-            if bounds[0] is None:
-                l[0] = -np.inf
-            else:
-                l[0] = bounds[0]
-            if bounds[1] is None:
-                l[1] = np.inf
-            else:
-                l[1] = bounds[1]
-
-            return l
-
-        limits = np.array(list(map(limit, bounds)), dtype=float).transpose()
-        ranges = limits[1]-limits[0]
-
-        if method == 'differential_evolution':
-            kw = {}
-            kw.update(kwargs)
-
-            res = optimize.differential_evolution(nll, bounds, disp=disp, **kw)
-        elif method == 'basinhopping':
-            # Start values
-            def start_value(limits):
-                if None in limits:
-                    if limits[0] is not None:
-                        # No upper limit
-                        # Start at lower limit
-                        return limits[0]
-                    elif limits[1] is not None:
-                        # No lower limit
-                        # Start at upper limit
-                        return limits[1]
-                    else:
-                        # Neither lower nor upper limit
-                        # Start at 0.
-                        return 0.
-                else:
-                    # Start at halfway point between limits
-                    return (limits[1]+limits[0]) / 2.
-
-            x0 = np.array(list(map(start_value, bounds)))
-            if 'x0' in kwargs:
-                if len(kwargs['x0']) == len(bounds):
-                    x0 = np.array(kwargs.pop('x0'))
-                else:
-                    warn("Length of `x0` does not correspond to number of parameters!", stacklevel=2)
-                    kwargs.pop('x0')
-
-            # Step length for basin hopping
-            def step_value(limits):
-                if None in limits:
-                    return 1.
-                else:
-                    # Step size in the order of the parameter range
-                    return (limits[1]-limits[0]) / 10.
-            step = np.array(list(map(step_value, bounds)))
-
-            # Number of parameters
-            n = len(bounds)
-
-            # Define a step function that does *not* produce illegal parameter values
-            def step_fun(x):
-                # Vary parameters according to their distance from the expectation,
-                # but at least by a minimum amount.
-                dx = np.random.randn(n) * np.maximum(np.abs(x - x0) / 2., step)
-
-                # Make sure the new values are within bounds
-                ret = x + dx
-                with np.errstate(invalid='ignore'):
-                    ret = np.where(ret > limits[1], limits[1]-((ret-limits[1]) % ranges), ret)
-                    ret = np.where(ret < limits[0], limits[0]+((limits[0]-ret) % ranges), ret)
-
-                return ret
-
-            # Minimizer options
-            kw = {
-                'take_step': step_fun,
-                'T': n,
-                'niter': 100,
-                'minimizer_kwargs': {
-                    'method': 'L-BFGS-B',
-                    'bounds': bounds,
-                    'options': {
-                        #'disp': True,
-                        'ftol' : 1e-12,
-                    }
-                }
-            }
-            kw.update(kwargs)
-            with np.errstate(invalid='ignore'):
-                res = optimize.basinhopping(nll, x0, disp=disp, **kw)
-        else:
-            raise ValueError("Unknown method: %s"%(method,))
-
-        res.P = -res.fun
-        if systematics == 'profile' or systematics == 'maximum':
-            res.i = np.argmax(LikelihoodMachine.log_probability(data_vector, response_matrix, composite_hypothesis.translate(res.x)))
-
-        return res
-
-    def _composite_hypothesis_wrapper(self, composite_hypothesis):
-        """Return a new composite hypothesis, that translates to reduced truth vectors."""
-        if isinstance(composite_hypothesis, LinearHypothesis):
-            # Special case! Save computing time by removing the unneeded rows.
-            M = self._reduce_matrix(composite_hypothesis.M)
-            if composite_hypothesis.b is None:
-                b = None
-            else:
-                b = self._reduce_truth_vector(composite_hypothesis.b)
-            H0 = LinearHypothesis(M, b,
-                                    parameter_limits=composite_hypothesis.parameter_limits,
-                                    parameter_priors=composite_hypothesis.parameter_priors,
-                                    parameter_names=composite_hypothesis.parameter_names)
-        else:
-            fun = lambda x: self._reduce_truth_vector(composite_hypothesis.translate(x))
-            H0 = CompositeHypothesis(translation_function=fun,
-                                    parameter_limits=composite_hypothesis.parameter_limits,
-                                    parameter_priors=composite_hypothesis.parameter_priors,
-                                    parameter_names=composite_hypothesis.parameter_names)
-        return H0
-
-    def max_log_likelihood(self, composite_hypothesis, *args, **kwargs):
-        """Calculate the maximum possible likelihood in the given CompositeHypothesis.
-
-        Parameters
-        ----------
-
-        composite_hypothesis : CompositeHypothesis
-            The hypothesis to be evaluated.
-
-        systematics : {'profile', 'marginal'}, optional
-            How to deal with detector systematics, i.e. multiple response
-            matrices:
-
-            'profile', 'maximum'
-                Choose the response matrix that yields the highest probability.
-            'marginal', 'average'
-                Take the arithmetic average probability yielded by the matrices.
-
-        disp : bool, optional
-            Display status messages during optimization.
-
-        method : {'differential_evolution', 'basinhopping'}, optional
-            Select the method to be used for maximization.
-
-        kwargs : dict, optional
-            Keyword arguments to be passed to the minimizer.
-            If empty, reasonable default values will be used.
-
-        Returns
-        -------
-
-        res : OptimizeResult
-            Object containing the maximum log likelihood ``res.L``.
-            In case of ``systematics=='profile'``, it also contains the index
-            of the response matrix that yielded the maximum likelihood
-            ``res.i``.
-
-        """
-
-        resp = self._reduced_response_matrix
-        # Wrapping composite hypothesis to produce reduced truth vectors
-        H0 = self._composite_hypothesis_wrapper(composite_hypothesis)
-        ret = LikelihoodMachine.max_log_probability(self.data_vector, resp, H0, *args, log_matrix_weights=self.log_matrix_weights, **kwargs)
-        ret.L = ret.P
-        del ret.P
+    def consume_axis(log_likelihood, weights=None):
+        if weights is None:
+            weights = np.ones_like(log_likelihood)
+        log_weights = np.log(weights / np.sum(weights, axis=-1, keepdims=True))
+        weighted = log_likelihood + log_weights
+        with np.errstate(under='ignore'):
+            ret = np.logaddexp.reduce(weighted, axis=-1)
         return ret
 
+class ProfileLikelihoodSystematics(SystematicsConsumer):
+    """SystematicsConsumer that maximises over the systematic axes."""
+
     @staticmethod
-    def generate_random_data_sample(response_matrix, truth_vector, size=None, each=False, matrix_weights=None):
-        """Generate random data samples from the provided truth_vector.
+    def consume_axis(log_likelihood, weights=None):
+        return np.max(log_likelihood, axis=-1)
+
+class Predictor(object):
+    """Base class for objects that turn sets of parameters to predictions.
+
+    Parameters
+    ----------
+
+    bounds : ndarray
+        Lower and upper bounds for all parameters. Can be ``+/- np.inf``.
+    defaults : ndarray
+        "Reasonable" default values for the parameters. Used in optimisations.
+
+    Attributes
+    ----------
+
+    bounds : ndarray
+        Lower and upper bounds for all parameters. Can be ``+/- np.inf``.
+    defaults : ndarray
+        "Reasonable" default values for the parameters. Used in optimisations.
+
+    """
+
+    def __init__(self, bounds, defaults):
+        self.bounds = np.asarray(bounds)
+        self.defaults = np.asarray(defaults)
+
+    def check_bounds(self, parameters):
+        parameters = np.asfarray(parameters)
+        """Check that all parameters are within bounds."""
+        check = ((parameters >= self.bounds[:,0])
+                & (parameters <= self.bounds[:,1]))
+        return np.all(check, axis=-1)
+
+    def prediction(self, parameters, systematics_index=slice(None)):
+        """Turn a set of parameters into an ndarray of reco predictions.
 
         Parameters
         ----------
 
-        response_matrix : array like
-            The matrix that translates the truth vector to reco-space
-            expecation values.
-        truth_vector : array like
-            The truth-space expectation values used to generate the data.
-        size : int or tuple of ints, optional
-            The number of data vectors to be generated.
-        each : bool, optional
-            Generate `size` vectors for each response matrix.
-            Otherwise `size` determines the total number of generated data
-            vectors and the response matrices are chosen randomly.
-        matrix_weights : array like, optional
-            Relative probability of the matrices to be chosen.
+        parameters : ndarray
+        systematics_index : int, optional
+
+        Returns
+        -------
+
+        prediction, weights : ndarray
+
+        Notes
+        -----
+
+        The regular output must have at least two dimensions. The last
+        dimension corresponds to the number of predictions, e.g. reco bin
+        number. The second to last dimension corresponds to systematic
+        prediction uncertainties of a single parameter set.
+
+        Parameters can be arbitrarily shaped ndarrays. The method must support
+        turning a multiple sets of parameters into an array of predictions::
+
+            parameters.shape == ([c,d,...,]n_parameters,)
+            prediction.shape == ([c,d,...,]n_systematics,n_predictions,)
+            weights.shape == ([c,d,...,]n_systematics,)
+
+        If the `systematics_index` is specified, only the respective value on
+        the systematics axis should be returned::
+
+            prediction.shape == ([c,d,...,]n_predictions,)
+            weights.shape == ([c,d,...,],)
 
         """
 
-        mu = response_matrix.dot(truth_vector)
+        raise NotImplementedError("This function must be implemented in a subclass!")
 
-        if each:
-            # One set per matrix
-            if size is not None:
-                # Append truth vector shape to requested shape of data sets
-                try:
-                    shape = list(size)
-                except TypeError:
-                    shape = [size]
-                shape.extend(mu.shape)
-                size = shape
-
-            return np.random.poisson(mu, size=size)
-        else:
-            # Randomly choose matrices
-            # Flatten expectation values
-            if mu.ndim > 1:
-                mu.shape = (np.prod(mu.shape[:-1]), mu.shape[-1])
-            else:
-                mu.shape = (1, mu.shape[-1])
-
-
-            if size is not None:
-                # Append truth vector shape to requested shape of data sets
-                try:
-                    shape = list(size)
-                except TypeError:
-                    shape = [size]
-            else:
-                shape = [1]
-
-            if matrix_weights is None:
-                i = np.random.randint(mu.shape[0], size=shape)
-            else:
-                p = np.array(matrix_weights).flatten()
-                p /= np.sum(p)
-                i = np.random.choice(mu.shape[0], size=shape, p=p)
-            mu = mu[i,...]
-            if size is None:
-                # Reduce dimensions
-                mu.shape = mu.shape[1:]
-
-            return np.random.poisson(mu)
-
-    def likelihood_p_value(self, truth_vector, N=2500, generator_matrix_index=None, systematics='marginal', **kwargs):
-        """Calculate the likelihood p-value of a truth vector.
-
-        The likelihood p-value is the probability of the data yielding a lower
-        likelihood than the actual data, given that the simple hypothesis of
-        `truth_vector` is true.
+    def fix_parameters(self, fix_values):
+        """Return a new Predictor with fewer free parameters.
 
         Parameters
         ----------
 
-        truth_vector : array like
-            The evaluated hypotheis expressed as a vector of truth expectation
-            values.
+        fix_values
+
+        """
+
+        return FixedParameterPredictor(self, fix_values)
+
+    def compose(self, other):
+        """Return a new Predictor that is a composition with `other`.
+
+        ::
+
+            new_predictor(parameters) = self(other(parameters))
+
+        """
+
+        return ComposedPredictor([self,other])
+
+    def __call__(self, *args, **kwargs):
+        return self.prediction(*args, **kwargs)
+
+class ComposedPredictor(Predictor):
+    """Wrapper class that composes different Predictors into one.
+
+    Parameters
+    ----------
+
+    predictors : list of Predictor
+        The Predictors will be composed in turn. The second must predict
+        parameters for the first, the third for the second, etc. The last
+        Predictor defines what parameters will be accepted by the resulting
+        Predictor.
+
+    """
+
+    def __init__(self, predictors):
+        self.predictors = predictors
+
+        # TODO: taking the bounds from the last predictor
+        # This might still run into the bounds of intermediate predictors
+        self.bounds = predictors[-1].bounds
+        self.defaults = predictors[-1].defaults
+
+    def prediction(self, parameters, systematics_index=slice(None)):
+        """Turn a set of parameters into an ndarray of predictions.
+
+        Parameters
+        ----------
+
+        parameters : ndarray
+        systematics_index : int, optional
+
+        Returns
+        -------
+
+        prediction, weights : ndarray
+
+        Notes
+        -----
+
+        The optional argument `systematics_index` will be applied to the final
+        output of the composed predictions.
+
+        """
+
+        parameters = np.asarray(parameters)
+        orig_shape = parameters.shape
+        orig_len = len(orig_shape)
+        weights = np.ones(parameters.shape[:-1])
+
+        for pred in reversed(self.predictors):
+            parameters, w = pred.prediction(parameters)
+            weights = weights[..., np.newaxis] * w
+
+        # Flatten systematics
+        # original_parameters.shape = ([c,d,...,]n_parameters)
+        # chained_output.shape = ([c,d,...,]systn,...,syst0,n_reco)
+        # reordered_output.shape = ([c,d,...,]syst0,...,systn,n_reco)
+        # desired_output.shape = ([c,d,...,]syst,n_reco)
+        shape = parameters.shape
+        shape_len = len(shape)
+        #           c,d,...                    syst0,syst1,...                             n_reco
+        new_order = tuple(range(orig_len-1)) + tuple(range(shape_len-2, orig_len-2, -1)) + (shape_len-1,)
+        parameters = np.transpose(parameters, new_order)
+        parameters = parameters.reshape(orig_shape[:-1] + (np.prod(shape[orig_len-1:-1]),) + shape[-1:])
+
+        #           c,d,...                    syst0,syst1,...
+        new_order = tuple(range(orig_len-1)) + tuple(range(shape_len-2, orig_len-2, -1))
+        weights = np.transpose(weights, new_order)
+        weights = weights.reshape(orig_shape[:-1] + (np.prod(shape[orig_len-1:-1]),))
+
+        return parameters, weights
+
+class FixedParameterPredictor(Predictor):
+    """Wrapper class that fixes parameters of another predictor."""
+
+    def __init__(self, predictor, fix_values):
+        self.predictor = predictor
+        self.fix_values = np.array(fix_values, dtype=float)
+        insert_mask = ~np.isnan(self.fix_values)
+        insert_indices = np.argwhere(insert_mask).flatten()
+        self.insert_values = self.fix_values[insert_indices]
+        # Indices must be provided as indices on the array with the missing values
+        self.insert_indices = insert_indices - np.arange(insert_indices.size)
+
+        self.bounds = predictor.bounds[~insert_mask]
+        self.defaults = predictor.defaults[~insert_mask]
+
+    def insert_fixed_parameters(self, parameters):
+        """Insert the fixed parameters into a vector of free parameters."""
+        parameters = np.asarray(parameters)
+        return np.insert(parameters, self.insert_indices, self.insert_values, axis=-1)
+
+    def prediction(self, parameters, systematics_index=slice(None)):
+        """Turn a set of parameters into an ndarray of predictions.
+
+        Parameters
+        ----------
+
+        parameters : ndarray
+        systematics_index : int, optional
+
+        Returns
+        -------
+
+        prediction, weights : ndarray
+
+        """
+
+        parameters = self.insert_fixed_parameters(parameters)
+        return self.predictor(parameters, systematics_index)
+
+class LinearPredictor(Predictor):
+    """Predictor that uses a matrix to fold parameters into reco space.
+
+    ::
+
+        output = matrix X parameters [+ constant]
+
+    Parameters
+    ----------
+
+    matrices : ndarray
+        Shape: ``([n_systematics,]n_reco_bins,n_parameters)``
+    constants : ndarray, optional
+        Shape: ``([n_systematics,]n_reco_bins)``
+    weights : ndarray, optional
+        Shape: ``(n_systematics)``
+    bounds : ndarray, optional
+        Lower and upper bounds for all parameters. Can be ``+/- np.inf``.
+    defaults : ndarray, optional
+        "Reasonable" default values for the parameters. Used optimisation.
+    sparse_indices : list or array of int, optional
+        Used with sparse matrices that provide only the specified columns.
+        All other columns are assumed to be 0, i.e. the parameters corresponding
+        to these have no effect.
+
+    See also
+    --------
+
+    Predictor
+
+    Attributes
+    ----------
+
+    bounds : ndarray
+        Lower and upper bounds for all parameters. Can be ``+/- np.inf``.
+    defaults : ndarray
+        "Reasonable" default values for the parameters. Used optimisation.
+    sparse_indices : list or array of int or slice
+        Used with sparse matrices that provide only the specified columns.
+        All other columns are assumed to be 0, i.e. the parameters corresponding
+        to these have no effect.
+
+    """
+
+    def __init__(self, matrices, constants=0., weights=1., bounds=None, defaults=None, sparse_indices=None):
+        self.matrices = np.asfarray(matrices)
+        while self.matrices.ndim < 3:
+            self.matrices = self.matrices[np.newaxis,...]
+        self.constants = np.asfarray(constants)
+        while self.constants.ndim < 2:
+            self.constants = self.constants[np.newaxis,...]
+        self.weights = np.asfarray(weights)
+        while self.weights.ndim < 1:
+            self.weights = self.weights[np.newaxis,...]
+        if bounds is None:
+            bounds = np.array([(-np.inf, np.inf)] * self.matrices.shape[-1])
+        if defaults is None:
+            defaults = np.array([1.] * self.matrices.shape[-1])
+        if sparse_indices is None:
+            self.sparse_indices = slice(None)
+        else:
+            self.sparse_indices = sparse_indices
+        Predictor.__init__(self, bounds, defaults)
+
+    def prediction(self, parameters, systematics_index=slice(None)):
+        """Turn a set of parameters into a reco prediction.
+
+        Returns
+        -------
+
+        prediction : ndarray
+        weights : ndarray
+
+        """
+        matrix = self.matrices[systematics_index]
+        weights = self.weights[systematics_index]
+        constants = self.constants[systematics_index]
+
+        parameters = np.asarray(parameters)[...,self.sparse_indices]
+        prediction = np.tensordot(parameters, matrix, axes=((-1,),(-1,)))
+        prediction += constants
+        weights = np.broadcast_to(weights, prediction.shape[:-1])
+        return prediction, weights
+
+    def compose(self, other):
+        """Return a new Predictor that is a composition with `other`.
+
+        ::
+
+            new_predictor(parameters) = self(other(parameters))
+
+        """
+
+        if isinstance(other, LinearPredictor):
+            return ComposedLinearPredictor([self,other])
+        else:
+            return Predictor.compose(self,other)
+
+    def fix_parameters(self, fix_values):
+        """Return a new Predictor with fewer free parameters.
+
+        Parameters
+        ----------
+
+        fix_values
+
+        """
+
+        return FixedParameterLinearPredictor(self, fix_values)
+
+class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
+    """Composition of LinearPredictors.
+
+    Parameters
+    ----------
+
+    predictors : list of Predictor
+        The Predictors will be composed in turn. The second must predict
+        parameters for the first, the third for the second, etc. The last
+        Predictor defines what parameters will be accepted by the resulting
+        Predictor.
+
+    """
+
+    def __init__(self, predictors):
+        self.predictors = predictors
+
+        # TODO: taking the bounds from the last predictor
+        # This might still run into the bounds of intermediate predictors
+        self.bounds = predictors[-1].bounds
+        self.defaults = predictors[-1].defaults
+
+        # Use methods of regular ComposedPredictor to calculate everything
+        constants, weights = ComposedPredictor.prediction(self, np.zeros_like(self.defaults))
+        columns = []
+        for i in range(len(self.defaults)):
+            par = np.zeros_like(self.defaults)
+            par[i] = 1.
+            col, _ = ComposedPredictor.prediction(self, par)
+            col -= constants
+            columns.append(col[...,np.newaxis])
+        matrices = np.concatenate(columns, axis=-1)
+
+        LinearPredictor.__init__(self, matrices, constants=constants, weights=weights, bounds=self.bounds, defaults=self.defaults, sparse_indices=None)
+
+class FixedParameterLinearPredictor(LinearPredictor, FixedParameterPredictor):
+    """Wrapper class that fixes parameters of a linear predictor."""
+
+    def __init__(self, predictor, fix_values):
+        FixedParameterPredictor.__init__(self, predictor, fix_values)
+
+        matrices = self.predictor.matrices[...,np.isnan(self.fix_values)]
+
+        const_par = self.fix_values
+        const_par[np.isnan(self.fix_values)] = 0.
+        constants, weights = self.predictor(const_par)
+
+        LinearPredictor.__init__(self, matrices, constants=constants, weights=weights, bounds=self.bounds, defaults=self.defaults, sparse_indices=None)
+
+class ResponseMatrixPredictor(LinearPredictor):
+    """Event rate predictor from ResponseMatrix objects.
+
+    Arguments
+    ---------
+
+    filename : str or file object
+        The exported information of a ResponseMatrix or
+        ResponseMatrixArrayBuilder.
+
+    """
+
+    def __init__(self, filename):
+        data = np.load(filename)
+        matrices = data['matrices']
+        constants = 0.
+        weights = data.get('weights', 1.)
+        if data.get('is_sparse', False):
+            sparse_indices = data['sparse_indices']
+        else:
+            sparse_indices = slice(None)
+        eps = np.finfo(float).eps # Add epsilon so there is a very small allowed range for empty bins
+        bounds = [ (0., x+eps) for x in data['truth_entries'] ]
+        defaults = data['truth_entries'] / 2.
+        LinearPredictor.__init__(self, matrices, constants=constants, weights=weights, bounds=bounds, defaults=defaults, sparse_indices=sparse_indices)
+
+class TemplatePredictor(LinearPredictor):
+    """LinearPredictor from templates.
+
+    Arguments
+    ---------
+
+    templates : array like
+        The templates to be combined together.
+        Each template gets its own weight parameter.
+        Shape: ``([n_systematics,]n_templates,len(template))``
+    constants : ndarray, optional
+        Shape: ``([n_systematics,]n_reco_bins)``
+    **kwargs : optional
+        Additional keyword arguments are passed to the LinearPredictor.
+
+    """
+
+    def __init__(self, templates, constants=0, **kwargs):
+        matrices = np.asarray(templates)
+        matrices = np.array(np.swapaxes(matrices, -1, -2))
+        bounds = kwargs.pop('bounds', [ (0., np.inf) ] * matrices.shape[-1])
+        defaults = kwargs.pop('defaults', [ 1. ] * matrices.shape[-1])
+        LinearPredictor.__init__(self, matrices, constants=constants, bounds=bounds, defaults=defaults, **kwargs)
+
+class LikelihoodCalculator(object):
+    """Class that calculates the likelihoods of parameter sets.
+
+    Parameters
+    ----------
+
+    data_model : DataModel
+        Object that describes the statistical model of the data.
+    predictor : Predictor
+        The object that translates parameter sets into reco expectation values.
+    systematics : {'marginal', 'profile'} or SystematicsConsumer, optional
+        Specifies how to handle systematic prediction uncertainties, i.e. multiple
+        predictions from a single parameter set.
+
+    Notes
+    -----
+
+    TODO
+
+    """
+
+    def __init__(self, data_model, predictor, systematics='marginal'):
+        self.data_model = data_model
+        self.predictor = predictor
+        if systematics == 'marginal' or systematics == 'average':
+            self.systematics = MarginalLikelihoodSystematics
+        elif systematics == 'profile' or systematics == 'maximum':
+            self.systematics = ProfileLikelihoodSystematics
+        else:
+            self.systematics = systematics
+
+    def log_likelihood(self, *args, **kwargs):
+        """Calculate the log likelihood of the given parameters.
+
+        Passes all arguments to the `predictor`.
+
+        """
+
+        prediction, weights = self.predictor.prediction(*args, **kwargs)
+        log_likelihood = self.data_model.log_likelihood(prediction)
+        log_likelihood = self.systematics.consume_axis(log_likelihood, weights)
+        # Fix out of bounds to -inf
+        check = self.predictor.check_bounds(*args)
+        if check.ndim == 0:
+            if not check:
+                log_likelihood = -np.inf
+        else:
+            log_likelihood[...,~check] = -np.inf
+        return log_likelihood
+
+    def generate_toy_likelihood_calculators(self, parameters, N=1, **kwargs):
+        """Generate LikelihoodCalculator objects with randomly varied data.
+
+        Accepts only single set of parameters.
+
+        Returns
+        -------
+
+        toy_calculators : list of LikelihoodCalculator
+
+        """
+
+        parameters = np.asarray(parameters)
+        if parameters.ndim != 1:
+            raise ValueError("Parameters must be 1D array!")
+
+        predictor = self.predictor
+        systematics = self.systematics
+
+        prediction, weights = predictor(parameters, **kwargs)
+        weights = weights / np.sum(weights, axis=-1)
+
+        toys = []
+        for i in range(N):
+            j = np.random.choice(len(weights), p=weights)
+            data_model = self.data_model.generate_toy_data_model(prediction[j])
+            toys.append(LikelihoodCalculator(data_model, predictor, systematics))
+
+        return toys
+
+    def fix_parameters(self, fix_values):
+        """Return a new LikelihoodCalculator with fewer free parameters.
+
+        Parameters
+        ----------
+
+        fix_values
+
+        """
+
+        data = self.data_model
+        pred = self.predictor.fix_parameters(fix_values)
+        syst = self.systematics
+        return LikelihoodCalculator(data, pred, syst)
+
+    def compose(self, predictor):
+        """Return a new LikelihoodCalculator with the composed Predictor.
+
+        Parameters
+        ----------
+
+        predictor : Predictor
+            The predictor of the calculator will be composed with this.
+
+        """
+
+        data = self.data_model
+        pred = self.predictor.compose(predictor)
+        syst = self.systematics
+        return LikelihoodCalculator(data, pred, syst)
+
+    def __call__(self, *args, **kwargs):
+        return self.log_likelihood(*args, **kwargs)
+
+class LikelihoodMaximizer(object):
+    """Class to maximise the likelihood over a parameter space."""
+
+    def minimize(self, fun, x0, bounds, **kwargs):
+        """General minimisation function."""
+        raise NotImplementedError("Must be implemented in a subclass!")
+
+    def maximize_log_likelihood(self, likelihood_calculator, **kwargs):
+        """Maximise the likelihood"""
+        def fun(x):
+            fun = -likelihood_calculator(x)
+            return fun
+        bounds = likelihood_calculator.predictor.bounds
+        x0 = likelihood_calculator.predictor.defaults
+        if len(x0) == 0:
+            # Nothing to optimise, return dummy result
+            opt = optimize.OptimizeResult()
+            opt.x = np.ndarray(0)
+            opt.fun = -likelihood_calculator(opt.x)
+            opt.log_likelihood = -opt.fun
+        else:
+            opt = self.minimize(fun, x0, bounds, **kwargs)
+            opt.log_likelihood = -opt.fun
+        return opt
+
+    def __call__(self, *args, **kwargs):
+        return self.maximize_log_likelihood(*args, **kwargs)
+
+class BasinHoppingMaximizer(LikelihoodMaximizer):
+    """Class to maximise the likelihood over a parameter space.
+
+    Uses SciPy's Basin Hopping algorithm.
+
+    Arguments
+    ---------
+
+    **kwargs : optional
+        Arguments to be passed to the basin hopping function.
+
+    """
+
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+    def minimize(self, fun, x0, bounds, **kwargs):
+        minimizer_kwargs = {
+            'bounds' : bounds,
+            }
+        # expected log likelihood variation in the order of degrees of freedom
+        args = {
+            'T': len(x0),
+            'niter': 10,
+            'minimizer_kwargs': minimizer_kwargs,
+        }
+        args.update(self.kwargs)
+        return optimize.basinhopping(fun, x0, **args)
+
+class HypothesisTester(object):
+    """Class for statistical tests of hypotheses.
+
+    """
+
+    def __init__(self, likelihood_calculator, maximizer=BasinHoppingMaximizer()):
+        self.likelihood_calculator = likelihood_calculator
+        self.maximizer = maximizer
+
+    def likelihood_p_value(self, parameters, N=2500, **kwargs):
+        """Calculate the likelihood p-value of a set of parameters.
+
+        The likelihood p-value is the probability of hypothetical alternative
+        data yielding a lower likelihood than the actual data, given that the
+        simple hypothesis described by the parameters is true.
+
+        Parameters
+        ----------
+
+        parameters : array like
+            The evaluated hypotheis expressed as a vector of its parameters.
+            Can be a multidimensional array of vectors. The p-value for each
+            vector is calculated independently.
 
         N : int, optional
             The number of MC evaluations of the hypothesis.
 
-        generator_matrix_index : int or tuple, optional
-            The index of the response matrix to be used to generate the fake
-            data. This needs to be specified only if the LikelihoodMachine
-            contains more than one response matrix. If it is `None`, N data
-            sets are thrown for *each* matrix, and a p-value is evaluated for
-            all of them. The return value thus becomes an array of p-values.
-
-        systematics : {'profile', 'marginal'}, optional
-            How to deal with detector systematics, i.e. multiple response
-            matrices:
-
-            'profile', 'maximum'
-                Choose the response matrix that yields the highest likelihood.
-            'marginal', 'average'
-                Take the arithmetic average probability yielded by the matrices.
-
-        matrix_weights : array like, optional
-            The relative weights of the matrices used when generating the random data
-
         **kwargs : optional
-            Additional keyword arguments will be passed to :meth:`log_likelihood`.
+            Additional keyword arguments will be passed to the likelihood
+            calculator.
 
         Returns
         -------
@@ -1472,10 +1038,12 @@ class LikelihoodMachine(object):
         Notes
         -----
 
-        The p-value is estimated by randomly creating `N` data samples
-        according to the given `truth_vector`. The number of data-sets that
-        yield a likelihood as bad as, or worse than the likelihood given the
-        actual data, `n`, are counted. The estimate for `p` is then::
+        The p-value is estimated by creating ``N`` data samples according to
+        the given ``parameters``. The data is varied by both the statistical
+        and systematic uncertainties resulting from the prediction. The number
+        of data-sets that yield a likelihood as bad as, or worse than the
+        likelihood given the actual data, ``n``, are counted. The estimate for
+        ``p`` is then::
 
             p = n/N.
 
@@ -1486,99 +1054,57 @@ class LikelihoodMachine(object):
                       N^2       N^2       4N
 
         The expected uncertainty can thus be directly influenced by choosing an
-        appropriate number of evaluations.
+        appropriate number of toy data sets.
 
         See also
         --------
 
         max_likelihood_p_value
         max_likelihood_ratio_p_value
-        mcmc
 
         """
-        # Reduce truth vectors to efficient values
-        reduced_truth_vector = self._reduce_truth_vector(truth_vector)
 
-        # Get likelihood of actual data
-        p0 = self._reduced_log_likelihood(reduced_truth_vector, systematics=systematics, **kwargs)
+        parameters = np.array(parameters)
+        shape = parameters.shape[:-1]
+        parameters.shape = (np.prod(shape, dtype=int), parameters.shape[-1])
 
-        # Decide which matrix to use for data generation
-        if self._reduced_response_matrix.ndim > 2 and generator_matrix_index is not None:
-            resp = self._reduced_response_matrix[generator_matrix_index]
-        else:
-            resp = self._reduced_response_matrix
+        LC = self.likelihood_calculator # Calculator
 
-        # Draw N fake data distributions
-        if self.log_matrix_weights is None or generator_matrix_index is not None:
-            fake_data = LikelihoodMachine.generate_random_data_sample(resp, reduced_truth_vector, N)
-        else:
-            fake_data = LikelihoodMachine.generate_random_data_sample(resp, reduced_truth_vector, N, matrix_weights=np.exp(self.log_matrix_weights))
-        # shape = N, data_shape
+        p_values = []
 
-        # Calculate probabilities of each generated sample
-        prob = LikelihoodMachine.log_probability(fake_data, self._reduced_response_matrix, reduced_truth_vector, **kwargs)
-        # shape = N, resp_shape-2
+        for par in parameters:
+            L0 = LC(par, **kwargs) # Likelihood given data
 
-        # Deal with systematics, i.e. multiple response matrices
-        if prob.ndim > 1:
-            systaxis = tuple(range(1, prob.ndim))
-            if self.log_matrix_weights is None or generator_matrix_index is not None:
-                weights = None
-            else:
-                weights = LikelihoodMachine._create_vector_array(self.log_matrix_weights, (N,))
-            prob = LikelihoodMachine._collapse_systematics_axes(prob, systaxis, systematics, log_weights=weights)
-        # shape = N
+            toy_LC = LC.generate_toy_likelihood_calculators(par, N=N, **kwargs)
+            toy_L = list(mapper(lambda C, par=par, kwargs=kwargs: C(par, **kwargs), toy_LC))
+            toy_L = np.array(toy_L)
 
-        # Count number of probabilities lower than or equal to the likelihood of the real data
-        n = np.sum(prob <= p0, axis=0, dtype=float)
+            p_values.append(np.sum(L0 >= toy_L, axis=-1) / N)
 
-        # Return the quotient
-        return n / N
+        p_values = np.array(p_values, dtype=float)
+        p_values.shape = shape
+        return p_values
 
-    def max_likelihood_p_value(self, composite_hypothesis, parameters=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=0, **kwargs):
-        """Calculate the maximum-likelihood p-value of a composite hypothesis.
+    def max_likelihood_p_value(self, fix_parameters=None, N=250):
+        """Calculate the maximum-likelihood p-value.
 
         The maximum-likelihood p-value is the probability of the data yielding
         a lower maximum likelihood (over the possible parameter space of the
-        composite hypothesis) than the actual data, given that the best-fit
-        parameter set of the composite hypothesis is true.
+        likelihood calculator) than the actual data, given that the best-fit
+        parameter set of is true.
 
         Parameters
         ----------
 
-        composite_hypothesis : CompositeHypothesis
-            The evaluated composite hypothesis.
-
-        parameters : array like, optional
-            The assumed true parameters of the composite hypothesis. If no
-            parameters are given, they will be determined with the maximum
-            likelihood method.
+        fix_parameters : array like, optional
+            Optionally fix some or all of the paramters of the
+            :class:`LikelihoodCalculator`.
 
         N : int, optional
             The number of MC evaluations of the hypothesis.
 
-        generator_matrix_index : int or tuple, optional
-            The index of the response matrix to be used to generate the fake
-            data. This needs to be specified only if the LikelihoodMachine
-            contains more than one response matrix. If it is `None`, N data
-            sets are thrown for *each* matrix, and a p-value is evaluated for
-            all of them. The return value thus becomes an array of p-values.
-
-        systematics : {'profile', 'marginal'}, optional
-            How to deal with detector systematics, i.e. multiple response
-            matrices:
-
-            'profile', 'maximum'
-                Choose the response matrix that yields the highest likelihood.
-            'marginal', 'average'
-                Take the arithmetic average probability yielded by the matrices.
-
-        nproc : int, optional
-            If this parameters is >= 1, the according number of processes are
-            spawned to calculate the p-value in parallel.
-
         **kwargs : optional
-            Additional keyword arguments will be passed to :meth:`max_log_likelihood`.
+            Additional keyword arguments will be passed to the maximiser.
 
         Returns
         -------
@@ -1616,235 +1142,81 @@ class LikelihoodMachine(object):
 
         likelihood_p_value
         max_likelihood_ratio_p_value
-        mcmc
+        LikelihoodCalculator.fix_parameters
 
         """
 
-        # Get truth vector from assumed true hypothesis
-        if parameters is None:
-            parameters = self.max_log_likelihood(composite_hypothesis, **kwargs).x
-
-        truth_vector = self._reduce_truth_vector(composite_hypothesis.translate(parameters))
-
-        # Decide which matrix to use for data generation
-        if self._reduced_response_matrix.ndim > 2 and generator_matrix_index is not None:
-            resp = self._reduced_response_matrix[generator_matrix_index]
+        if fix_parameters is None:
+            LC = self.likelihood_calculator # Calculator
         else:
-            resp = self._reduced_response_matrix
+            LC = self.likelihood_calculator.fix_parameters(fix_parameters) # Calculator
+        maxer = self.maximizer # Maximiser
 
-        # Draw N fake data distributioxxns
-        if self.log_matrix_weights is None or generator_matrix_index is not None:
-            fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N)
+        opt = maxer(LC)
+        opt_par = opt.x
+        L0 = opt.log_likelihood
+
+        toy_LC = LC.generate_toy_likelihood_calculators(opt_par, N=N)
+        toy_opt = list(mapper(lambda C, maxer=maxer: maxer(C), toy_LC))
+        toy_L = np.asfarray([ O.log_likelihood for O in toy_opt ])
+
+        p_value = np.sum(L0 >= toy_L, axis=-1) / N
+
+        return p_value
+
+    def _max_log_likelihood_ratio(self, LC, fix_parameters, alternative_fix_parameters, return_parameters=False):
+        # Calculator 0
+        LC0 = LC.fix_parameters(fix_parameters)
+
+        # Calculator 1
+        if alternative_fix_parameters is None:
+            LC1 = LC
         else:
-            fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N, matrix_weights=np.exp(self.log_matrix_weights))
-        # shape = N, data_shape
+            LC1 = LC.fix_parameters(alternative_fix_parameters)
 
-        # Wrapping composite hypothesis to produce reduced truth vectors
-        H0 = self._composite_hypothesis_wrapper(composite_hypothesis)
+        maxer = self.maximizer # Maximiser
 
-        # Calculate the maximum probabilities
-        def prob_fun(data):
-            try:
-                prob = LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, H0, systematics=systematics, log_matrix_weights=self.log_matrix_weights, **kwargs).P
-            except KeyboardInterrupt:
-                raise Exception("Terminated.")
-            return prob
+        opt0 = maxer(LC0)
+        opt1 = maxer(LC1)
 
-        if nproc >= 1:
-            # Load multiprocess on demand
-            global Pool
-            if Pool is None:
-                from multiprocess import Pool as _Pool
-                Pool = _Pool
-            p = Pool(nproc)
-            prob = np.fromiter(p.map(prob_fun, fake_data), dtype=float)
-            p.terminate()
-            p.join()
-            del p
+        L0 = opt0.log_likelihood
+        L1 = opt1.log_likelihood
+
+        if return_parameters:
+            # "Unfix" the parameters and generate toy calculators
+            full_parameters = LC0.predictor.insert_fixed_parameters(opt0.x)
+            return L0 - L1, full_parameters
         else:
-            prob = np.fromiter(map(prob_fun, fake_data), dtype=float)
-        # shape = N
+            return L0 - L1
 
-        # Get likelihood of actual data
-        p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
-
-        # Count number of probabilities lower than or equal to the likelihood of the real data
-        n = np.sum(prob <= p0, axis=0, dtype=float)
-
-        # Return the quotient
-        return n / N
-
-    def wilks_max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, systematics='marginal', nested=True, **kwargs):
-        """Calculate the maximum-likelihood-ratio p-value of two composite hypotheses.
+    def max_likelihood_ratio_p_value(self, fix_parameters, alternative_fix_parameters=None, N=250, **kwargs):
+        """Calculate the maximum-likelihood-ratio p-value.
 
         The maximum-likelihood-ratio p-value is the probability of the data
         yielding a lower ratio of maximum likelihoods (over the possible
         parameter spaces of the composite hypotheses) than the actual data,
-        given that the best-fit parameter set of hypothesis `H0` is true.
-        This method assumes that Wilk's theorem holds.
+        given that the best-fit parameter set of the tested hypothesis `H0` is
+        true.
 
         Parameters
         ----------
 
-        H0 : CompositeHypothesis
-            The tested composite hypothesis. Usually a subset of `H1`.
+        fix_parameters : array like
+            Fix some or all of the paramters of the
+            :class:`LikelihoodCalculator`. This defines the tested hypothesis
+            `H0`.
 
-        H1 : CompositeHypothesis
-            The alternative composite hypothesis.
-
-        par0 : array like, optional
-            The assumed true parameters of the tested hypothesis.If no
-            parameters are given, they will be determined with the maximum
-            likelihood method.
-
-        par1 : array like, optional
-            The maximum likelihood parameters of the alternative hypothesis.
-            If no parameters are given, they will be determined with the
-            maximum likelihood method.
-
-        systematics : {'profile', 'marginal'}, optional
-            How to deal with detector systematics, i.e. multiple response
-            matrices:
-
-            'profile', 'maximum'
-                Choose the response matrix that yields the highest likelihood.
-            'marginal', 'average'
-                Take the arithmetic average probability yielded by the matrices.
-
-        nested : bool or 'ignore', optional
-            Is H0 a nested theory, i.e. does it cover a subset of H1? In this
-            case, the maximum likelihoods must always follow ``L0 <= L1``. If
-            `True` or `'ignore'`, the calculation of likelihood ratios is
-            re-tried a couple of times if no valid likelihood ratio is found.
-            If `True` and no valid value was found after 10 tries, an errors is
-            raised. If `False`, those cases are just accepted.
-
-        **kwargs : optional
-            Additional keyword arguments will be passed to :meth:`max_log_likelihood`.
-
-        Returns
-        -------
-
-        p : float
-            The maximum-likelihood-ratio p-value.
-
-        Notes
-        -----
-
-        This method assumes that Wilks' theorem holds, i.e. that the logarithm
-        of the maximum likelihood ratio of the two hypothesis is distributed
-        like a chi-squared distribution::
-
-            ndof = number_of_parameters_of_H1 - number_of_parameters_of_H0
-            p_value = scipy.stats.chi2.sf(-2*log_likelihood_ratio, df=ndof)
-
-        See also
-        --------
-
-        max_likelihood_ratio_p_value
-        likelihood_p_value
-        max_likelihood_p_value
-        mcmc
-
-        """
-
-        # Get truth vector from assumed true hypothesis
-        if par0 is None:
-            par0 = self.max_log_likelihood(H0, systematics=systematics, **kwargs).x
-        if par1 is None:
-            par1 = self.max_log_likelihood(H1, systematics=systematics, **kwargs).x
-
-        truth_vector = self._reduce_truth_vector(H0.translate(par0))
-        alternative_truth = self._reduce_truth_vector(H1.translate(par1))
-
-        # Get likelihood of actual data
-        p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
-        p1 = self._reduced_log_likelihood(alternative_truth, systematics=systematics)
-        r0 = p0-p1 # difference because log
-
-        # If we assume a nested hypothesis, we should try to fix impossible likelihood ratios
-        nested_tolerance = 1e-2
-        if nested is True or nested == 'ignore':
-            ttl = 10
-            while r0 > nested_tolerance and ttl > 0:
-                try:
-                    p0 = np.maximum(p0, self.max_log_likelihood(H0, systematics=systematics, **kwargs).L)
-                    p1 = np.maximum(p1, self.max_log_likelihood(H1, systematics=systematics, **kwargs).L)
-                except KeyboardInterrupt:
-                    raise Exception("Terminated.")
-                r0 = p0 - p1
-                ttl -= 1
-        if r0 > nested_tolerance and (nested is True):
-            raise RuntimeError("Could not find a valid likelihood ratio! Is H0 a subset of H1?")
-        if r0 > nested_tolerance and (nested == 'ignore'):
-            warn("Could not find a valid likelihood ratio! Is H0 a subset of H1?", stacklevel=2)
-        if r0 > 0 and (nested is True):
-            r0 = 0.
-
-        # Likelihood ratio should be distributed like a chi2 distribution
-        ndof = len(par1) - len(par0)
-        return stats.chi2.sf(-2.*r0, df=ndof)
-
-    def max_likelihood_ratio_p_value(self, H0, H1, par0=None, par1=None, N=250, generator_matrix_index=None, systematics='marginal', nproc=0, nested=True, **kwargs):
-        """Calculate the maximum-likelihood-ratio p-value of two composite hypotheses.
-
-        The maximum-likelihood-ratio p-value is the probability of the data
-        yielding a lower ratio of maximum likelihoods (over the possible
-        parameter spaces of the composite hypotheses) than the actual data,
-        given that the best-fit parameter set of hypothesis `H0` is true.
-
-        Parameters
-        ----------
-
-        H0 : CompositeHypothesis
-            The tested composite hypothesis. Usually a subset of `H1`.
-
-        H1 : CompositeHypothesis
-            The alternative composite hypothesis.
-
-        par0 : array like, optional
-            The assumed true parameters of the tested hypothesis.If no
-            parameters are given, they will be determined with the maximum
-            likelihood method.
-
-        par1 : array like, optional
-            The maximum likelihood parameters of the alternative hypothesis.
-            If no parameters are given, they will be determined with the
-            maximum likelihood method.
+        alternative_fix_parameters : array like, optional
+            Optionally fix some of the paramters of the
+            :class:`LikelihoodCalculator` to define the alternative Hypothesis
+            `H1`. If this is not specified, `H1` is the fully unconstrained
+            calculator.
 
         N : int, optional
             The number of MC evaluations of the hypothesis.
 
-        generator_matrix_index : int or tuple, optional
-            The index of the response matrix to be used to generate the fake
-            data. This needs to be specified only if the LikelihoodMachine
-            contains more than one response matrix. If it is `None`, N data
-            sets are thrown for *each* matrix, and a p-value is evaluated for
-            all of them. The return value thus becomes an array of p-values.
-
-        systematics : {'profile', 'marginal'}, optional
-            How to deal with detector systematics, i.e. multiple response
-            matrices:
-
-            'profile', 'maximum'
-                Choose the response matrix that yields the highest likelihood.
-            'marginal', 'average'
-                Take the arithmetic average probability yielded by the matrices.
-
-        nproc : int, optional
-            If this parameters is >= 1, the according number of processes are
-            spawned to calculate the p-value in parallel.
-
-        nested : bool or 'ignore', optional
-            Is H0 a nested theory, i.e. does it cover a subset of H1? In this
-            case, the maximum likelihoods must always follow ``L0 <= L1``. If
-            `True` or `'ignore'`, the calculation of likelihood ratios is
-            re-tried a couple of times if no valid likelihood ratio is found.
-            If `True` and no valid value was found after 10 tries, an errors is
-            raised. If `False`, those cases are just accepted.
-
         **kwargs : optional
-            Additional keyword arguments will be passed to :meth:`max_log_likelihood`.
+            Additional keyword arguments will be passed to the maximiser.
 
         Returns
         -------
@@ -1883,330 +1255,86 @@ class LikelihoodMachine(object):
         wilks_max_likelihood_ratio_p_value
         likelihood_p_value
         max_likelihood_p_value
-        mcmc
 
         """
-        # Get truth vector from assumed true hypothesis
-        if par0 is None:
-            par0 = self.max_log_likelihood(H0, systematics=systematics, **kwargs).x
-        if par1 is None:
-            par1 = self.max_log_likelihood(H1, systematics=systematics, **kwargs).x
 
-        truth_vector = self._reduce_truth_vector(H0.translate(par0))
-        alternative_truth = self._reduce_truth_vector(H1.translate(par1))
+        LC = self.likelihood_calculator
+        ratio0, parameters = self._max_log_likelihood_ratio(LC, fix_parameters, alternative_fix_parameters, return_parameters=True)
 
-        # Get likelihood of actual data
-        p0 = self._reduced_log_likelihood(truth_vector, systematics=systematics)
-        p1 = self._reduced_log_likelihood(alternative_truth, systematics=systematics)
-        r0 = p0-p1 # difference because log
+        # Generate toy data
+        toy_LC = LC.generate_toy_likelihood_calculators(parameters, N=N)
 
-        # If we assume a nested hypothesis, we should try to fix impossible likelihood ratios
-        nested_tolerance = 1e-2
-        if nested is True or nested == 'ignore':
-            ttl = 10
-            while r0 > nested_tolerance and ttl > 0:
-                try:
-                    p0 = np.maximum(p0, self.max_log_likelihood(H0, systematics=systematics, **kwargs).L)
-                    p1 = np.maximum(p1, self.max_log_likelihood(H1, systematics=systematics, **kwargs).L)
-                except KeyboardInterrupt:
-                    raise Exception("Terminated.")
-                r0 = p0 - p1
-                ttl -= 1
-        if r0 > nested_tolerance and (nested is True):
-            raise RuntimeError("Could not find a valid likelihood ratio! Is H0 a subset of H1?")
-        if r0 > nested_tolerance and (nested == 'ignore'):
-            warn("Could not find a valid likelihood ratio! Is H0 a subset of H1?", stacklevel=2)
-        if r0 > 0 and (nested is True):
-            r0 = 0.
+        # Calculate ratios for toys
+        def fun(LC, fix_parameters=fix_parameters, alternative_fix_parameters=alternative_fix_parameters):
+            return self._max_log_likelihood_ratio(LC, fix_parameters, alternative_fix_parameters)
 
-        # Decide which matrix to use for data generation
-        if self._reduced_response_matrix.ndim > 2 and generator_matrix_index is not None:
-            resp = self._reduced_response_matrix[generator_matrix_index]
-        else:
-            resp = self._reduced_response_matrix
+        toy_ratios = np.array(list(mapper(fun, toy_LC)))
 
-        # Draw N fake data distributions
-        if self.log_matrix_weights is None or generator_matrix_index is not None:
-            fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N)
-        else:
-            fake_data = LikelihoodMachine.generate_random_data_sample(resp, truth_vector, N, matrix_weights=np.exp(self.log_matrix_weights))
-        # shape = N, data_shape
+        # Callculate p-value
+        p_value = np.sum(ratio0 >= toy_ratios, axis=-1) / N
 
-        # Wrapping composite hypothesis to produce reduced truth vectors
-        wH0 = self._composite_hypothesis_wrapper(H0)
-        wH1 = self._composite_hypothesis_wrapper(H1)
+        return p_value
 
-        # Calculate the maximum probabilities
-        kwargs0 = {}
-        kwargs1 = {}
-        if 'kwargs' in kwargs:
-            fitkwargs = kwargs.pop('kwargs')
-            kwargs0.update(fitkwargs)
-            kwargs1.update(fitkwargs)
-            if 'x1' in kwargs0:
-                kwargs0.pop('x1')
-            if 'x0' in kwargs1:
-                kwargs1.pop('x0')
-            if 'x1' in kwargs1:
-                kwargs1['x0'] = kwargs1.pop('x1')
+    def wilks_max_likelihood_ratio_p_value(self, fix_parameters, alternative_fix_parameters=None, **kwargs):
+        """Calculate the maximum-likelihood-ratio p-value using Wilk's theorem.
 
-        def ratio_fun(data):
-            r = 1.
-            p0 = -np.inf
-            p1 = -np.inf
-            if nested is True or nested == 'ignore':
-                ttl = 10
-            else:
-                ttl = 1
-            # If we assume a nested hypothesis, we should try to fix impossible likelihood ratios
-            while r > nested_tolerance and ttl > 0:
-                try:
-                    p0 = np.maximum(p0, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH0, systematics=systematics, kwargs=kwargs0, **kwargs).P)
-                    p1 = np.maximum(p1, LikelihoodMachine.max_log_probability(data, self._reduced_response_matrix, wH1, systematics=systematics, kwargs=kwargs1, **kwargs).P)
-                except KeyboardInterrupt:
-                    raise Exception("Terminated.")
-                r = p0 - p1
-                ttl -= 1
-            if r > nested_tolerance and (nested is True):
-                raise RuntimeError("Could not find a valid likelihood ratio! Is H0 a subset of H1?")
-            if r > 0 and (nested is True):
-                r = 0.
-            return r # difference because log
-
-        if nproc >= 1:
-            # Load multiprocess on demand
-            global Pool
-            if Pool is None:
-                from multiprocess import Pool as _Pool
-                Pool = _Pool
-            p = Pool(nproc)
-            ratio = np.fromiter(p.map(ratio_fun, fake_data), dtype=float)
-            p.terminate()
-            p.join()
-            del p
-        else:
-            ratio = np.fromiter(map(ratio_fun, fake_data), dtype=float)
-        # shape = N
-
-        # Count number of probabilities lower than or equal to the likelihood of the real data
-        n = np.sum(ratio <= r0, axis=0, dtype=float)
-
-        # Return the quotient
-        return n / N
-
-    def mcmc(self, composite_hypothesis, prior_only=False):
-        """Return a Marcov Chain Monte Carlo object for the hypothesis.
-
-        The hypothesis must define priors for its parameters.
+        The maximum-likelihood-ratio p-value is the probability of the data
+        yielding a lower ratio of maximum likelihoods (over the possible
+        parameter spaces of the composite hypotheses) than the actual data,
+        given that the best-fit parameter set of the tested hypothesis `H0` is
+        true. This method assumes that Wilk's theorem holds.
 
         Parameters
         ----------
 
-        composite_hypothesis : CompositeHypothesis
-        prior_only : bool, optional
-            Use only the prior infomation. Ignore the data. Useful for testing
-            purposes.
+
+        fix_parameters : array like
+            Fix some or all of the paramters of the
+            :class:`LikelihoodCalculator`. This defines the tested hypothesis
+            `H0`.
+
+        alternative_fix_parameters : array like, optional
+            Optionally fix some of the paramters of the
+            :class:`LikelihoodCalculator` to define the alternative Hypothesis
+            `H1`. If this is not specified, `H1` is the fully unconstrained
+            calculator.
+
+        **kwargs : optional
+            Additional keyword arguments will be passed to the maximiser.
+
+        Returns
+        -------
+
+        p : float
+            The maximum-likelihood-ratio p-value.
 
         Notes
         -----
 
-        See documentation of `PyMC` for a description of the `MCMC` class.
+        This method assumes that Wilks' theorem holds, i.e. that the logarithm
+        of the maximum likelihood ratio of the two hypothesis is distributed
+        like a chi-squared distribution::
+
+            ndof = number_of_parameters_of_H1 - number_of_parameters_of_H0
+            p_value = scipy.stats.chi2.sf(-2*log_likelihood_ratio, df=ndof)
 
         See also
         --------
 
-        plr
+        max_likelihood_ratio_p_value
         likelihood_p_value
         max_likelihood_p_value
-        max_likelihood_ratio_p_value
 
         """
 
-        # Load pymc on demand
-        global pymc
-        if pymc is None:
-            import pymc as _pymc
-            pymc = _pymc
+        LC = self.likelihood_calculator
+        ratio0 = self._max_log_likelihood_ratio(LC, fix_parameters, alternative_fix_parameters)
 
-        priors = composite_hypothesis.parameter_priors
-
-        names = composite_hypothesis.parameter_names
-        if names is None:
-            names = [ 'par_%d'%(i,) for i in range(len(priors)) ]
-
-        # Toy index as additional stochastic
-        n_toys = np.prod(self.response_matrix.shape[:-2])
-        if self.log_matrix_weights is None:
-            toy_index = pymc.DiscreteUniform('toy_index', lower=0, upper=(n_toys-1))
+        # Likelihood ratio should be distributed like a chi2 distribution
+        if alternative_fix_parameters is None:
+            # All parameters - unfixed parameters in H0
+            ndof = len(fix_parameters) - np.sum(np.isnan(np.array(fix_parameters, dtype=float)))
         else:
-            p = np.exp(self.log_matrix_weights)
-            p /= np.sum(p)
-            toy_index = pymc.Categorical('toy_index', p=p)
-
-        # The parameter pymc stochastics
-        parameters = []
-        names_priors = list(zip(names, priors))
-        for n,p in names_priors:
-            # Get default value of prior
-            if isinstance(p, JeffreysPrior):
-                # Jeffreys prior?
-                default = p.default_values
-                parents = {'toy_index': toy_index}
-            else:
-                # Regular function
-                default = inspect.getargspec(p).defaults[0]
-                parents = {}
-
-            parameters.append(pymc.Stochastic(
-                logp = p,
-                doc = '',
-                name = n,
-                parents = parents,
-                value = default,
-                dtype=float))
-
-        # The data likelihood
-        if prior_only:
-            def logp(value=self.data_vector, parameters=parameters, toy_index=toy_index):
-                """Do not consider the data likelihood."""
-                return 0
-        else:
-            def logp(value=self.data_vector, parameters=parameters, toy_index=toy_index):
-                """The reconstructed data."""
-                return self.log_likelihood(composite_hypothesis.translate(parameters), systematics=(toy_index,))
-        data = pymc.Stochastic(
-            logp = logp,
-            doc = '',
-            name = 'data',
-            parents = {'parameters': parameters, 'toy_index': toy_index},
-            value = self.data_vector,
-            dtype = int,
-            observed = True)
-
-        M = pymc.MCMC({'data': data, 'parameters': parameters, 'toy_index': toy_index})
-        M.use_step_method(pymc.DiscreteMetropolis, toy_index, proposal_distribution='Prior')
-
-        return M
-
-    def marginal_log_likelihood(self, composite_hypothesis, parameters, toy_indices):
-        """Calculate the marginal likelihood.
-
-        Parameters
-        ----------
-
-        composite_hypothesis : CompositeHypothesis
-            The composite hypotheses for which the likelihood will be calculated.
-
-        parameters : array like
-            Array of parameter vectors, drawn from the prior or posterior distribution
-            of the hypothesis, e.g. with the MCMC objects::
-
-                parameters = [
-                    [1.0, 2.0, 3.0],
-                    [1.1, 1.9, 2.8],
-                    ...
-                    ]
-
-        toy_indices, : array_like
-            The corresponding systematic toy indices, in an array of equal
-            dimensionality. That means, even if the toy index is just a single
-            integer, it must be provided as arrays of length 1::
-
-                toy_indices0 = [
-                    [0],
-                    [3],
-                    ...
-                    ]
-
-        Returns
-        -------
-
-        L : float
-            The marginal log-likelihood.
-
-        Notes
-        -----
-
-        The marginal likelihood is used in the construction of bayes factors,
-        when comparing the evidence in the data for two hypotheses::
-
-            bayes_factor = marginal_likelihood0 / marginal_likelihood1
-
-        or in the case of log-likelihoods::
-
-            log_bayes_factor = marginal_log_likelihood0 - marginal_log_likelihood1
-
-        """
-
-        L = self.log_likelihood(composite_hypothesis.translate(parameters),
-            systematics=toy_indices)
-        return np.logaddexp.reduce(L) - np.log(len(L))
-
-    def plr(self, H0, parameters0, toy_indices0, H1, parameters1, toy_indices1):
-        """Calculate the Posterior distribution of the log Likelihood Ratio.
-
-        Parameters
-        ----------
-
-        H0, H1 : CompositeHypothesis
-            Composite Hypotheses to be compared.
-
-        parameters0, parameters1 : array like
-            Arrays of parameter vectors, drawn from the posterior distribution
-            of the hypotheses, e.g. with the MCMC objects::
-
-                parameters0 = [
-                    [1.0, 2.0, 3.0],
-                    [1.1, 1.9, 2.8],
-                    ...
-                    ]
-
-        toy_indices0, toy_indices1 : array_like
-            The corresponding systematic toy indices, in an array of equal
-            dimensionality. That means, even if the toy index is just a single
-            integer, it must be provided as arrays of length 1::
-
-                toy_indices0 = [
-                    [0],
-                    [3],
-                    ...
-                    ]
-
-        Returns
-        -------
-
-        PLR : ndarray
-            A sample from the PLR as calculated from the parameter sets.
-        model_preference : float
-            The resulting model preference.
-
-        Notes
-        -----
-
-        The model preference is calculated as the fraction of likelihood ratios
-        in the PLR that prefer H1 over H0::
-
-            model_preference = N(PLR > 0) / N(PLR)
-
-        It can be interpreted as the posterior probability for the data
-        prefering H1 over H0.
-
-        The PLR is symmetric::
-
-            PLR(H0, H1) = -PLR(H1, H0)
-            preference(H0, H1) = 1. - preference(H1, H0) # modulo the cases of PLR = 0.
-
-        See also
-        --------
-
-        mcmc
-
-        """
-
-        L0 = self.log_likelihood(H0.translate(parameters0), systematics=toy_indices0)
-        L1 = self.log_likelihood(H1.translate(parameters1), systematics=toy_indices1)
-        # Build all possible combinations
-        # Assumes posteriors are independent, I guess
-        PLR = np.array(np.meshgrid(L1, -L0)).T.sum(axis=-1).flatten()
-        preference = float(np.count_nonzero(PLR > 0)) / PLR.size
-        return PLR, preference
+            # Unfixed parameters in H1 - unfixed parameters in H0
+            ndof = np.sum(np.isnan(np.array(alternative_fix_parameters, dtype=float))) - np.sum(np.isnan(np.array(fix_parameters, dtype=float)))
+        return stats.chi2.sf(-2.*ratio0, df=ndof)

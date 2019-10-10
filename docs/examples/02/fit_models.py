@@ -7,9 +7,9 @@ from remu import likelihood
 response_matrix = "../01/response_matrix.npz"
 
 with open("../01/reco-binning.yml", 'rt') as f:
-    reco_binning = binning.yaml.load(f)
+    reco_binning = binning.yaml.full_load(f)
 with open("../01/optimised-truth-binning.yml", 'rt') as f:
-    truth_binning = binning.yaml.load(f)
+    truth_binning = binning.yaml.full_load(f)
 
 reco_binning.fill_from_csv_file("../00/real_data.txt")
 data = reco_binning.get_entries_as_ndarray()

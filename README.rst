@@ -27,14 +27,20 @@ system::
     $ pip install -r requirements.txt
     $ # Install optional packages
     $ pip install -r pymc-requirements.txt
-    $ pip install -r multiprocess-requirements.txt
     $ # Install actual package
     $ pip install -e .
 
 You might need to install additional system libraries to compile all packages.
-PyMC, Matplotlib, and Multiprocess are optional dependencies. They are only
-needed if one actually wants to do any Marcov Chain Monte Carlo, plotting, or
-parallel computing respectively.
+For example, to compile PyMC on a Debian system, you need the following
+packages installed::
+
+    libopenblas-base
+    libopenblas-dev
+    liblapack-dev
+    gfortran
+
+PyMC is an optional dependency. It is only needed if one actually wants to do
+any Marcov Chain Monte Carlo calculations.
 
 ReMU requires Python 2.7 or >=3.4.
 
@@ -56,7 +62,7 @@ If you want to make sure the optional dependencies are also installed,
 use pip's 'Extras' syntax::
 
     $ # install remu including all optional dependencies
-    $ pip install remu[mcmc,parallel]==1.0.0
+    $ pip install remu[mcmc]==1.0.0
 
 Tests
 =====

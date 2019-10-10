@@ -52,6 +52,223 @@ def plot_bin_efficiencies(likelihood_machine, filename, plot_limits=False, bins_
 
     return fig, ax
 
+    def mcmc(self, composite_hypothesis, prior_only=False):
+        """Return a Marcov Chain Monte Carlo object for the hypothesis.
+
+        The hypothesis must define priors for its parameters.
+
+        Parameters
+        ----------
+
+        composite_hypothesis : CompositeHypothesis
+        prior_only : bool, optional
+            Use only the prior infomation. Ignore the data. Useful for testing
+            purposes.
+
+        Notes
+        -----
+
+        See documentation of `PyMC` for a description of the `MCMC` class.
+
+        See also
+        --------
+
+        plr
+        likelihood_p_value
+        max_likelihood_p_value
+        max_likelihood_ratio_p_value
+
+        """
+
+        # Load pymc on demand
+        global pymc
+        if pymc is None:
+            import pymc as _pymc
+            pymc = _pymc
+
+        priors = composite_hypothesis.parameter_priors
+
+        names = composite_hypothesis.parameter_names
+        if names is None:
+            names = [ 'par_%d'%(i,) for i in range(len(priors)) ]
+
+        # Toy index as additional stochastic
+        n_toys = np.prod(self.response_matrix.shape[:-2])
+        if self.log_matrix_weights is None:
+            toy_index = pymc.DiscreteUniform('toy_index', lower=0, upper=(n_toys-1))
+        else:
+            p = np.exp(self.log_matrix_weights)
+            p /= np.sum(p)
+            toy_index = pymc.Categorical('toy_index', p=p)
+
+        # The parameter pymc stochastics
+        parameters = []
+        names_priors = list(zip(names, priors))
+        for n,p in names_priors:
+            # Get default value of prior
+            if isinstance(p, JeffreysPrior):
+                # Jeffreys prior?
+                default = p.default_values
+                parents = {'toy_index': toy_index}
+            else:
+                # Regular function
+                default = inspect.getargspec(p).defaults[0]
+                parents = {}
+
+            parameters.append(pymc.Stochastic(
+                logp = p,
+                doc = '',
+                name = n,
+                parents = parents,
+                value = default,
+                dtype=float))
+
+        # The data likelihood
+        if prior_only:
+            def logp(value=self.data_vector, parameters=parameters, toy_index=toy_index):
+                """Do not consider the data likelihood."""
+                return 0
+        else:
+            def logp(value=self.data_vector, parameters=parameters, toy_index=toy_index):
+                """The reconstructed data."""
+                return self.log_likelihood(composite_hypothesis.translate(parameters), systematics=(toy_index,))
+        data = pymc.Stochastic(
+            logp = logp,
+            doc = '',
+            name = 'data',
+            parents = {'parameters': parameters, 'toy_index': toy_index},
+            value = self.data_vector,
+            dtype = int,
+            observed = True)
+
+        M = pymc.MCMC({'data': data, 'parameters': parameters, 'toy_index': toy_index})
+        M.use_step_method(pymc.DiscreteMetropolis, toy_index, proposal_distribution='Prior')
+
+        return M
+
+    def marginal_log_likelihood(self, composite_hypothesis, parameters, toy_indices):
+        """Calculate the marginal likelihood.
+
+        Parameters
+        ----------
+
+        composite_hypothesis : CompositeHypothesis
+            The composite hypotheses for which the likelihood will be calculated.
+
+        parameters : array like
+            Array of parameter vectors, drawn from the prior or posterior distribution
+            of the hypothesis, e.g. with the MCMC objects::
+
+                parameters = [
+                    [1.0, 2.0, 3.0],
+                    [1.1, 1.9, 2.8],
+                    ...
+                    ]
+
+        toy_indices, : array_like
+            The corresponding systematic toy indices, in an array of equal
+            dimensionality. That means, even if the toy index is just a single
+            integer, it must be provided as arrays of length 1::
+
+                toy_indices0 = [
+                    [0],
+                    [3],
+                    ...
+                    ]
+
+        Returns
+        -------
+
+        L : float
+            The marginal log-likelihood.
+
+        Notes
+        -----
+
+        The marginal likelihood is used in the construction of bayes factors,
+        when comparing the evidence in the data for two hypotheses::
+
+            bayes_factor = marginal_likelihood0 / marginal_likelihood1
+
+        or in the case of log-likelihoods::
+
+            log_bayes_factor = marginal_log_likelihood0 - marginal_log_likelihood1
+
+        """
+
+        L = self.log_likelihood(composite_hypothesis.translate(parameters),
+            systematics=toy_indices)
+        return np.logaddexp.reduce(L) - np.log(len(L))
+
+    def plr(self, H0, parameters0, toy_indices0, H1, parameters1, toy_indices1):
+        """Calculate the Posterior distribution of the log Likelihood Ratio.
+
+        Parameters
+        ----------
+
+        H0, H1 : CompositeHypothesis
+            Composite Hypotheses to be compared.
+
+        parameters0, parameters1 : array like
+            Arrays of parameter vectors, drawn from the posterior distribution
+            of the hypotheses, e.g. with the MCMC objects::
+
+                parameters0 = [
+                    [1.0, 2.0, 3.0],
+                    [1.1, 1.9, 2.8],
+                    ...
+                    ]
+
+        toy_indices0, toy_indices1 : array_like
+            The corresponding systematic toy indices, in an array of equal
+            dimensionality. That means, even if the toy index is just a single
+            integer, it must be provided as arrays of length 1::
+
+                toy_indices0 = [
+                    [0],
+                    [3],
+                    ...
+                    ]
+
+        Returns
+        -------
+
+        PLR : ndarray
+            A sample from the PLR as calculated from the parameter sets.
+        model_preference : float
+            The resulting model preference.
+
+        Notes
+        -----
+
+        The model preference is calculated as the fraction of likelihood ratios
+        in the PLR that prefer H1 over H0::
+
+            model_preference = N(PLR > 0) / N(PLR)
+
+        It can be interpreted as the posterior probability for the data
+        prefering H1 over H0.
+
+        The PLR is symmetric::
+
+            PLR(H0, H1) = -PLR(H1, H0)
+            preference(H0, H1) = 1. - preference(H1, H0) # modulo the cases of PLR = 0.
+
+        See also
+        --------
+
+        mcmc
+
+        """
+
+        L0 = self.log_likelihood(H0.translate(parameters0), systematics=toy_indices0)
+        L1 = self.log_likelihood(H1.translate(parameters1), systematics=toy_indices1)
+        # Build all possible combinations
+        # Assumes posteriors are independent, I guess
+        PLR = np.array(np.meshgrid(L1, -L0)).T.sum(axis=-1).flatten()
+        preference = float(np.count_nonzero(PLR > 0)) / PLR.size
+        return PLR, preference
+
 def plot_truth_bin_traces(likelihood_machine, filename, trace, plot_limits=False, bins_per_plot=20):
     """Plot bin by bin MCMC truth traces.
 
@@ -184,3 +401,27 @@ def plot_reco_bin_traces(likelihood_machine, filename, trace, toy_index=None, pl
         fig.savefig(filename)
 
     return fig, ax
+
+def pseudo_chi2(self, truth_vector):
+    """Calculate the pseudo chi2 goodness of fit of a parameter set.
+
+    This calculates the likelihood ratio between the given data and the
+    best possible data fit to the truth vector::
+
+        -2 * ln(L(data) / L(best possible data))
+
+    It should *not* be confused with the ratio of likelihoods when
+    maximising over a composite hypothesis parameter space!
+
+    See also
+    --------
+
+    max_likelihood_p_valuey
+    max_likelihood_ratio_p_valuey
+    wilks_max_likelihood_ratio_p_value
+
+    """
+
+    best_LL = self.log_likelihood.data_model.max
+
+    return 2. * (self.best_possible_log_likelihood(truth_vector) - self.log_likelihood(truth_vector))

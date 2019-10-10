@@ -900,9 +900,9 @@ class ResponseMatrix(object):
         return ret
 
     def export(self, filename, compress=False, nstat=None, sparse=True):
-        """Save all necessary information for a :class:`.LikelihoodMachine`.
+        """Save all necessary information for using the response matrix.
 
-        Saves all necessary information to create a :class:`.LikelihoodMachine`
+        Saves all necessary information for using the response matrix`
         in a NumPy ``.npz`` archive.
 
         Parameters
@@ -921,29 +921,28 @@ class ResponseMatrix(object):
         See also
         --------
 
-        .LikelihoodMachine
         ResponseMatrixArrayBuilder.export
 
         """
 
         if nstat is None:
-            matrix = self.get_mean_response_matrix_as_ndarray()
+            matrices = self.get_mean_response_matrix_as_ndarray()[np.newaxis,...]
         else:
-            matrix = self.generate_random_response_matrices(size=nstat)
+            matrices = self.generate_random_response_matrices(size=nstat)
         truth_entries = self.get_truth_entries_as_ndarray()
 
         if sparse:
-            eff_indices = list(np.flatnonzero(truth_entries))
-            matrix = matrix[...,eff_indices]
+            sparse_indices = np.flatnonzero(truth_entries)
+            matrices = matrices[...,sparse_indices]
             data = {
-                'matrix': matrix,
+                'matrices': matrices,
                 'truth_entries': truth_entries,
-                'eff_indices': eff_indices,
+                'sparse_indices': sparse_indices,
                 'is_sparse': True,
                 }
         else:
             data = {
-                'matrix': matrix,
+                'matrices': matrices,
                 'truth_entries': truth_entries,
                 }
 
@@ -1025,19 +1024,21 @@ class ResponseMatrixArrayBuilder(object):
         """Reset everything to 0."""
         self.nmatrices = 0
         self._matrices = []
+        self._weights = []
         self._mean_matrices = []
         self._truth_values = []
         self._truth_entries = None
         self._filled_indices = []
         self._nuisance_indices = None
 
-    def add_matrix(self, response_matrix):
+    def add_matrix(self, response_matrix, weight=1.):
         """Add a matrix to the collection.
 
         Parameters
         ----------
 
         response_matrix : :class:`ResponseMatrix`
+        weight : float, optional
 
         Notes
         -----
@@ -1063,13 +1064,14 @@ class ResponseMatrixArrayBuilder(object):
         if self.nstat > 0:
             matrix = response_matrix.generate_random_response_matrices(self.nstat, truth_indices=filled_indices)
         else:
-            matrix = response_matrix.get_response_matrix_as_ndarray(truth_indices=filled_indices)
+            matrix = response_matrix.get_response_matrix_as_ndarray(truth_indices=filled_indices)[np.newaxis,...]
         mean_matrix = response_matrix.get_mean_response_matrix_as_ndarray(truth_indices=filled_indices)
         truth_values = response_matrix.get_truth_values_as_ndarray(indices=filled_indices)
         truth_entries = response_matrix.get_truth_entries_as_ndarray() # We need *all* entries
 
         self._filled_indices.append(filled_indices)
         self._matrices.append(matrix)
+        self._weights.append(weight)
         self._mean_matrices.append(mean_matrix)
         self._truth_values.append(truth_values)
         if self._truth_entries is None:
@@ -1137,9 +1139,10 @@ class ResponseMatrixArrayBuilder(object):
         Returns
         -------
 
-        ndarray
+        M, weights : ndarray
             A big :class:`ndarray` containing `nstat` generated matrices for
-            each :class:`ResponseMatrix` that has been added.
+            each :class:`ResponseMatrix` that has been added, and a vector of
+            weights for corresponding the matrices.
 
         Notes
         -----
@@ -1149,7 +1152,7 @@ class ResponseMatrixArrayBuilder(object):
         :class:`ResponseMatrix` objects. The shape of the returned array will
         be::
 
-            (#(RepsonseMatrices), [nstat,] #(reco bins), #(filled truth bins))
+            (#(RepsonseMatrices) x nstat, #(reco bins), #(filled truth bins))
 
         The indices of the returned (filled) truth bins can be requested with
         the :meth:`get_filled_truth_indices` method.
@@ -1184,12 +1187,16 @@ class ResponseMatrixArrayBuilder(object):
 
         # Scale (nuisance) truth bins so they are consistent
         scale = self._get_truth_value_scale(tv)
-        if self.nstat > 0:
-            M = M * scale[:,np.newaxis,np.newaxis,:]
-        else:
-            M = M * scale[:,np.newaxis,:]
+        M = M * scale[:,np.newaxis,np.newaxis,:]
 
-        return M
+        # Broadcast weights
+        weights = np.broadcast_to(np.array(self._weights)[:,np.newaxis], M.shape[:2])
+
+        # Reshape to vector of matrices.
+        M.shape = (max(self.nstat, 1) * self.nmatrices,) + M.shape[2:]
+        weights = weights.flatten()
+
+        return M, weights
 
     def get_mean_response_matrices_as_ndarray(self):
         """Get the mean response matrices as ndarray.
@@ -1197,9 +1204,10 @@ class ResponseMatrixArrayBuilder(object):
         Returns
         -------
 
-        ndarray
-            A big :class:`ndarray` containing the mean matrix for each
-            :class:`ResponseMatrix` that has been added.
+        M, weights : ndarray
+            A big :class:`ndarray` containing `nstat` generated matrices for
+            each :class:`ResponseMatrix` that has been added, and a vector of
+            weights for corresponding the matrices.
 
         Notes
         -----
@@ -1245,13 +1253,14 @@ class ResponseMatrixArrayBuilder(object):
         # Scale (nuisance) truth bins so they are consistent
         scale = self._get_truth_value_scale(tv)
         M = M * scale[:,np.newaxis,:]
+        weights = np.array(self._weights)
 
-        return np.mean(M, axis=0)
+        return M, weights
 
     def export(self, filename, compress=False):
-        """Save all necessary information for a :class:`.LikelihoodMachine`.
+        """Save all necessary information for using the response matrix.
 
-        Saves all necessary information to create a :class:`.LikelihoodMachine`
+        Saves all necessary information for using the response matrix
         in a NumPy ``.npz`` archive.
 
         Parameters
@@ -1265,18 +1274,18 @@ class ResponseMatrixArrayBuilder(object):
         See also
         --------
 
-        .LikelihoodMachine
         ResponseMatrix.export
 
         """
 
-        matrix =  self.get_random_response_matrices_as_ndarray()
+        matrices, weights =  self.get_random_response_matrices_as_ndarray()
         truth_entries = self.get_truth_entries_as_ndarray()
 
         data = {
-            'matrix': matrix,
+            'matrices': matrices,
+            'weights': weights,
             'truth_entries': truth_entries,
-            'eff_indices': list(np.flatnonzero(truth_entries)),
+            'sparse_indices': np.flatnonzero(truth_entries),
             'is_sparse': True,
             }
 

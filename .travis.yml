@@ -21,14 +21,12 @@ addons:
 
 # commands to be run before installation
 before_install:
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.6' ]]; then pip install --upgrade pip==9.0.3 ;fi # Upgrade pip, so it can use wheel, 2.6 only supported up to 9.0.3
-  - if [[ $TRAVIS_PYTHON_VERSION != '2.6' ]]; then pip install --upgrade pip ;fi # Upgrade pip, so it can use wheel
+  - pip install --upgrade pip # Upgrade pip, so it can use wheel
 
 # command to install dependencies
 install:
   - pip install -r requirements.txt
   - pip install -r pymc-requirements.txt
-  - pip install -r multiprocess-requirements.txt
   - pip install -r test-requirements.txt
 
 # command to run tests

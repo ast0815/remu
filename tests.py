@@ -16,12 +16,8 @@ if __name__ == '__main__':
     # Parse arguments for skipping tests
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument("--noproc", help="do not test multiprocess", action='store_true')
     args, testargs = parser.parse_known_args()
-    noproc = args.noproc
     testargs = sys.argv[0:1] + testargs
-else:
-    noproc = False
 
 class TestPhaseSpaces(unittest.TestCase):
     def setUp(self):
@@ -999,19 +995,6 @@ class TestResponseMatrices(unittest.TestCase):
         self.assertTrue(np.all(new_rm.get_reco_values_as_ndarray() == 2 * self.rm.get_reco_values_as_ndarray()))
         self.assertTrue(np.all(new_rm.get_response_values_as_ndarray() == 2 * self.rm.get_response_values_as_ndarray()))
 
-    def test_export_and_load(self):
-        """Test exporting and loading the response matrices in a single file."""
-        with TemporaryFile() as f:
-            self.rm.export(f, compress=False, sparse=False, nstat=10)
-            f.seek(0)
-            lm = LikelihoodMachine(np.array([1,1,1,1]), f)
-            self.assertEqual(lm._n_eff, 4)
-        with TemporaryFile() as f:
-            self.rm.export(f, compress=True, sparse=True, nstat=None)
-            f.seek(0)
-            lm = LikelihoodMachine(np.array([1,1,1,1]), f)
-            self.assertEqual(lm._n_eff, 0) # Testing with an empty matrix so there are no efficient bins
-
 class TestResponseMatrixArrayBuilders(unittest.TestCase):
     def setUp(self):
         with open('testdata/test-truth-binning.yml', 'r') as f:
@@ -1028,8 +1011,9 @@ class TestResponseMatrixArrayBuilders(unittest.TestCase):
         self.builder.add_matrix(self.rm)
         self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
         self.builder.add_matrix(self.rm)
-        M = self.builder.get_mean_response_matrices_as_ndarray()
-        self.assertEqual(M.shape, (4,4))
+        M, weights = self.builder.get_mean_response_matrices_as_ndarray()
+        self.assertEqual(M.shape, (2,4,4))
+        self.assertEqual(weights.shape, (2,))
 
     def test_norandom(self):
         """Test ResponseMatrixArrayBuilder without random generation."""
@@ -1038,8 +1022,9 @@ class TestResponseMatrixArrayBuilders(unittest.TestCase):
         self.builder.add_matrix(self.rm)
         self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
         self.builder.add_matrix(self.rm)
-        M = self.builder.get_random_response_matrices_as_ndarray()
+        M, weights = self.builder.get_random_response_matrices_as_ndarray()
         self.assertEqual(M.shape, (2,4,4))
+        self.assertEqual(weights.shape, (2,))
 
     def test_random(self):
         """Test ResponseMatrixArrayBuilder with random generation."""
@@ -1047,8 +1032,9 @@ class TestResponseMatrixArrayBuilders(unittest.TestCase):
         self.builder.add_matrix(self.rm)
         self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
         self.builder.add_matrix(self.rm)
-        M = self.builder.get_random_response_matrices_as_ndarray()
-        self.assertEqual(M.shape, (2,5,4,4))
+        M, weights = self.builder.get_random_response_matrices_as_ndarray()
+        self.assertEqual(M.shape, (10,4,4))
+        self.assertEqual(weights.shape, (10,))
 
     def test_truth_entries(self):
         """Test the truth entries array generation."""
@@ -1059,333 +1045,307 @@ class TestResponseMatrixArrayBuilders(unittest.TestCase):
         M = self.builder.get_truth_entries_as_ndarray()
         self.assertEqual(tuple(M), (2,3,3,2))
 
-    def test_export_and_load(self):
-        """Test exporting and loading the response matrices in a single file."""
-        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        self.builder.add_matrix(self.rm)
-        self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
-        self.builder.add_matrix(self.rm)
-        with TemporaryFile() as f:
-            self.builder.export(f, compress=False)
-            f.seek(0)
-            LikelihoodMachine(np.array([1,1,1,1]), f)
-        with TemporaryFile() as f:
-            self.builder.export(f, compress=True)
-            f.seek(0)
-            LikelihoodMachine(np.array([1,1,1,1]), f)
-
-class TestCompositeHypotheses(unittest.TestCase):
+class TestPoissonData(unittest.TestCase):
     def setUp(self):
-        fun = lambda x: np.insert(x, 0, 0.)
-        self.H = CompositeHypothesis(fun,
-            parameter_limits=[(0,10), (0,20), (0,30)],
-            parameter_priors=[lambda x: -np.log(x)]*3,
-            parameter_names=['A','B','C'])
-
-    def test_parameter_fixing(self):
-        """Test fixing parameters to create new CompositeHypotheses."""
-        H1 = self.H.fix_parameters((None, 1, 1))
-        self.assertTrue(np.all(H1.translate([2]) == self.H.translate([2,1,1])))
-        self.assertTrue(H1.parameter_limits == [(0,10)])
-        self.assertTrue(len(H1.parameter_priors) == 1)
-        self.assertTrue(H1.parameter_names == ['A'])
-
-class TestTemplateHypotheses(unittest.TestCase):
-    def setUp(self):
-        self.H1 = TemplateHypothesis([[1,1,0,0],[0,0,1,1]], None, [(0,10),(0,10)])
-        self.H2 = TemplateHypothesis([[1,1,0,0],[0,0,1,1]], [1,1,1,1])
-
-    def test_parameter_fixing(self):
-        """Test fixing parameters to create new CompositeHypotheses."""
-        H0 = self.H1.fix_parameters((1, None))
-        self.assertTrue(np.all(H0.translate([2]) == self.H1.translate([1,2])))
-        H0 = self.H2.fix_parameters((1, None))
-        self.assertTrue(np.all(H0.translate([2]) == self.H2.translate([1,2])))
-
-class TestLikelihoodMachines(unittest.TestCase):
-    def setUp(self):
-        with open('testdata/test-truth-binning.yml', 'r') as f:
-            tb = yaml.full_load(f)
-        with open('testdata/test-reco-binning.yml', 'r') as f:
-            rb = yaml.full_load(f)
-        rm = ResponseMatrix(rb, tb)
-        rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        data_vector = rm.get_reco_entries_as_ndarray() # Entries because we need integer event numbers
-        self.truth_vector = rm.get_truth_values_as_ndarray()
-        response_matrix = []
-        response_matrix.append(rm.get_response_matrix_as_ndarray())
-        # Create a second response matric for systematics stuff
-        rm.truth_binning.fill_from_csv_file('testdata/test-data.csv')
-        response_matrix.append(rm.get_response_matrix_as_ndarray())
-        self.L = LikelihoodMachine(data_vector, response_matrix[0])
-        self.L2 = LikelihoodMachine(data_vector, np.array([response_matrix])[...,[1,2,3]], truth_limits=[np.inf]*4, eff_indices=[1,2,3], is_sparse=True)
-        self.L3 = LikelihoodMachine(data_vector, np.array([response_matrix])[...,[1,2,3]], truth_limits=[np.inf]*4, eff_indices=[1,2,3], is_sparse=True, matrix_weights=[2.,1.])
-        self.L4 = LikelihoodMachine(data_vector, np.array([response_matrix[0]]+response_matrix)[...,[1,2,3]], truth_limits=[np.inf]*4, eff_indices=[1,2,3], is_sparse=True)
-
-    def test_truth_folding(self):
-        """Test folding truth vectors into reco space."""
-        self.assertEqual(self.L.fold(self.truth_vector).shape, (4,))
-        self.assertEqual(self.L2.fold(self.truth_vector).shape, (2,4))
-
-    def test_log_probabilities(self):
-        """Test n-dimensional calculation of probabilities."""
-        # Three data sets
-        data = np.array([
-                [2,4],
-                [2,1],
-                [2,0],
-               ])
-
-        # Two simple response matrices
-        resp = np.array([
-                [[1.,0.],
-                 [0.,1.]],
-
-                [[0.,1.],
-                 [1.,0.]],
-               ])
-
-        # Five theories
-        truth = np.array([
-                 [2.,4.],
-                 [2.,3.],
-                 [2.,2.],
-                 [2.,1.],
-                 [2.,0.],
-                ])
-
-        # Calculate *all* probabilities:
-        ret = LikelihoodMachine.log_probability(data, resp, truth)
-        self.assertEqual(ret.shape, (3,2,5))
-        np.testing.assert_allclose(ret, np.array(
-            [[[-2.93972921, -3.0904575,  -3.71231793, -5.48490665,     -np.inf],
-              [-4.32602357, -3.90138771, -3.71231793, -4.09861229,     -np.inf]],
-
-             [[-3.92055846, -3.20824053, -2.61370564, -2.30685282,     -np.inf],
-              [-3.22741128, -2.80277542, -2.61370564, -3.,             -np.inf]],
-
-             [[-5.30685282, -4.30685282, -3.30685282, -2.30685282, -1.30685282],
-              [-3.92055846, -3.4959226,  -3.30685282, -3.69314718,     -np.inf]]]
-            ))
+        self.data = np.arange(4, dtype=int)
+        self.calc = PoissonData(self.data)
 
     def test_log_likelihood(self):
-        """Test basic likelihood computation."""
-        self.assertAlmostEqual(self.L.log_likelihood(self.truth_vector), -4.6137056388801092)
-        ret = self.L.log_likelihood([self.truth_vector, self.truth_vector])
-        self.assertAlmostEqual(ret[0], -4.6137056388801092)
-        self.assertAlmostEqual(ret[1], -4.6137056388801092)
-        ret = self.L.log_likelihood([[self.truth_vector]*2]*3)
-        self.assertAlmostEqual(ret[0][0], -4.6137056388801092)
-        self.assertAlmostEqual(ret[1][1], -4.6137056388801092)
-        self.assertAlmostEqual(ret[2][1], -4.6137056388801092)
-        ret = self.L2.log_likelihood(self.truth_vector, systematics='profile')
-        self.assertAlmostEqual(ret, -4.6137056388801092)
-        ret = self.L2.log_likelihood(self.truth_vector, systematics='marginal')
-        self.assertAlmostEqual(ret, -5.0016299959913546)
-        ret = self.L2.log_likelihood(self.truth_vector, systematics=None)
-        self.assertAlmostEqual(ret[0], -4.6137056388801092)
-        self.assertAlmostEqual(ret[1], -5.6439287294984988)
-        ret = self.L3.log_likelihood(self.truth_vector, systematics='marginal')
-        self.assertAlmostEqual(ret, -4.8549591379478764)
-        ret4 = self.L4.log_likelihood(self.truth_vector, systematics='marginal')
-        self.assertAlmostEqual(ret, ret4)
-        ret = self.L2.log_likelihood(self.truth_vector, systematics=(0,))
-        self.assertAlmostEqual(ret, -4.6137056388801092)
-        ret = self.L2.log_likelihood([self.truth_vector, self.truth_vector], systematics=(1,))
-        self.assertAlmostEqual(ret[0], -5.6439287294984988)
-        self.assertAlmostEqual(ret[1], -5.6439287294984988)
-        ret = self.L2.log_likelihood([self.truth_vector, self.truth_vector, self.truth_vector], systematics=np.array([[0],[1],[0]]))
-        self.assertAlmostEqual(ret[0], -4.6137056388801092)
-        self.assertAlmostEqual(ret[1], -5.6439287294984988)
-        self.assertAlmostEqual(ret[2], -4.6137056388801092)
-        self.truth_vector[0] += 1
-        self.assertAlmostEqual(self.L.log_likelihood(self.truth_vector), -4.6137056388801092)
-        self.L.truth_limits = np.ones_like(self.truth_vector)
-        self.assertRaises(RuntimeError, lambda: self.L.log_likelihood(self.truth_vector))
-        self.L.limit_method = 'prohibit'
-        self.assertEqual(self.L.log_likelihood(self.truth_vector), -np.inf)
-        self.L.limit_method = 'garbage'
-        self.assertRaises(ValueError, lambda: self.L.log_likelihood(self.truth_vector))
+        self.assertAlmostEqual(self.calc(self.data), -3.8027754226637804)
+        self.assertAlmostEqual(self.calc([1]*4), -6.484906649788)
 
-    def test_best_possible_likelihood(self):
-        self.assertAlmostEqual(self.L.best_possible_log_likelihood(self.truth_vector), -4.6137056388801092)
-        ret = self.L2.best_possible_log_likelihood(self.truth_vector, systematics='marginal')
-        self.assertAlmostEqual(ret, -3.5727488803986978)
-        ret = self.L2.best_possible_log_likelihood([self.truth_vector, self.truth_vector*10])
-        self.assertAlmostEqual(ret, -3.5727488803986978)
-        ret3 = self.L3.best_possible_log_likelihood(self.truth_vector)
-        ret4 = self.L4.best_possible_log_likelihood(self.truth_vector)
-        self.assertAlmostEqual(ret3, ret4)
+    def test_output_shape(self):
+        ret = self.calc([[self.data]*3, [[1]*4]*3])
+        self.assertEqual(ret.shape, (2,3))
+        self.assertAlmostEqual(ret[0,0], -3.8027754226637804)
+        self.assertAlmostEqual(ret[1,2], -6.484906649788)
 
-    def test_pseudo_chi2(self):
-        self.assertAlmostEqual(self.L.pseudo_chi2(self.truth_vector), 0)
+    def test_toy_data(self):
+        ret = self.calc.generate_toy_data(self.data)
+        self.assertEqual(ret.shape, (4,))
+        ret = self.calc.generate_toy_data(self.data, size=10)
+        self.assertEqual(ret.shape, (10,4))
+        ret = self.calc.generate_toy_data(self.data, size=(3,5))
+        self.assertEqual(ret.shape, (3,5,4))
 
-    def test_max_log_likelihood(self):
-        """Test maximum likelihood calculation with CompositeHypotheses"""
-        fun = lambda x: np.insert(x, 0, 0.)
-        H = CompositeHypothesis(fun, [(0,None)]*3)
-        ret = self.L.max_log_likelihood(H, method='basinhopping', systematics='profile')
-        ll, x = ret.L, ret.x
-        self.assertAlmostEqual(ll, -4.614, places=3)
-        self.assertAlmostEqual(x[0], 4, places=2)
-        self.assertAlmostEqual(x[1], 2, places=2)
-        self.assertAlmostEqual(x[2], 2, places=2)
-        self.assertAlmostEqual(ll, -4.614, places=3)
-        H = TemplateHypothesis([[1,1,0,0],[0,0,1,1]], None, [(0,10),(0,10)])
-        ret = self.L2.max_log_likelihood(H, method='differential_evolution', systematics='marginal')
-        ll, x, s = ret.L, ret.x, ret.success
-        self.assertTrue(s)
-        self.assertAlmostEqual(ll, -4.920, places=3)
-        self.assertAlmostEqual(x[0], 4.93, places=2)
-        self.assertAlmostEqual(x[1], 2.53, places=2)
-        H = TemplateHypothesis([[1,1,0,0],[0,0,1,1]], [1,1,1,1], [(0,10),(0,10)])
-        ret = self.L2.max_log_likelihood(H, method='differential_evolution', systematics='marginal')
-        ll, x, s = ret.L, ret.x, ret.success
-        self.assertTrue(s)
-        self.assertAlmostEqual(ll, -4.920, places=3)
-        self.assertAlmostEqual(x[0], 3.93, places=2)
-        self.assertAlmostEqual(x[1], 1.53, places=2)
-        H = LinearHypothesis([[]], [1,1,1,1], parameter_limits=[])
-        ret = self.L2.max_log_likelihood(H)
-        self.assertAlmostEqual(ret.L, -7.170, places=3)
-        ret = self.L3.max_log_likelihood(H)
-        self.assertAlmostEqual(ret.L, -6.914, places=3)
-        ret4 = self.L4.max_log_likelihood(H)
-        self.assertAlmostEqual(ret.L, ret4.L)
+class TestLinearPredictors(unittest.TestCase):
+    def setUp(self):
+        self.pred = LinearPredictor([[[1.,0.],[0.5,1.],[0.,1.]]]*2, [0.1,0.2,0.3], weights=[1.,0.5])
 
-    def test_data_sample_generation(self):
-        """Test the generatrion of random samples."""
-        truth = np.array([1.,2.,3.,4.])
-        mc = LikelihoodMachine.generate_random_data_sample(self.L.response_matrix, truth)
-        self.assertEqual(mc.shape, (4,))
-        mc = LikelihoodMachine.generate_random_data_sample(self.L.response_matrix, truth, 3)
-        self.assertEqual(mc.shape, (3,4))
-        mc = LikelihoodMachine.generate_random_data_sample(self.L.response_matrix, truth, (5,6))
-        self.assertEqual(mc.shape, (5,6,4))
-        mc = LikelihoodMachine.generate_random_data_sample(self.L2.response_matrix, truth[1:], (5,6))
-        self.assertEqual(mc.shape, (5,6,4))
-        mc = LikelihoodMachine.generate_random_data_sample(self.L2.response_matrix, truth[1:], (5,6), each=True)
-        self.assertEqual(mc.shape, (5,6,2,4))
-        mc = LikelihoodMachine.generate_random_data_sample(self.L3.response_matrix, truth[1:], (5,6))
-        self.assertEqual(mc.shape, (5,6,4))
-        mc = LikelihoodMachine.generate_random_data_sample(self.L4.response_matrix, truth[1:], (5,6))
-        self.assertEqual(mc.shape, (5,6,4))
+    def test_prediction(self):
+        pred, weights = self.pred([1,10])
+        self.assertEqual(pred.tolist(), [[1.1,10.7,10.3]]*2)
+        self.assertEqual(weights.tolist(), [1., 0.5])
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[1,10]]*2)
+        self.assertEqual(pred.shape, (2,2,3))
+        self.assertEqual(weights.shape, (2,2))
+        pred, weights = self.pred([[1,10]]*5)
+        self.assertEqual(pred.shape, (5,2,3))
+        self.assertEqual(weights.shape, (5,2))
+
+    def test_parameter_fixing(self):
+        fixed = self.pred.fix_parameters([None, 10])
+        pred, weights = fixed([1])
+        self.assertEqual(pred.tolist(), [[1.1,10.7,10.3]]*2)
+        self.assertEqual(weights.tolist(), [1., 0.5])
+
+class TestTemplatePredictors(unittest.TestCase):
+    def setUp(self):
+        self.pred = TemplatePredictor([[[1.,0.],[0.5,1.],[0.,1.]]]*2, [0.1,0.2,0.3], weights=[1.,0.5])
+        self.pred = TemplatePredictor([[[1.,0.5,0.],[0.,1.,1.]]]*2, constants=[0.1,0.2,0.3], weights=[1.,0.5])
+
+    def test_prediction(self):
+        pred, weights = self.pred([1,10])
+        self.assertEqual(pred.tolist(), [[1.1,10.7,10.3]]*2)
+        self.assertEqual(weights.tolist(), [1., 0.5])
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[1,10]]*2)
+        self.assertEqual(pred.shape, (2,2,3))
+        self.assertEqual(weights.shape, (2,2))
+        pred, weights = self.pred([[1,10]]*5)
+        self.assertEqual(pred.shape, (5,2,3))
+        self.assertEqual(weights.shape, (5,2))
+
+class TestFixedParameterPredictors(unittest.TestCase):
+    def setUp(self):
+        self.pred = LinearPredictor([[[1.,0.],[0.5,1.],[0.,1.]]]*2, [0.1,0.2,0.3], weights=[1.,0.5])
+        self.pred0 = FixedParameterPredictor(self.pred, [1, None])
+        self.pred1 = FixedParameterPredictor(self.pred, [None, 10])
+        self.pred2 = FixedParameterPredictor(self.pred, [1, 10])
+
+    def test_prediction(self):
+        pred, weights = self.pred0([10])
+        self.assertEqual(pred.tolist(), [[1.1,10.7,10.3]]*2)
+        self.assertEqual(weights.tolist(), [1., 0.5])
+        pred, weights = self.pred1([1])
+        self.assertEqual(pred.tolist(), [[1.1,10.7,10.3]]*2)
+        self.assertEqual(weights.tolist(), [1., 0.5])
+        pred, weights = self.pred2([])
+        self.assertEqual(pred.tolist(), [[1.1,10.7,10.3]]*2)
+        self.assertEqual(weights.tolist(), [1., 0.5])
+
+    def test_output_shape(self):
+        pred, weights = self.pred0([[10]]*2)
+        self.assertEqual(pred.shape, (2,2,3))
+        self.assertEqual(weights.shape, (2,2))
+        pred, weights = self.pred0([[10]]*5)
+        self.assertEqual(pred.shape, (5,2,3))
+        self.assertEqual(weights.shape, (5,2))
+
+class TestFixedParameterLinearPredictors(unittest.TestCase):
+    def setUp(self):
+        self.pred = LinearPredictor([[[1.,0.],[0.5,1.],[0.,1.]]]*2, [0.1,0.2,0.3], weights=[1.,0.5])
+        self.pred0 = FixedParameterLinearPredictor(self.pred, [1, None])
+        self.pred1 = FixedParameterLinearPredictor(self.pred, [None, 10])
+        self.pred2 = FixedParameterLinearPredictor(self.pred, [1, 10])
+
+    def test_prediction(self):
+        pred, weights = self.pred0([10])
+        self.assertEqual(pred.tolist(), [[1.1,10.7,10.3]]*2)
+        self.assertEqual(weights.tolist(), [1., 0.5])
+        pred, weights = self.pred1([1])
+        self.assertEqual(pred.tolist(), [[1.1,10.7,10.3]]*2)
+        self.assertEqual(weights.tolist(), [1., 0.5])
+        pred, weights = self.pred2([])
+        self.assertEqual(pred.tolist(), [[1.1,10.7,10.3]]*2)
+        self.assertEqual(weights.tolist(), [1., 0.5])
+
+    def test_output_shape(self):
+        pred, weights = self.pred0([[10]]*2)
+        self.assertEqual(pred.shape, (2,2,3))
+        self.assertEqual(weights.shape, (2,2))
+        pred, weights = self.pred0([[10]]*5)
+        self.assertEqual(pred.shape, (5,2,3))
+        self.assertEqual(weights.shape, (5,2))
+
+class TestComposedPredictors(unittest.TestCase):
+    def setUp(self):
+        self.w0 = np.array([1,2])
+        self.pred0 = LinearPredictor([[[1.,1.,1.]]]*2, weights=self.w0)
+        self.w1 = np.array([1,2,3])
+        self.pred1 = LinearPredictor([[[1/3]]*3]*3, weights=self.w1)
+        self.w2 = np.array([1,2,3,4])
+        self.pred2 = LinearPredictor([np.eye(3)]*4, [0.1,0.2,0.3], weights=self.w2)
+        self.pred = ComposedPredictor([self.pred2, self.pred1, self.pred0])
+
+    def test_prediction(self):
+        pred, weights = self.pred([1,2,3])
+        self.assertEqual(pred.tolist(), [[2.1,2.2,2.3]]*24)
+        w = self.w0[np.newaxis, np.newaxis, :]
+        w = w * self.w1[np.newaxis, :, np.newaxis]
+        w = w * self.w2[:, np.newaxis, np.newaxis]
+        self.assertEqual(weights.tolist(), w.flatten().tolist())
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[1,2,3]]*2)
+        self.assertEqual(pred.shape, (2,24,3))
+        self.assertEqual(weights.shape, (2,24))
+
+class TestComposedLinearPredictors(unittest.TestCase):
+    def setUp(self):
+        self.w0 = np.array([1,2])
+        self.pred0 = LinearPredictor([[[1.,1.,1.]]]*2, weights=self.w0)
+        self.w1 = np.array([1,2,3])
+        self.pred1 = LinearPredictor([[[1/3]]*3]*3, weights=self.w1)
+        self.w2 = np.array([1,2,3,4])
+        self.pred2 = LinearPredictor([np.eye(3)]*4, [0.1,0.2,0.3], weights=self.w2)
+        self.pred = ComposedLinearPredictor([self.pred2, self.pred1, self.pred0])
+
+    def test_prediction(self):
+        pred, weights = self.pred([1,2,3])
+        self.assertEqual(pred.tolist(), [[2.1,2.2,2.3]]*24)
+        w = self.w0[np.newaxis, np.newaxis, :]
+        w = w * self.w1[np.newaxis, :, np.newaxis]
+        w = w * self.w2[:, np.newaxis, np.newaxis]
+        self.assertEqual(weights.tolist(), w.flatten().tolist())
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[1,2,3]]*2)
+        self.assertEqual(pred.shape, (2,24,3))
+        self.assertEqual(weights.shape, (2,24))
+
+class TestResponseMatrixPredictors(unittest.TestCase):
+    def setUp(self):
+        with open('testdata/test-truth-binning.yml', 'r') as f:
+            self.tb = yaml.full_load(f)
+        with open('testdata/test-reco-binning.yml', 'r') as f:
+            self.rb = yaml.full_load(f)
+        self.rm = ResponseMatrix(self.rb, self.tb, nuisance_indices=[2])
+        self.builder = ResponseMatrixArrayBuilder(5)
+
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        self.builder.add_matrix(self.rm, 1.0)
+        self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
+        self.builder.add_matrix(self.rm, 0.5)
+        with TemporaryFile() as f:
+            self.builder.export(f)
+            f.seek(0)
+            self.pred = ResponseMatrixPredictor(f)
+
+    def test_prediction(self):
+        y, w = self.pred([1,0,0,0])
+        self.assertEqual(y.shape, (10, 4))
+        self.assertEqual(w[0], 1.)
+        self.assertEqual(w[-1], 0.5)
+
+    def test_sparse_matrix(self):
+        self.rm.reset()
+        with TemporaryFile() as f:
+            self.rm.export(f, sparse=True)
+            f.seek(0)
+            pred = ResponseMatrixPredictor(f)
+        y, w = pred([1,0,0,0])
+        self.assertEqual(y.shape, (1, 4))
+        self.assertEqual(y[0,0], 0.)
+
+class TestSystematics(unittest.TestCase):
+    def setUp(self):
+        self.data = np.log(np.arange(2*3*5)+1)
+        self.data.shape = (2,3,5)
+
+    def test_marginal_systematics(self):
+        ret = MarginalLikelihoodSystematics.consume_axis(self.data)
+
+        for A, B in zip(np.exp(ret).flat,
+                        np.mean(np.exp(self.data), axis=-1).flat):
+            self.assertAlmostEqual(A,B)
+
+    def test_profile_systematics(self):
+        ret = ProfileLikelihoodSystematics.consume_axis(self.data)
+
+        for A, B in zip(np.exp(ret).flat,
+                        np.max(np.exp(self.data), axis=-1).flat):
+            self.assertAlmostEqual(A,B)
+
+class TestLikelihoodCalculators(unittest.TestCase):
+    def setUp(self):
+        self.data = np.arange(4, dtype=int)
+        self.data_model = PoissonData([self.data]*2)
+        self.predictor = TemplatePredictor([np.eye(4)]*3)
+        self.calc = LikelihoodCalculator(self.data_model, self.predictor)
+
+    def test_log_likelihood(self):
+        test_reco = np.asarray([0.5,0.5,0.5,0.5])
+        ret = self.calc([test_reco]*5)
+        self.assertAlmostEqual(ret[0,0],
+            stats.poisson(test_reco).logpmf(self.data).sum())
+        self.assertEqual(ret.shape, (2,5))
+        ret = self.calc([test_reco, -test_reco])
+        self.assertAlmostEqual(ret[0,0],
+            stats.poisson(test_reco).logpmf(self.data).sum())
+        self.assertTrue(ret[0,1] == -np.inf)
+        self.assertEqual(ret.shape, (2,2))
+
+    def test_fix_parameters(self):
+        test_reco = np.array([0.5,0.5,0.5,0.5])
+        calc = self.calc.fix_parameters([None, None, None, 0.5])
+        ret = calc([test_reco[:-1]]*5)
+        self.assertAlmostEqual(ret[0,0],
+            stats.poisson(test_reco).logpmf(self.data).sum())
+        self.assertEqual(ret.shape, (2,5))
+
+    def test_compose(self):
+        test_reco = np.array([0.5,0.5,0.5,0.5])
+        pred = TemplatePredictor([[1,1,1,1]])
+        calc = self.calc.compose(pred)
+        ret = calc([test_reco[:1]]*5)
+        self.assertAlmostEqual(ret[0,0],
+            stats.poisson(test_reco).logpmf(self.data).sum())
+        self.assertEqual(ret.shape, (2,5))
+
+class TestLikelihoodMaximizers(unittest.TestCase):
+    def setUp(self):
+        self.data = np.arange(4, dtype=int)
+        self.data_model = PoissonData(self.data)
+        self.predictor = LinearPredictor(np.eye(4), bounds=[(0,np.inf)]*4)
+        self.calc = LikelihoodCalculator(self.data_model, self.predictor)
+
+    def test_basinhopping(self):
+        maxer = BasinHoppingMaximizer()
+        opt = maxer(self.calc)
+        for i in range(4):
+            self.assertAlmostEqual(opt.x[i], self.data[i], places=3)
+
+class TestHypothesisTesters(unittest.TestCase):
+    def setUp(self):
+        self.data = np.arange(4, dtype=int)
+        self.data_model = PoissonData(self.data)
+        self.predictor = LinearPredictor(np.eye(4), bounds=[(0,np.inf)]*4)
+        self.calc = LikelihoodCalculator(self.data_model, self.predictor)
+        self.test = HypothesisTester(self.calc)
 
     def test_likelihood_p_value(self):
-        """Test the calculation of p-values."""
-        p = self.L.likelihood_p_value(self.truth_vector)
-        self.assertEqual(p, 1.0)
-        self.truth_vector[2] += 4
-        p = self.L.likelihood_p_value(self.truth_vector, N=250000)
-        self.assertTrue(abs(p-0.725) < 0.01)
-        p3 = self.L3.likelihood_p_value(self.truth_vector, N=250000)
-        p4 = self.L4.likelihood_p_value(self.truth_vector, N=250000)
-        self.assertTrue(abs(p3-p4) < 0.01)
-        self.assertTrue(abs(p-p4) > 0.01)
+        ret = self.test.likelihood_p_value(self.data)
+        self.assertEqual(ret, 1.)
+        ret = self.test.likelihood_p_value([1,1,1,1])
+        self.assertTrue(0. < ret < 1.)
+        ret = self.test.likelihood_p_value([1,1,1,0])
+        self.assertEqual(ret, 0.)
+        ret = self.test.likelihood_p_value([[[1,1,1,1]]*2]*3)
+        self.assertEqual(ret.shape, (3,2))
 
     def test_max_likelihood_p_value(self):
-        """Test the calculation of the p-value of composite hypotheses."""
-        fun = lambda x: np.insert(x, 0, 0.)
-        H = CompositeHypothesis(fun, [(0,None)]*3)
-        ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
-        p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2}, N=10)
-        self.assertTrue(0. <= p <= 1.0)
-        fun = lambda x: np.repeat(x,4)
-        H = CompositeHypothesis(fun, [(0,None)])
-        ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
-        p = self.L.max_likelihood_p_value(H, ret.x, kwargs={'niter':2}, N=10)
-        self.assertTrue(0. <= p <= 1.0)
-        p = self.L2.max_likelihood_p_value(H, ret.x, kwargs={'niter':2}, N=10)
-        self.assertTrue(0. <= p <= 1.0)
-        p = self.L3.max_likelihood_p_value(H, ret.x, kwargs={'niter':2}, N=10)
-        self.assertTrue(0. <= p <= 1.0)
+        ret = self.test.max_likelihood_p_value(N=2)
+        self.assertTrue(0. <= ret <= 1.)
+        ret = self.test.max_likelihood_p_value(fix_parameters=(None, None, None, 20), N=2)
+        self.assertAlmostEqual(ret, 0., places=3)
 
     def test_max_likelihood_ratio_p_value(self):
-        """Test the calculation of the p-value of composite hypotheses comparisons."""
-        fun1 = lambda x: x
-        H1 = CompositeHypothesis(fun1, [(0,None)]*4)
-        ret1 = self.L.max_log_likelihood(H1, kwargs={'niter':2})
-        fun = lambda x: np.repeat(x,2)
-        H = CompositeHypothesis(fun, [(0,None),(0,None)])
-        ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
-        p = self.L.max_likelihood_ratio_p_value(H, H1, par0=ret.x, par1=ret1.x, kwargs={'niter':2}, N=10)
-        self.assertTrue(0.0 <= p <= 1.0)
-        p = self.L.max_likelihood_ratio_p_value(H, H1, par0=[10,10], par1=[1000,1000,1000,1000], kwargs={'niter':2}, N=10)
-        self.assertTrue(0.0 <= p <= 1.0)
-        fun = lambda x: np.repeat(x,4)
-        H = CompositeHypothesis(fun, [(0,None)])
-        p = self.L.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2}, N=10)
-        self.assertTrue(0.0 <= p <= 1.0)
-        p = self.L2.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2}, N=10)
-        self.assertTrue(0.0 <= p <= 1.0)
-        p = self.L3.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2}, N=10)
-        self.assertTrue(0.0 <= p <= 1.0)
+        ret = self.test.max_likelihood_ratio_p_value((None, None, None, 3), N=2)
+        self.assertTrue(ret >= 0.5)
+        ret = self.test.max_likelihood_ratio_p_value((None, None, 2, 30), alternative_fix_parameters=(None, None, None, 3), N=2)
+        self.assertAlmostEqual(ret, 0., places=3)
 
     def test_wilks_max_likelihood_ratio_p_value(self):
-        """Test the calculation of Wilks' p-value of composite hypotheses comparisons."""
-        fun1 = lambda x: x
-        H1 = CompositeHypothesis(fun1, [(0,None)]*4)
-        ret1 = self.L.max_log_likelihood(H1, kwargs={'niter':2})
-        fun = lambda x: np.repeat(x,2)
-        H = CompositeHypothesis(fun, [(0,None),(0,None)])
-        ret = self.L.max_log_likelihood(H, kwargs={'niter':2})
-        p = self.L.wilks_max_likelihood_ratio_p_value(H, H1, par0=ret.x, par1=ret1.x)
-        self.assertTrue(0.0 <= p <= 1.0)
-        p = self.L.wilks_max_likelihood_ratio_p_value(H, H1, par0=[10,10], par1=[1000,1000,1000,1000])
-        self.assertTrue(0.0 <= p <= 1.0)
-        fun = lambda x: np.repeat(x,4)
-        H = CompositeHypothesis(fun, [(0,None)])
-        p = self.L.wilks_max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2})
-        self.assertTrue(0.0 <= p <= 1.0)
-        p = self.L2.wilks_max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2})
-        self.assertTrue(0.0 <= p <= 1.0)
-        p3 = self.L3.wilks_max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2})
-        self.assertTrue(0.0 <= p3 <= 1.0)
-        p4 = self.L4.wilks_max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2})
-        self.assertAlmostEqual(p3, p4)
-
-    @unittest.skipIf(noproc, "Skipping multiprocess test.")
-    def test_multiprocess(self):
-        """Test parallelisation."""
-        fun = lambda x: np.repeat(x,2)
-        H = CompositeHypothesis(fun, [(0,None),(0,None)])
-        self.L.max_likelihood_p_value(H, kwargs={'niter':2}, N=10, nproc=2)
-        fun1 = lambda x: x
-        H1 = CompositeHypothesis(fun1, [(0,None)]*4)
-        self.L.max_likelihood_ratio_p_value(H, H1, kwargs={'niter':2}, N=10, nproc=2)
-
-    def test_mcmc(self):
-        """Test Marcov Chain Monte Carlo."""
-        fun = lambda x: np.repeat(x, 2, axis=-1)
-        pri = JeffreysPrior(self.L.response_matrix, fun, [(0,100), (0,100)], (50,50))
-        H = CompositeHypothesis(fun, parameter_priors=[pri], parameter_names=['x'])
-        M = self.L.mcmc(H)
-        M.sample(100, burn=50, thin=10, tune_interval=10, progress_bar=False)
-        fun_sparse = lambda x : np.asarray(x)[...,[0,1,1]]
-        pri = JeffreysPrior(self.L2.response_matrix, fun_sparse, [(0,100), (0,100)], (50,50))
-        H = CompositeHypothesis(fun, parameter_priors=[pri], parameter_names=['x'])
-        M = self.L2.mcmc(H)
-        M.sample(100, burn=50, thin=10, tune_interval=10, progress_bar=False)
-        M = self.L3.mcmc(H)
-        M.sample(100, burn=50, thin=10, tune_interval=10, progress_bar=False)
-
-    def test_marginal_likelihood(self):
-        """Test the marginal likelihood calculation"""
-        fun = lambda x: np.repeat(x, 2, axis=-1)
-        pri = JeffreysPrior(self.L.response_matrix, fun, [(0,100), (0,100)], (50,50))
-        H0 = CompositeHypothesis(fun, parameter_priors=[pri], parameter_names=['x'])
-        mll = self.L.marginal_log_likelihood(H0, [[50,50], [51,49]], [[0], [0]])
-        self.assertTrue(mll < 0)
-
-    def test_plr(self):
-        fun = lambda x: np.repeat(x, 2, axis=-1)
-        pri = JeffreysPrior(self.L.response_matrix, fun, [(0,100), (0,100)], (50,50))
-        H0 = CompositeHypothesis(fun, parameter_priors=[pri], parameter_names=['x'])
-        fun = lambda x: np.repeat(x, 4, axis=-1)
-        pri = JeffreysPrior(self.L.response_matrix, fun, [(0,100),], (50,))
-        H1 = CompositeHypothesis(fun, parameter_priors=[pri], parameter_names=['x'])
-        PLR, pref = self.L.plr(H0, [[50,50], [51,49]], [[0], [0]], H1, [[50,], [51,]], [[0], [0]])
-        self.assertEqual(PLR.size, 4)
+        ret = self.test.wilks_max_likelihood_ratio_p_value((None, None, None, 3))
+        self.assertAlmostEqual(ret, 1., places=3)
+        ret = self.test.wilks_max_likelihood_ratio_p_value((None, None, 2, 30), alternative_fix_parameters=(None, None, None, 3))
+        self.assertAlmostEqual(ret, 0., places=3)
+        ret = self.test.wilks_max_likelihood_ratio_p_value((0, 1, 2, 3))
+        self.assertAlmostEqual(ret, 1., places=3)
 
 class TestPlotting(unittest.TestCase):
     def setUp(self):
@@ -1544,25 +1504,31 @@ class TestMatrixUtils(unittest.TestCase):
 class TestLikelihoodUtils(unittest.TestCase):
     def setUp(self):
         with open('testdata/test-truth-binning.yml', 'r') as f:
-            tb = yaml.full_load(f)
+            self.tb = yaml.full_load(f)
         with open('testdata/test-reco-binning.yml', 'r') as f:
-            rb = yaml.full_load(f)
-        rm = ResponseMatrix(rb, tb)
-        rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        data_vector = rm.get_reco_entries_as_ndarray() # Entries because we need integer event numbers
-        self.truth_vector = rm.get_truth_values_as_ndarray()
-        response_matrix = []
-        response_matrix.append(rm.get_response_matrix_as_ndarray())
-        # Create a second response matric for systematics stuff
-        rm.truth_binning.fill_from_csv_file('testdata/test-data.csv')
-        response_matrix.append(rm.get_response_matrix_as_ndarray())
-        self.L = LikelihoodMachine(data_vector, np.array([response_matrix])[...,[1,2,3]], truth_limits=[np.inf]*4, eff_indices=[1,2,3], is_sparse=True, matrix_weights=[2.,1.])
+            self.rb = yaml.full_load(f)
+        self.data = self.rb.get_entries_as_ndarray()
+        self.rm = ResponseMatrix(self.rb, self.tb, nuisance_indices=[2])
+        self.builder = ResponseMatrixArrayBuilder(5)
+
+        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
+        self.builder.add_matrix(self.rm, 1.0)
+        self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
+        self.builder.add_matrix(self.rm, 0.5)
+        with TemporaryFile() as f:
+            self.builder.export(f)
+            f.seek(0)
+            self.rm_pred = ResponseMatrixPredictor(f)
+
+        self.data_model = PoissonData(self.data)
+        self.calc = LikelihoodCalculator(self.data_model, self.rm_pred)
+        self.test = HypothesisTester(self.calc)
 
     def test_plots(self):
         """Test the different plotting functions."""
-        plot_bin_efficiencies(self.L, filename=None)
-        plot_truth_bin_traces(self.L, filename=None, trace=np.random.uniform(size=(50,4)))
-        plot_reco_bin_traces(self.L, filename=None, trace=np.random.uniform(size=(50,4)), toy_index=0)
+        #plot_bin_efficiencies(self.L, filename=None)
+        #plot_truth_bin_traces(self.L, filename=None, trace=np.random.uniform(size=(50,4)))
+        #plot_reco_bin_traces(self.L, filename=None, trace=np.random.uniform(size=(50,4)), toy_index=0)
 
 if __name__ == '__main__':
     np.seterr(all='raise')
