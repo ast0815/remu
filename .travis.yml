@@ -5,7 +5,7 @@ cache: pip # Cache pip for faster builds
 
 python:
   - "2.7"
-  - "3.4"
+  - "3.5"
 
 matrix:
   fast_finish: true
