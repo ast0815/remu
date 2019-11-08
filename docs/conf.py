@@ -42,7 +42,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.imgmath',
     'sphinx.ext.viewcode',
-    'sphinx.ext.imgconverter',
+    'sphinxcontrib.rsvgconverter',
     'numpydoc',
     'sphinx_rtd_theme',
 ]
