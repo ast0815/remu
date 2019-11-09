@@ -412,7 +412,7 @@ class CartesianProductBinningPlotter(BinningPlotter):
         """Return the default label for the axis."""
         return "Binning %d Bin #"%(j_binning,)
 
-    def plot_array(self, array=None, density=True, stack_function=np.mean, margin_function=np.sum, scatter=0, **kwargs):
+    def plot_array(self, array=None, density=True, stack_function=np.mean, margin_function=np.sum, scatter=-1, **kwargs):
         """Plot an array.
 
         Parameters
@@ -517,7 +517,7 @@ class CartesianProductBinningPlotter(BinningPlotter):
                 y_edg = self.get_bin_edges(0, data.shape[0], j)
 
                 # Plot the data
-                if scatter > 0:
+                if scatter >= 0:
                     # Draw a set of random points and plot these
 
                     # Get bin numbers
