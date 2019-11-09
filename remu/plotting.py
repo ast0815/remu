@@ -252,6 +252,7 @@ class ArrayPlotter(Plotter):
 
             # Add sticky y edge so histograms get plotted more beautifully
             poly.sticky_edges.y.append(np.min(y_lo))
+            ax.autoscale_view()
 
             ax.get_xaxis().set_major_locator(ticker.MaxNLocator(integer=True))
 
@@ -596,6 +597,7 @@ class CartesianProductBinningPlotter(BinningPlotter):
 
             # Add sticky y edge so histograms get plotted more beautifully
             poly.sticky_edges.y.append(np.min(data_lo))
+            ax.autoscale_view()
 
             # Only int tick label
             ax.get_xaxis().set_major_locator(ticker.MaxNLocator(integer=True))
@@ -640,6 +642,7 @@ class CartesianProductBinningPlotter(BinningPlotter):
 
             # Add sticky x edge so histograms get plotted more beautifully
             poly.sticky_edges.x.append(np.min(data_lo))
+            ax.autoscale_view()
 
             # Only int tick label
             ax.get_yaxis().set_major_locator(ticker.MaxNLocator(integer=True))
