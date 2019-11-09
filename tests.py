@@ -1394,8 +1394,11 @@ class TestPlotting(unittest.TestCase):
     def test_array_plotter(self):
         array = np.array([1,3,2,5])
         plt = get_plotter(array, bins_per_row=3)
-        plt.plot_array()
-        plt.plot_array(array*2)
+        plt.plot_array(hatch=None)
+        plt.plot_array(array*2, hatch=None)
+        plt.plot_array([array, array*2], stack_function=np.mean, hatch=None)
+        plt.plot_array([array, array*2], stack_function=0.68)
+        plt.plot_array([array, array*2], stack_function=(np.mean, np.max), edgecolor='g')
 
     def test_binning_plotter(self):
         b0 = RectangularBin(variables=['x', 'y'], edges=[(0,1), (5,float('inf'))])
@@ -1436,6 +1439,7 @@ class TestPlotting(unittest.TestCase):
         plt.plot_sumw2(label='Z')
         plt.plot_entries(label='Y')
         plt.plot_values(label='X')
+        plt.plot_array(np.arange(26).reshape((2,13)), label='A', stack_function=0.9)
         plt.legend()
 
     def test_linear_plotter(self):

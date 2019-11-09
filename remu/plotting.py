@@ -145,6 +145,13 @@ class ArrayPlotter(Plotter):
                 raise TypeError("Array must be of equal shape as the initial one.")
         return array
 
+    def _get_arrays(self, arrays):
+        try:
+            ret = [self._get_array(a) for a in arrays]
+        except (TypeError, IndexError):
+            ret = [self._get_array(arrays)]
+        return np.array(ret)
+
     def get_bin_edges(self, i_min, i_max):
         """Get the bin edges corresponding to bins i_min to i_max."""
         x = np.arange(i_min,i_max)
@@ -154,7 +161,33 @@ class ArrayPlotter(Plotter):
         """Return the default label for the axis."""
         return "Bin #"
 
-    def plot_array(self, array=None, density=False, margin_function=None, **kwargs):
+    @staticmethod
+    def _get_stack_functions(stack_function):
+        try:
+            # A number?
+            np.isfinite(stack_function)
+        except TypeError:
+            # Nope
+            pass
+        else:
+            # A number.
+            lobound = (1. - stack_function) / 2.
+            hibound = (1. - lobound)
+            lower = lambda x, axis=0, bound=lobound: np.quantile(x, bound, axis=axis)
+            upper = lambda x, axis=0, bound=hibound: np.quantile(x, bound, axis=axis)
+            return lower, upper
+
+        # No number
+        try:
+            # Tuple of functions?
+            lower, upper = stack_function
+        except TypeError:
+            # Nope
+            lower = lambda x, axis=0: np.sum(np.zeros_like(x), axis=axis)
+            upper = stack_function
+        return lower, upper
+
+    def plot_array(self, array=None, density=False, stack_function=np.mean, margin_function=None, **kwargs):
         """Plot an array.
 
         Parameters
@@ -164,20 +197,28 @@ class ArrayPlotter(Plotter):
             The thing to plot.
         density : bool, optional
             Divide the data by the relative bin width: ``width / total_plot_range``.
+        stack_function : float or function or (lower_function, function)
+            How to deal with multiple arrays.
+            When `float`, plot the respective quantile as equal-tailed interval.
+            When `function`, apply this function to the stack after marginalisation.
+            When `(function, function)`, use these functions to calculate lower and
+            upper bounds of the area to be plotted respectively.
+            Functions must accept ``axis`` keyword argument.
 
         """
 
         # The `margin_function` parameter is only here so it can be
         # safely used with all plotting methods
 
-        array = self._get_array(array)
+        arrays = self._get_arrays(array)
+        lower, upper = self._get_stack_functions(stack_function)
 
         bins_per_row = self.bins_per_row
         if bins_per_row >= 1:
-            n_rows = int(np.ceil(array.size / bins_per_row))
+            n_rows = int(np.ceil(arrays.shape[-1] / bins_per_row))
         else:
             n_rows = 1
-            bins_per_row = array.size
+            bins_per_row = arrays.shape[-1]
 
         figax = self.subplots(nrows=n_rows, sharey=True, figsize=(6.4, max(2.4*n_rows, 4.8)), squeeze=False)
 
@@ -186,24 +227,31 @@ class ArrayPlotter(Plotter):
 
         for i, ax in enumerate(figax[1][:,0]):
             i_min = i*bins_per_row
-            i_max = min((i+1)*bins_per_row, array.size)
-            y = np.asfarray(array.flat[i_min:i_max])
+            i_max = min((i+1)*bins_per_row, arrays.shape[-1])
+            y_hi = np.asfarray(upper(arrays[:,i_min:i_max], axis=0))
+            y_lo = np.asfarray(lower(arrays[:,i_min:i_max], axis=0))
             bins = np.asfarray(self.get_bin_edges(i_min, i_max))
-            x = (bins[1:] + bins[:-1]) / 2. # Bin content in centre of bins
 
             # Divide by relative bin widths
             if density:
                 total_width = bins[-1] - bins[0]
                 rel_widths = (bins[1:] - bins[:-1]) / total_width
-                y /= np.asfarray(rel_widths)
+                y_hi /= np.asfarray(rel_widths)
+                y_lo /= np.asfarray(rel_widths)
 
             args = {
-                'histtype': 'step',
-                'color': color,
+                'step': 'post',
+                'edgecolor': color,
                 'hatch': hatch,
+                'facecolor': 'none',
                 }
             args.update(kwargs)
-            ax.hist(x, weights=y, bins=bins, **args)
+            y_lo = np.append(y_lo, y_lo[-1])
+            y_hi = np.append(y_hi, y_hi[-1])
+            poly = ax.fill_between(bins, y_hi, y_lo, **args)
+
+            # Add sticky y edge so histograms get plotted more beautifully
+            poly.sticky_edges.y.append(np.min(y_lo))
 
             ax.get_xaxis().set_major_locator(ticker.MaxNLocator(integer=True))
 
@@ -364,7 +412,7 @@ class CartesianProductBinningPlotter(BinningPlotter):
         """Return the default label for the axis."""
         return "Binning %d Bin #"%(j_binning,)
 
-    def plot_array(self, array=None, density=True, margin_function=np.sum, scatter=0, **kwargs):
+    def plot_array(self, array=None, density=True, stack_function=np.mean, margin_function=np.sum, scatter=0, **kwargs):
         """Plot an array.
 
         Parameters
@@ -376,6 +424,13 @@ class CartesianProductBinningPlotter(BinningPlotter):
             Divide the data by the relative bin width: ``width / total_plot_range``.
             Dividing by the relative bin width, rather than the bin width directly,
             ensures that the maximum values in all 1D projections are comparable.
+        stack_function : float or function or (lower_function, function)
+            How to deal with multiple arrays.
+            When `float`, plot the respective quantile as equal-tailed interval.
+            When `function`, apply this function to the stack after marginalisation.
+            When `(function, function)`, use these functions to calculate lower and
+            upper bounds of the area to be plotted respectively.
+            Functions must accept ``axis`` keyword argument.
         margin_function : function, optional
             The function used to marginalize the data.
         scatter : int, optional
@@ -389,10 +444,11 @@ class CartesianProductBinningPlotter(BinningPlotter):
 
         """
 
-        array = self._get_array(array)
+        arrays = self._get_arrays(array)
+        lower, upper = self._get_stack_functions(stack_function)
 
         shape = self.binning.bins_shape
-        array = array.reshape(shape)
+        arrays = arrays.reshape(arrays.shape[:1] + shape)
 
         n_col = len(self.x_axis_binnings) + 1 # "+1" for the 1D projections
         n_row = len(self.y_axis_binnings) + 1
@@ -444,10 +500,13 @@ class CartesianProductBinningPlotter(BinningPlotter):
                 ax = figax[1][-y-1,x] # rows are counted top to bottom
 
                 # Project array
-                axis = list(range(array.ndim))
+                axis = list(range(arrays.ndim - 1)) # -1 because of stack axis 0
                 for k in sorted((i,j), reverse=True):
                     del axis[k]
-                data = margin_function(array, axis=tuple(axis))
+                axis = tuple(x+1 for x in axis) # +1 because of stack axis 0
+                data = np.asfarray(margin_function(arrays, axis=axis))
+                # 2D plots only show upper limit of stack
+                data = upper(data, axis=0)
 
                 # Flip axes if necessary
                 if i < j:
@@ -507,26 +566,36 @@ class CartesianProductBinningPlotter(BinningPlotter):
             ax = figax[1][0,x]
 
             # Project array
-            axis = list(range(array.ndim))
+            axis = list(range(arrays.ndim - 1)) # -1 because of stack axis 0
             del axis[i]
-            data = np.asfarray(margin_function(array, axis=tuple(axis)))
+            axis = tuple(x+1 for x in axis) # +1 because of stack axis 0
+            data = np.asfarray(margin_function(arrays, axis=axis))
+            # Upper and lower limit of area
+            data_hi = upper(data, axis=0)
+            data_lo = lower(data, axis=0)
 
             # Divide by relative bin widths
-            bins = np.asfarray(self.get_bin_edges(0, data.shape[0], i))
+            bins = np.asfarray(self.get_bin_edges(0, data.shape[1], i))
             if density:
                 total_width = bins[-1] - bins[0]
                 rel_widths = (bins[1:] - bins[:-1]) / total_width
-                data /= rel_widths
+                data_hi /= rel_widths
+                data_lo /= rel_widths
 
             # Plot the data
-            entries = np.convolve(bins, np.ones(2)/2, mode='valid')
             args = {
-                'histtype': 'step',
-                'color': color,
+                'step': 'post',
+                'edgecolor': color,
                 'hatch': hatch,
+                'facecolor': 'none',
                 }
             args.update(kwargs)
-            ax.hist(entries, weights=data, bins=bins, orientation='vertical', **args)
+            data_lo = np.append(data_lo, data_lo[-1])
+            data_hi = np.append(data_hi, data_hi[-1])
+            poly = ax.fill_between(bins, data_hi, data_lo, **args)
+
+            # Add sticky y edge so histograms get plotted more beautifully
+            poly.sticky_edges.y.append(np.min(data_lo))
 
             # Only int tick label
             ax.get_xaxis().set_major_locator(ticker.MaxNLocator(integer=True))
@@ -541,26 +610,36 @@ class CartesianProductBinningPlotter(BinningPlotter):
             ax = figax[1][-y-1,-1] # Rows are counted top to bottom
 
             # Project array
-            axis = list(range(array.ndim))
+            axis = list(range(arrays.ndim - 1)) # -1 because of stack axis 0
             del axis[i]
-            data = np.asfarray(margin_function(array, axis=tuple(axis)))
+            axis = tuple(x+1 for x in axis) # +1 because of stack axis 0
+            data = np.asfarray(margin_function(arrays, axis=axis))
+            # Upper and lower limit of area
+            data_hi = upper(data, axis=0)
+            data_lo = lower(data, axis=0)
 
             # Divide by relative bin widths
-            bins = np.asfarray(self.get_bin_edges(0, data.shape[0], i))
+            bins = np.asfarray(self.get_bin_edges(0, data.shape[1], i))
             if density:
                 total_width = bins[-1] - bins[0]
                 rel_widths = (bins[1:] - bins[:-1]) / total_width
-                data /= rel_widths
+                data_hi /= rel_widths
+                data_lo /= rel_widths
 
             # Plot the data
-            entries = np.convolve(bins, np.ones(2)/2, mode='valid')
             args = {
-                'histtype': 'step',
-                'color': color,
+                'step': 'post',
+                'edgecolor': color,
                 'hatch': hatch,
+                'facecolor': 'none',
                 }
             args.update(kwargs)
-            ax.hist(entries, weights=data, bins=bins, orientation='horizontal', **args)
+            data_lo = np.append(data_lo, data_lo[-1])
+            data_hi = np.append(data_hi, data_hi[-1])
+            poly = ax.fill_betweenx(bins, data_hi, data_lo, **args)
+
+            # Add sticky x edge so histograms get plotted more beautifully
+            poly.sticky_edges.x.append(np.min(data_lo))
 
             # Only int tick label
             ax.get_yaxis().set_major_locator(ticker.MaxNLocator(integer=True))
