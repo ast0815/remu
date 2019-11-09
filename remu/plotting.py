@@ -222,8 +222,8 @@ class ArrayPlotter(Plotter):
 
         figax = self.subplots(nrows=n_rows, sharey=True, figsize=(6.4, max(2.4*n_rows, 4.8)), squeeze=False)
 
-        color = next(self.color)
-        hatch = next(self.hatch)
+        color = kwargs.get('color', next(self.color))
+        hatch = kwargs.get('hatch', next(self.hatch))
 
         for i, ax in enumerate(figax[1][:,0]):
             i_min = i*bins_per_row
@@ -490,8 +490,8 @@ class CartesianProductBinningPlotter(BinningPlotter):
             'height_ratios': heights, 'wspace': wspace, 'hspace': hspace},
             squeeze=False)
 
-        color = next(self.color)
-        hatch = next(self.hatch)
+        color = kwargs.get('color', next(self.color))
+        hatch = kwargs.get('hatch', next(self.hatch))
 
         # 2D histograms
         for x, i in enumerate(self.x_axis_binnings):
