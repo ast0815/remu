@@ -785,10 +785,10 @@ class RectilinearBinningPlotter(CartesianProductBinningPlotter):
         The binning defining what will be plotted.
     marginalize_subbinnings : bool
         Whether or not subbinnings will be marginalized before plotting.
-    x_axis_binnings : list of int
-        The indices of binnings to be plotted on the x-axis.
-    y_axis_binnings : list of int
-        The indices of binnings to be plotted on the y-axis.
+    x_axis_binnings : list of int or str
+        The indices or variable names of to be plotted on the x-axis.
+    y_axis_binnings : list of int or str
+        The indices or variable names to be plotted on the y-axis.
 
     """
 
@@ -796,11 +796,11 @@ class RectilinearBinningPlotter(CartesianProductBinningPlotter):
         if x_axis_binnings is None:
             x_axis_binnings = list(range(int(np.ceil(len(binning.binnings) / 2.))))
         else:
-            x_axis_binnings = map(self.binning.get_variable_index, x_axis_binnings)
+            x_axis_binnings = map(binning.get_variable_index, x_axis_binnings)
         if y_axis_binnings is None:
             y_axis_binnings = list(range(int(np.ceil(len(binning.binnings) / 2.)), len(binning.binnings)))
         else:
-            y_axis_binnings = map(self.binning.get_variable_index, y_axis_binnings)
+            y_axis_binnings = map(binning.get_variable_index, y_axis_binnings)
         kwargs['x_axis_binnings'] = x_axis_binnings
         kwargs['y_axis_binnings'] = y_axis_binnings
         kwargs['marginalize_subbinnings'] = True
