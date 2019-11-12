@@ -1503,32 +1503,20 @@ class TestMatrixUtils(unittest.TestCase):
 
 class TestLikelihoodUtils(unittest.TestCase):
     def setUp(self):
-        with open('testdata/test-truth-binning.yml', 'r') as f:
-            self.tb = yaml.full_load(f)
-        with open('testdata/test-reco-binning.yml', 'r') as f:
-            self.rb = yaml.full_load(f)
-        self.data = self.rb.get_entries_as_ndarray()
-        self.rm = ResponseMatrix(self.rb, self.tb, nuisance_indices=[2])
-        self.builder = ResponseMatrixArrayBuilder(5)
-
-        self.rm.fill_from_csv_file('testdata/test-data.csv', weightfield='w')
-        self.builder.add_matrix(self.rm, 1.0)
-        self.rm.fill({'x_reco':1, 'y_reco':0, 'x_truth':1, 'y_truth':0})
-        self.builder.add_matrix(self.rm, 0.5)
-        with TemporaryFile() as f:
-            self.builder.export(f)
-            f.seek(0)
-            self.rm_pred = ResponseMatrixPredictor(f)
-
+        self.data = np.arange(4)
+        self.pred = TemplatePredictor([np.eye(4),np.eye(4)])
         self.data_model = PoissonData(self.data)
-        self.calc = LikelihoodCalculator(self.data_model, self.rm_pred)
+        self.calc = LikelihoodCalculator(self.data_model, self.pred)
         self.test = HypothesisTester(self.calc)
 
-    def test_plots(self):
-        """Test the different plotting functions."""
-        #plot_bin_efficiencies(self.L, filename=None)
-        #plot_truth_bin_traces(self.L, filename=None, trace=np.random.uniform(size=(50,4)))
-        #plot_reco_bin_traces(self.L, filename=None, trace=np.random.uniform(size=(50,4)), toy_index=0)
+    def test_emcee(self):
+        sampler = emcee_sampler(self.calc)
+        guess = emcee_initial_guess(self.calc)
+        state = sampler.run_mcmc(guess, 500)
+        sampler.reset()
+        sampler.run_mcmc(state, 500)
+        chain = sampler.get_chain(flat=True)
+        np.mean(chain, axis=0)
 
 if __name__ == '__main__':
     np.seterr(all='raise')

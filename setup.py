@@ -36,7 +36,7 @@ setup(name='remu',
     packages=['remu'],
     install_requires=['pyyaml>=5.1.2', 'numpy>=1.11.3', 'scipy>=0.18.1', 'six>=1.10.0', 'matplotlib>=2.2.4'],
     extras_require = {
-        "mcmc": ['pymc>=2.3.6'],
+        "mcmc": ['emcee>=3.0.0'],
     },
     python_requires='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
     classifiers=[

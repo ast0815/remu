@@ -25,22 +25,10 @@ system::
     $ pip install --upgrade pip
     $ # Install all required packages
     $ pip install -r requirements.txt
-    $ # Install optional packages
-    $ pip install -r pymc-requirements.txt
     $ # Install actual package
     $ pip install -e .
 
 You might need to install additional system libraries to compile all packages.
-For example, to compile PyMC on a Debian system, you need the following
-packages installed::
-
-    libopenblas-base
-    libopenblas-dev
-    liblapack-dev
-    gfortran
-
-PyMC is an optional dependency. It is only needed if one actually wants to do
-any Marcov Chain Monte Carlo calculations.
 
 ReMU requires Python 2.7 or >=3.4.
 
