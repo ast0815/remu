@@ -95,10 +95,15 @@ events. This can lead to very asymmetric response matrices:
 ReMU provides :class:`.Binning` classes to define the truth and reco binning::
 
     with open("reco-binning.yml", 'r') as f:
-        reco_binning = binning.yaml.load(f)
+        reco_binning = binning.yaml.full_load(f)
 
     reco_binning.fill_from_csv_file("real_data.txt")
-    reco_binning.plot_values("real_data.png", variables=(None, None))
+
+It also provides methods to plot the content of the bins::
+
+    pltr = plotting.get_plotter(reco_binning)
+    pltr.plot_values()
+    pltr.savefig("modelA_data.png")
 
 .. image:: ../examples/00/real_data.png
 
@@ -107,12 +112,13 @@ method to populate the response matrix is by filling it event by event from a
 CSV file with the reconstructed and true properties of the events::
 
     with open("reco-binning.yml", 'rt') as f:
-        reco_binning = binning.yaml.load(f)
-    with open("truth-binning.yml", 'rt') as f:
-        truth_binning = binning.yaml.load(f)
+        reco_binning = binning.yaml.full_load(f)
+    with open("coarse-truth-binning.yml", 'rt') as f:
+        truth_binning = binning.yaml.full_load(f)
 
-    resp = migration.ResponseMatrix(reco_binning, truth_binning)
-    resp.fill_from_csv_file("model_data.txt")
+    respA = migration.ResponseMatrix(reco_binning, truth_binning)
+
+    respA.fill_from_csv_file("../00/modelA_data.txt")
 
 See :ref:`example00` and :ref:`example01` for details.
 
@@ -168,53 +174,51 @@ toy likelihoods yields the overall likelihood of the tested model:
 .. image:: systematics.svg
 
 ReMU handles all of this in the background in the provided
-:class:`.LikelihoodMachine` class. Its instances are created with the measured
-data and the toy response matrices provided by the detector experts. The user
-then only has to provide a model to be tested and it will return the total
-likelihood including all detector effects::
+:class:`.LikelihoodCalculator` class. Its instances are created with the
+measured data and the toy response matrices provided by the detector experts.
+The user then only has to provide a model to be tested and it will return the
+total likelihood including all detector effects::
 
-    lm = likelihood.LikelihoodMachine(data, response_matrix)
-    lm.log_likelihood(model)
+    data_model = likelihood.PoissonData(data)
+    matrix_predictor = likelihood.ResponseMatrixPredictor(response_matrix)
+    calc = likelihood.LikelihoodCalculator(data_model, matrix_predictor)
+
+    log_likelihood = calc(model)
 
 See :ref:`example02` and :ref:`example03` for details.
 
 Frequentist analyses
 ====================
 
-ReMU offers a couple of methods and classed to help with the statistical
+ReMU offers a couple of methods and classes to help with the statistical
 analysis and interpretation of the likelihood information obtained as described
 above. For example, the likelihood is only well defined if the model has no
 free parameters and all expectation values in truth space are known/predicted.
 
-To deal with models that are not fully constrained, ReMU offers the
-:class:`.CompositeHypothesis` class. Its job is to translate arrays of
-parameter values to truth expectation values, which can then be used to
-calculate likelihoods. ReMU can also be used to find the maximum likelihood
-point in the parameter space of a :class:`.CompositeHypothesis`::
+To deal with models that are not fully constrained, ReMU offers the option to
+compose (or "chain") :class:`.Predictor` objects. This way it is possible to
+create likelihood calculators that accept arbitrary model parameters, for
+example template weights::
 
-    model_shape = likelihood.TemplateHypothesis([model])
-    lm.max_log_likelihood(model_shape)
+    modelA_shape = likelihood.TemplatePredictor([modelA])
+    modelA_reco_shape = matrix_predictor.compose(modelA_shape)
+    calcA = likelihood.LikelihoodCalculator(data_model, modelA_reco_shape)
 
-A :class:`.TemplateHypothesis` is a special case of
-:class:`.CompositeHypothesis`. It is defined by one or more templates which
-then get scaled by the parameters of the hypothesis.
+    log_likelihood = calcA(template_weight)
 
-ReMU also offers methods to compute p-values based on the expected likelihood
-values of a model, the maximised likelihood of a :class:`.CompositeHypothesis`,
-or the expected ratio of maximised likelihoods of two
-:class:`.CompositeHypothesis`::
+To actually do hypothesis tests, ReMU provides the :class:`.HypothesisTester`
+class::
 
-    lm.likelihood_p_value(model)
-    lm.max_likelihood_p_value(model_shape)
-    lm.max_likelihood_ratio_p_value(compositeA, compositeB)
+    testA = likelihood.HypothesisTester(calcA)
+    testA.likelihood_p_value(template_weight)
+    testA.max_likelihood_p_value()
+    testA.max_likelihood_ratio_p_value(template_weight)
 
 Likelihood ratio p-values are especially useful to construct confidence
-intervals for parameters of a :class:`.CompositeHypothesis`, when combined with
-the method to fix parameters::
+intervals for parameters of a model::
 
     for v in values:
-        fixed_model = model_shape.fix_parameters((v,))
-        p = lm.max_likelihood_ratio_p_value(fixed_model, model_shape)
+        p = testA.max_likelihood_ratio_p_value([v])
         p_values.append(p)
 
 If multiple models share a parameter, this can be used to easily compare
@@ -233,35 +237,37 @@ ReMU also offers methods for Bayesian analyses, especially to do a
 Markov Chain Monte Carlo (MCMC) sampling of the posterior probability
 distribution of hypothesis parameters::
 
-    mcmcA = lm.mcmc(modelA_shape)
-    mcmcA.sample(iter=1000*10, burn=100, thin=10)
-    pymc.Matplot.plot(mcmcA)
+    samplerA = likelihood_utils.emcee_sampler(calcA)
+    guessA = likelihood_utils.emcee_initial_guess(calcA)
 
-.. image:: ../examples/04/template_weight_A.png
+    state = samplerA.run_mcmc(guessA, 200*50)
+    chain = samplerA.get_chain(flat=True)
+
+    fig, ax = plt.subplots()
+    ax.hist(chain[:,0])
+    ax.set_xlabel("model A weight")
+    fig.savefig("burn_long.png")
+
+.. image:: ../examples/04/burn_long.png
 
 This can easily handle many free parameters at once::
 
-    mixed_model = likelihood.TemplateHypothesis([modelA, modelB])
+    combined = likelihood.TemplatePredictor([modelA, modelB])
+    calcC = calc.compose(combined)
 
-    mcmc = lm.mcmc(mixed_model)
-    mcmc.sample(iter=250000, burn=10000, tune_throughout=True, thin=250)
-    pymc.Matplot.plot(mcmc, suffix='_mixed')
+    samplerC = likelihood_utils.emcee_sampler(calcC)
+    guessC = likelihood_utils.emcee_initial_guess(calcC)
 
-.. image:: ../examples/04/weights_1_mixed.png
+    state = samplerC.run_mcmc(guessC, 200*50)
+    chain = samplerC.get_chain(flat=True)
 
-The full trace of the MCMC sampling is available and can be used to plot
-2D histograms of the posterior::
+    fig, ax = plt.subplots()
+    ax.hist2d(chain[:,0], chain[:,1])
+    ax.set_xlabel("model A weight")
+    ax.set_ylabel("model B weight")
+    fig.savefig("combined.png")
 
-    weights = mcmc.trace('weights')[:]
-    pyplot.hist2d(weights[:,0],weights[:,1], bins=20)
-
-.. image:: ../examples/04/posterior.png
-
-Or do calculations, like sums of parameters::
-
-    ax.hist(weights.sum(axis=1), bins=20)
-
-.. image:: ../examples/04/sum_posterior.png
+.. image:: ../examples/04/combined.png
 
 See :ref:`example04` for details.
 
@@ -271,9 +277,9 @@ Backgrounds
 Real experiments have to deal not only with the loss of events (efficiency) and
 the slight mis-reconstruction of event properties (smearing), but also with the
 erroneous inclusion of events in the data that are not actually part of the
-signal definition (background). ReMU is able to handle these events organically.
-For this, the response matrix must simply provide a set of truth bins that correspond
-to the background events:
+signal definition (background). ReMU is able to handle these events
+organically. For this, the response matrix must simply provide a set of truth
+bins that correspond to the background events:
 
 .. image:: folded-BG.svg
 
@@ -289,8 +295,8 @@ detector experts can provide one or many background templates that describe the
 background's shape and/or strength in truth space. These can then be added to
 the signal predictions as is, or as part of a simultaneous fit::
 
-    templates = likelihood.TemplateHypothesis([model, background_template])
-    lm.max_log_likelihood(templates)
+    combined = likelihood.TemplatePredictor([modelA, modelB, background])
+    calcC = calc.compose(combined)
 
 For background that is detector specific and does not depend (much) on
 (interesting) physics-model parameters, the background templates could also be
