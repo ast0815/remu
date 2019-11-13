@@ -26,11 +26,11 @@ information. Of course, this file is also  the result of simulations, but since
 it is supposed to represent the real results of a real experiment, no truth
 information is saved.
 
-Create "real" data corresponding to one year of running the experiment::
+Create "real" data corresponding to ten years of running the experiment::
 
     $ ../simple_experiment/run_experiment.py 10 real_data.txt
 
-Create simulated data corresponding to 10 times the real data::
+Create simulated data corresponding to ten times the real data::
 
     $ ../simple_experiment/simulate_experiment.py 100 modelA modelA_data.txt modelA_truth.txt
     $ ../simple_experiment/simulate_experiment.py 100 modelB modelB_data.txt modelB_truth.txt
@@ -66,9 +66,9 @@ distributions::
 
     reco_binning.fill_from_csv_file("real_data.txt")
 
-    plt = plotting.get_plotter(reco_binning)
-    plt.plot_values()
-    plt.savefig("real_data.png")
+    pltr = plotting.get_plotter(reco_binning)
+    pltr.plot_values()
+    pltr.savefig("real_data.png")
 
 .. image:: real_data.png
 
@@ -77,9 +77,9 @@ distributions::
     reco_binning.reset()
     reco_binning.fill_from_csv_file("modelA_data.txt")
 
-    plt = plotting.get_plotter(reco_binning)
-    plt.plot_values()
-    plt.savefig("modelA_data.png")
+    pltr = plotting.get_plotter(reco_binning)
+    pltr.plot_values()
+    pltr.savefig("modelA_data.png")
 
 .. image:: modelA_data.png
 
@@ -88,9 +88,9 @@ distributions::
     reco_binning.reset()
     reco_binning.fill_from_csv_file("modelB_data.txt")
 
-    plt = plotting.get_plotter(reco_binning)
-    plt.plot_values()
-    plt.savefig("modelB_data.png")
+    pltr = plotting.get_plotter(reco_binning)
+    pltr.plot_values()
+    pltr.savefig("modelB_data.png")
 
 .. image:: modelB_data.png
 
@@ -104,18 +104,18 @@ The :class:`.RectilinearBinningPlotter` supports the ``scatter`` parameter,
 which makes it draw pseudo scatter plots instead of 2D histograms. This is
 useful to compare multiple distributions in the same plot::
 
-    plt = plotting.get_plotter(reco_binning)
+    pltr = plotting.get_plotter(reco_binning)
     reco_binning.reset()
     reco_binning.fill_from_csv_file("real_data.txt")
-    plt.plot_values(label="data", scatter=500)
+    pltr.plot_values(label="data", scatter=500)
     reco_binning.reset()
     reco_binning.fill_from_csv_file("modelA_data.txt")
-    plt.plot_values(label="model A", scatter=500)
+    pltr.plot_values(label="model A", scatter=500)
     reco_binning.reset()
     reco_binning.fill_from_csv_file("modelB_data.txt")
-    plt.plot_values(label="model B", scatter=500)
-    plt.legend()
-    plt.savefig("compare_data.png")
+    pltr.plot_values(label="model B", scatter=500)
+    pltr.legend()
+    pltr.savefig("compare_data.png")
 
 .. image:: compare_data.png
 
@@ -127,9 +127,9 @@ We can do the same with the true information and its respective binning in
 
     truth_binning.fill_from_csv_file("modelA_truth.txt")
 
-    plt = plotting.get_plotter(truth_binning)
-    plt.plot_values()
-    plt.savefig("modelA_truth.png")
+    pltr = plotting.get_plotter(truth_binning)
+    pltr.plot_values()
+    pltr.savefig("modelA_truth.png")
 
 .. image:: modelA_truth.png
 
@@ -138,22 +138,22 @@ We can do the same with the true information and its respective binning in
     truth_binning.reset()
     truth_binning.fill_from_csv_file("modelB_truth.txt")
 
-    plt = plotting.get_plotter(truth_binning)
-    plt.plot_values()
-    plt.savefig("modelB_truth.png")
+    pltr = plotting.get_plotter(truth_binning)
+    pltr.plot_values()
+    pltr.savefig("modelB_truth.png")
 
 .. image:: modelB_truth.png
 
 ::
 
-    plt = plotting.get_plotter(truth_binning)
+    pltr = plotting.get_plotter(truth_binning)
     truth_binning.reset()
     truth_binning.fill_from_csv_file("modelA_truth.txt")
-    plt.plot_values(label="model A", scatter=500)
+    pltr.plot_values(label="model A", scatter=500)
     truth_binning.reset()
     truth_binning.fill_from_csv_file("modelB_truth.txt")
-    plt.plot_values(label="model B", scatter=500)
-    plt.legend()
-    plt.savefig("compare_truth.png")
+    pltr.plot_values(label="model B", scatter=500)
+    pltr.legend()
+    pltr.savefig("compare_truth.png")
 
 .. image:: compare_truth.png

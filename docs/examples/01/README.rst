@@ -37,7 +37,8 @@ response matrix object is created using the respective binning objects::
 
     respA = migration.ResponseMatrix(reco_binning, truth_binning)
 
-This object provides methods to populate it with simulated events::
+This :class:`.ResponseMatrix` object provides methods to populate it with
+simulated events::
 
     respA.fill_from_csv_file("../00/modelA_data.txt")
 
@@ -50,9 +51,9 @@ objects have a method to "top up" only the truth distributions::
 This will not affect the reconstructed distributions. It is assumed that the
 reconstructed events are a subset of the truth events.
 
-We can now take a look at the matrix using its various plotting methods. The
-mean migration matrix (ignoring statistical uncertainties) can be plotted like
-this::
+We can now take a look at the matrix using the various plotting methods in the
+:mod:`.matrix_utils` and :mod:`.plotting` modules. The mean migration matrix
+(ignoring statistical uncertainties) can be plotted like this::
 
     matrix_utils.plot_mean_response_matrix(respA, "response_matrix_A.png")
 
@@ -65,9 +66,9 @@ the prior assumption of the response matrix. Before adding any actual events,
 all efficiencies are considered to be equally likely and the mean of that flat
 prior is 0.5. The low and high bins indeed have only very few events in them::
 
-    plt = plotting.get_plotter(respA.truth_binning)
-    plt.plot_entries()
-    plt.savefig("entries_A.png")
+    pltr = plotting.get_plotter(respA.truth_binning)
+    pltr.plot_entries()
+    pltr.savefig("entries_A.png")
 
 .. image:: entries_A.png
 
@@ -75,18 +76,18 @@ Note that the y-axis of this plot shows the *density* of events, i.e. the
 number of events in the bin divided by the relative bin width. This behaviour
 can be switched off with the ``density`` argument::
 
-    plt = plotting.get_plotter(respA.truth_binning)
-    plt.plot_entries(density=False, hatch=None)
-    plt.savefig("abs_entries_A.png")
+    pltr = plotting.get_plotter(respA.truth_binning)
+    pltr.plot_entries(density=False, hatch=None)
+    pltr.savefig("abs_entries_A.png")
 
 .. image:: abs_entries_A.png
 
 The efficiency of this matrix looks reasonably flat (within the statistical
-fluctuations), and this would seem to make sense, since the efficiency of the
-example experiment does not depend on ``x``. This is misleading though since
-the plot implicitly integrates over ``y`` and its influence on the efficiency.
-This can be seen when repeating the previous steps with a different model
-("model B")::
+fluctuations). This would seem to make sense, since the efficiency of the
+example experiment does not depend on ``x``. In fact, this is misleading
+though, since the plot implicitly integrates over ``y`` and its influence on
+the efficiency. This can be seen when repeating the previous steps with a
+different model ("model B")::
 
     reco_binning = reco_binning.clone()
     truth_binning = truth_binning.clone()
@@ -118,15 +119,15 @@ The differences are much larger than would be expected from purely statistical
 fluctuations. This is also reflected in the overall distance between the
 matrices, which can be used to define a compatibility score::
 
-    respA.plot_compatibility("compatibility.png", respB)
+    matrix_utils.plot_compatibility(respA, respB, "compatibility.png")
 
 .. image:: compatibility.png
 
 The plot shows the expected distributions of distances according to the
 statistical uncertainties, if the matrices were describing identical responses.
-The vertical line shows the actual distance. The compatibility is defined as
-the fraction of matrices in the distributions that have a larger distance than
-the actually measured one.
+The vertical line shows the actual distance. The compatibility ``C`` is defined
+as the fraction of matrices in the distributions that have a larger distance
+than the actually measured one.
 
 It is obvious that the chosen binning is not sufficient to ensure a
 model-independent response matrix. We clearly need to bin the truth also in
@@ -160,9 +161,9 @@ So let us re-do the previous steps with a finer truth-binning, also taking
 The correlation between ``x`` and ``y`` is now apparent in the plot of events
 in the truth binning of response matrix B::
 
-    plt = plotting.get_plotter(respB.truth_binning)
-    plt.plot_entries()
-    plt.savefig("fine_entries_B.png")
+    pltr = plotting.get_plotter(respB.truth_binning)
+    pltr.plot_entries()
+    pltr.savefig("fine_entries_B.png")
 
 .. image:: fine_entries_B.png
 
@@ -174,8 +175,8 @@ a bit unwieldy::
 .. image:: fine_response_matrix_A.png
 
 To get a better idea of how the mean efficiencies vary over the different truth
-variables, we can plot the projected minimum, maximum, and median
-efficiencies::
+variables, we can plot the projected minimum, maximum, and median of the mean
+(i.e. ignoring statistical uncertainties) efficiencies::
 
     matrix_utils.plot_mean_efficiency(respA, "fine_efficiency_A.png")
 
@@ -244,9 +245,9 @@ In this case, the in-bin variation is of the same order as the statistical uncer
 The combined matrix still has lots of bins with very low statistics at the
 edges::
 
-    plt = plotting.get_plotter(resp.truth_binning)
-    plt.plot_entries()
-    plt.savefig("fine_entries.png")
+    pltr = plotting.get_plotter(resp.truth_binning)
+    pltr.plot_entries()
+    pltr.savefig("fine_entries.png")
 
 .. image:: fine_entries.png
 
@@ -265,21 +266,21 @@ This will keep removing bin edges of the bins with the lowest number of events
 until the required minimum is reached. The result is a matrix with at least 10
 events in every single truth bin::
 
-    plt = plotting.get_plotter(optimised.truth_binning)
-    plt.plot_entries()
-    plt.savefig("optimised_entries.png")
+    pltr = plotting.get_plotter(optimised.truth_binning)
+    pltr.plot_entries()
+    pltr.savefig("optimised_entries.png")
 
 .. image:: optimised_entries.png
 
 To see how the bins compare, it is useful to plot the entries without an area
 normalization::
 
-    plt = plotting.get_plotter(optimised.truth_binning)
-    plt.plot_entries(density=False, label="min", hatch=None, margin_function=np.min)
-    plt.plot_entries(density=False, label="max", hatch=None, margin_function=np.max)
-    plt.plot_entries(density=False, label="median", hatch=None, margin_function=np.median)
-    plt.legend()
-    plt.savefig("optimised_abs_entries.png")
+    pltr = plotting.get_plotter(optimised.truth_binning)
+    pltr.plot_entries(density=False, label="min", hatch=None, margin_function=np.min)
+    pltr.plot_entries(density=False, label="max", hatch=None, margin_function=np.max)
+    pltr.plot_entries(density=False, label="median", hatch=None, margin_function=np.median)
+    pltr.legend()
+    pltr.savefig("optimised_abs_entries.png")
 
 .. image:: optimised_abs_entries.png
 

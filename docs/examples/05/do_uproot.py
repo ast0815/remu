@@ -1,9 +1,9 @@
 from six import print_
 from remu import binning
+from remu import plotting
 import numpy as np
 import pandas as pd
 pd.set_option('display.max_rows', 10)
-import uproot
 
 px = np.random.randn(1000)*20
 py = np.random.randn(1000)*20
@@ -12,11 +12,16 @@ df = pd.DataFrame({'px': px, 'py': py, 'pz': pz})
 with open("df.txt", 'w') as f:
     print_(df, file=f)
 
-with open("muon-binning.yml", 'rt') as f:
-    muon_binning = binning.yaml.load(f)
+with open("muon-binning.yml", 'r') as f:
+    muon_binning = binning.yaml.full_load(f)
 
 muon_binning.fill(df)
-muon_binning.plot_values("pandas.png", variables=(None,None))
+
+pltr = plotting.get_plotter(muon_binning, ['py','pz'], ['px'])
+pltr.plot_values()
+pltr.savefig("pandas.png")
+
+import uproot
 
 flat_tree = uproot.open("Zmumu.root")['events']
 with open("flat_keys.txt", 'w') as f:
@@ -28,7 +33,10 @@ with open("flat_df.txt", 'w') as f:
 
 muon_binning.reset()
 muon_binning.fill(df, rename={'px1': 'px', 'py1': 'py', 'pz1': 'pz'})
-muon_binning.plot_values("flat_muons.png", variables=(None,None))
+
+pltr = plotting.get_plotter(muon_binning, ['py','pz'], ['px'])
+pltr.plot_values()
+pltr.savefig("flat_muons.png")
 
 structured_tree = uproot.open("HZZ.root")['events']
 with open("structured_keys.txt", 'w') as f:
@@ -48,4 +56,7 @@ with open("sliced_df.txt", 'w') as f:
 
 muon_binning.reset()
 muon_binning.fill(df, rename={'Muon_Px': 'px', 'Muon_Py': 'py', 'Muon_Pz': 'pz'})
-muon_binning.plot_values("sliced_muons.png", variables=(None,None))
+
+pltr = plotting.get_plotter(muon_binning, ['py','pz'], ['px'])
+pltr.plot_values()
+pltr.savefig("sliced_muons.png")

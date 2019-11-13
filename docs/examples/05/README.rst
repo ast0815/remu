@@ -24,6 +24,7 @@ structured data::
 
     from six import print_
     from remu import binning
+    from remu import plotting
     import numpy as np
     import pandas as pd
     pd.set_option('display.max_rows', 10)
@@ -38,18 +39,22 @@ structured data::
     :literal:
 
 ReMU supports :class:`DataFrame` objects as inputs for all
-:meth:`fill <.Binning.fill>` methods::
+:meth:`fill<.Binning.fill>` methods::
 
-    with open("muon-binning.yml", 'rt') as f:
-        muon_binning = binning.yaml.load(f)
+    with open("muon-binning.yml", 'r') as f:
+        muon_binning = binning.yaml.full_load(f)
 
     muon_binning.fill(df)
-    muon_binning.plot_values("pandas.png", variables=(None,None))
+
+    pltr = plotting.get_plotter(muon_binning, ['py','pz'], ['px'])
+    pltr.plot_values()
+    pltr.savefig("pandas.png")
 
 .. image:: pandas.png
 
 This way, ReMU supports the same input file formats as the pandas library,
 e.g. CSV, JSON, HDF5, SQL, etc..
+
 Using the uproot library, pandas can also be used to load ROOT files:
 
 https://github.com/scikit-hep/uproot
@@ -83,7 +88,10 @@ can convert a flat ROOT :class:`TTree` directly into a usable pandas
 
     muon_binning.reset()
     muon_binning.fill(df, rename={'px1': 'px', 'py1': 'py', 'pz1': 'pz'})
-    muon_binning.plot_values("flat_muons.png", variables=(None,None))
+
+    pltr = plotting.get_plotter(muon_binning, ['py','pz'], ['px'])
+    pltr.plot_values()
+    pltr.savefig("flat_muons.png")
 
 .. image:: flat_muons.png
 
@@ -130,6 +138,9 @@ per row" structure::
 
     muon_binning.reset()
     muon_binning.fill(df, rename={'Muon_Px': 'px', 'Muon_Py': 'py', 'Muon_Pz': 'pz'})
-    muon_binning.plot_values("sliced_muons.png", variables=(None,None))
+
+    pltr = plotting.get_plotter(muon_binning, ['py','pz'], ['px'])
+    pltr.plot_values()
+    pltr.savefig("sliced_muons.png")
 
 .. image:: sliced_muons.png

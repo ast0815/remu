@@ -11,7 +11,7 @@ Aims
 *   Include detector uncertainties in the response matrix by using a
     :class:`.ResponseMatrixArrayBuilder`
 *   Include statistical uncertainties by generating randomly varied matrices
-*   Use array of response matrices in :class:`.LikelihoodMachine`
+*   Use varied response matrices for fits and hypothesis tests
 
 Instructions
 ============
@@ -49,14 +49,12 @@ reconstructed distributions we get from the toy variations:
 
 .. image:: data.png
 
-Here we plot the data with ``sqrt(N)`` "error bars" just to give an indication
-of the expected statistical fluctuations. Also we scaled the model predictions
-by a factor 10, simply because that makes them correspond roughly to the data.
-In this example, the systematic uncertainties seem to be of a similar size to
-the expected statistical variations.
+Here we simply plot one histogram for each toy data set with a low alpha value
+(i.e with high transparency), as well as a solid histogram for the mean values.
+Also we scaled the model predictions by a factor 10, simply because that makes
+"experiment running time" of the model predictions correspond to the data.
 
-We are using a few specific arguments to the ``fill_from_csv_file`` method
-here:
+We are using a few specific arguments to the ``fill_from_csv_file`` method:
 
 ``weightfield``
     Tells the object which field to use as the weight of the events.
@@ -77,16 +75,14 @@ here:
 
 ReMU handles the detector uncertainties by building a response matrix for each
 toy detector separately. These matrices are then used in parallel to calculate
-likelihoods. In the end the marginal (i.e. average) likelihood is used as
-the final answer. Some advanced features of ReMU (like sparse matrices, or
-nuisance bins) require quite a bit of book-keeping to make the toy matrices
-behave consistently and as expected. This is handled by the
+likelihoods. In the end, the marginal (i.e. average) likelihood is used as the
+final answer. Some advanced features of ReMU (like sparse matrices, or nuisance
+bins) require quite a bit of book-keeping to make the toy matrices behave
+consistently and as expected. This is handled by the
 :class:`.ResponseMatrixArrayBuilder`::
 
-    import matplotlib.pyplot as plt
-    from scipy import stats
+    from remu import binning
     from remu import migration
-    from copy import deepcopy
 
     builder = migration.ResponseMatrixArrayBuilder(1)
 
@@ -103,9 +99,9 @@ The toy matrices themselves are built like the nominal matrix in the previous
 examples and then added to the builder::
 
     with open("../01/reco-binning.yml", 'rt') as f:
-        reco_binning = binning.yaml.load(f)
+        reco_binning = binning.yaml.full_load(f)
     with open("../01/optimised-truth-binning.yml", 'rt') as f:
-        truth_binning = binning.yaml.load(f)
+        truth_binning = binning.yaml.full_load(f)
 
     resp = migration.ResponseMatrix(reco_binning, truth_binning)
 
@@ -115,8 +111,9 @@ examples and then added to the builder::
         resp.fill_from_csv_file(["modelA_data.txt", "modelB_data.txt"],
             weightfield='weight_%i'%(i,), rename={'reco_x_%i'%(i,): 'reco_x'},
             buffer_csv_files=True)
-        resp.fill_up_truth_from_csv_file(["../00/modelA_truth.txt",
-            "../00/modelB_truth.txt"], buffer_csv_files=True)
+        resp.fill_up_truth_from_csv_file(
+            ["../00/modelA_truth.txt", "../00/modelB_truth.txt"],
+            buffer_csv_files=True)
         builder.add_matrix(resp)
 
 .. note::
@@ -124,6 +121,15 @@ examples and then added to the builder::
     must be identical! Otherwise it is not possible to fill the toy matrices with
     events from both files. It would mix events reconstructed with different
     detectors.
+
+This might create some warnings like this::
+
+    UserWarning: Filled-up values are less than the original filling in 1 bins. This should not happen!
+      return self._replace_smaller_truth(new_truth_binning)
+
+This occurs when events in a bin with already high efficiency are re-weighted
+to give the impression of an efficiency greater than 100%. If it does not
+happen too often, it can be ignored.
 
 The builder generates the actual array of floating point numbers as soon as the
 :class:`.ResponseMatrix` object is added. It retains no connection to the object
@@ -134,38 +140,43 @@ likelihood fits::
 
     builder.export("response_matrix.npz")
 
-The :class:`.LikelihoodMachine` is created just like in the previous example::
+The :class:`.LikelihoodCalculator` is created just like in the previous example::
 
     from six import print_
+    import numpy as np
     from matplotlib import pyplot as plt
+    from remu import binning
+    from remu import plotting
     from remu import likelihood
+    from multiprocess import Pool
+    pool = Pool(8)
+    likelihood.mapper = pool.map
 
     with open("../01/reco-binning.yml", 'rt') as f:
-        reco_binning = binning.yaml.load(f)
+        reco_binning = binning.yaml.full_load(f)
     with open("../01/optimised-truth-binning.yml", 'rt') as f:
-        truth_binning = binning.yaml.load(f)
+        truth_binning = binning.yaml.full_load(f)
 
     reco_binning.fill_from_csv_file("../00/real_data.txt")
     data = reco_binning.get_entries_as_ndarray()
+    data_model = likelihood.PoissonData(data)
 
-    # No systematics LikelihoodMachine
+    # No systematics LikelihoodCalculator
     response_matrix = "../01/response_matrix.npz"
-    lm = likelihood.LikelihoodMachine(data, response_matrix, limit_method='prohibit')
+    matrix_predictor = likelihood.ResponseMatrixPredictor(response_matrix)
+    calc = likelihood.LikelihoodCalculator(data_model, matrix_predictor)
 
-    # Systematics LikelihoodMachine
+    # Systematics LikelihoodCalculator
     response_matrix_syst = "response_matrix.npz"
-    lm_syst = likelihood.LikelihoodMachine(data, response_matrix_syst, limit_method='prohibit')
+    matrix_predictor_syst = likelihood.ResponseMatrixPredictor(response_matrix_syst)
+    calc_syst = likelihood.LikelihoodCalculator(data_model, matrix_predictor_syst)
 
 To show the influence of the systematic uncertainties, we create two
-:class:`.LikelihoodMachine` objects here. One with the average detector
-response and one with the set of systematically varied responses. The set of
-response matrices is saved as an ``A x B x X x Y`` shaped NumPy array, with the
-number of systematic toy variations ``A``, the number of randomly drawn
-matrices per toy ``B``, the number of reco bins ``X``, and the number of truth
-bins ``Y``. To make handling the matrices easier, we reshape the matrices to an
-``N x X x Y`` shaped array here.
+:class:`.LikelihoodCalculator` objects here. One with the non-varied detector
+response and one with the set of systematically varied responses.
 
-Now we can test some models against the data, just like in the previous example::
+Now we can test some models against the data, just like in the previous
+example::
 
     truth_binning.fill_from_csv_file("../00/modelA_truth.txt")
     modelA = truth_binning.get_values_as_ndarray()
@@ -174,9 +185,11 @@ Now we can test some models against the data, just like in the previous example:
     truth_binning.fill_from_csv_file("../00/modelB_truth.txt")
     modelB = truth_binning.get_values_as_ndarray()
     modelB /= np.sum(modelB)
+    maxi = likelihood.BasinHoppingMaximizer()
 
-    modelA_shape = likelihood.TemplateHypothesis([modelA])
-    retA = lm.max_log_likelihood(modelA_shape)
+    modelA_shape = likelihood.TemplatePredictor([modelA])
+    calcA = calc.compose(modelA_shape)
+    retA = maxi(calcA)
     print_(retA)
 
 .. include:: modelA_fit.txt
@@ -184,7 +197,8 @@ Now we can test some models against the data, just like in the previous example:
 
 ::
 
-    retA_syst = lm_syst.max_log_likelihood(modelA_shape)
+    calcA_syst = calc_syst.compose(modelA_shape)
+    retA_syst = maxi(calcA_syst)
     print_(retA_syst)
 
 .. include:: modelA_fit_syst.txt
@@ -192,8 +206,9 @@ Now we can test some models against the data, just like in the previous example:
 
 ::
 
-    modelB_shape = likelihood.TemplateHypothesis([modelB])
-    retB = lm.max_log_likelihood(modelB_shape)
+    modelB_shape = likelihood.TemplatePredictor([modelB])
+    calcB = calc.compose(modelB_shape)
+    retB = maxi(calcB)
     print_(retB)
 
 .. include:: modelB_fit.txt
@@ -201,55 +216,63 @@ Now we can test some models against the data, just like in the previous example:
 
 ::
 
-    retB_syst = lm_syst.max_log_likelihood(modelB_shape)
+    calcB_syst = calc_syst.compose(modelB_shape)
+    retB_syst = maxi(calcB_syst)
     print_(retB_syst)
 
 .. include:: modelB_fit_syst.txt
     :literal:
 
 Let us take another look at how the fitted templates and the data compare in
-reco space. This time we are going to use `ReMU`'s built in function to plot a
+reco space. This time we are going to use `ReMU`'s built in functions to plot a
 set of bin contents, i.e. the set of model predictions varied by the detector
-systematics. It will plot the mean and average value of projections of
-binnings, when given a set of bin contents rather than a single one::
+systematics::
 
-    figax = reco_binning.plot_values(None, kwargs1d={'color': 'k', 'label': 'data'}, sqrt_errors=True)
-    modelA_reco = lm.fold(modelA_shape.translate(retA.x))
-    modelB_reco = lm.fold(modelB_shape.translate(retB.x))
-    modelA_reco_syst = lm_syst.fold(modelA_shape.translate(retA_syst.x))
-    modelB_reco_syst = lm_syst.fold(modelB_shape.translate(retB_syst.x))
-    reco_binning.plot_ndarray(None, modelA_reco,
-        kwargs1d={'color': 'b', 'label': 'model A'}, figax=figax)
-    reco_binning.plot_ndarray(None, modelA_reco_syst,
-        kwargs1d={'color': 'b', 'label': 'model A syst', 'hatch': '\\\\', 'facecolor': 'none'},
-        error_band='step', figax=figax)
-    reco_binning.plot_ndarray(None, modelB_reco,
-        kwargs1d={'color': 'r', 'label': 'model B'}, figax=figax)
-    reco_binning.plot_ndarray("reco-comparison.png", modelB_reco_syst,
-        kwargs1d={'color': 'r', 'label': 'model B syst', 'hatch': '//', 'facecolor': 'none'},
-        error_band='step', figax=figax)
+    pltr = plotting.get_plotter(reco_binning)
+    pltr.plot_values(edgecolor='C0', label='data', hatch=None, linewidth=2.)
+    modelA_reco, modelA_weights = calcA.predictor(retA.x)
+    modelB_reco, modelB_weights = calcB.predictor(retB.x)
+    modelA_syst_reco, modelA_syst_weights = calcA_syst.predictor(retA.x)
+    modelB_syst_reco, modelB_syst_weights = calcB_syst.predictor(retB.x)
+    pltr.plot_array(modelA_reco, label='model A', edgecolor='C1', hatch=None)
+    pltr.plot_array(modelA_syst_reco, label='model A syst', edgecolor='C1',
+        hatch=r'//', stack_function=0.68)
+    pltr.plot_array(modelB_reco, label='model B', edgecolor='C2', hatch=None)
+    pltr.plot_array(modelB_syst_reco, label='model B syst', edgecolor='C2',
+        hatch=r'\\', stack_function=0.68)
+    pltr.legend()
+    pltr.savefig('reco-comparison.png')
 
 .. image:: reco-comparison.png
+
+The ``modelX_syst_reco`` arrays now contain 100 different predictions,
+corresponding to the 100 detector variations. The parameter ``stac_function ==
+0.68`` tells the plotter to draw the area of the central 68% of the range of
+predictions.
 
 And of course we can compare the p-values of the two fitted models assuming the
 nominal detector response::
 
-    print_(lm.max_likelihood_p_value(modelA_shape, nproc=4))
-    print_(lm.max_likelihood_p_value(modelB_shape, nproc=4))
+    testA = likelihood.HypothesisTester(calcA)
+    testB = likelihood.HypothesisTester(calcB)
+    print_(testA.max_likelihood_p_value())
+    print_(testB.max_likelihood_p_value())
 
 .. include:: fit_p-values.txt
     :literal:
 
-With the p-values yielded when taking the systematic uncertainties into account::
+As well as the p-values yielded when taking the systematic uncertainties into account::
 
-    print_(lm_syst.max_likelihood_p_value(modelA_shape, nproc=4))
-    print_(lm_syst.max_likelihood_p_value(modelB_shape, nproc=4))
+    testA_syst = likelihood.HypothesisTester(calcA_syst)
+    testB_syst = likelihood.HypothesisTester(calcB_syst)
+    print_(testA_syst.max_likelihood_p_value())
+    print_(testB_syst.max_likelihood_p_value())
 
 .. include:: fit_p-values_syst.txt
     :literal:
 
 We can construct confidence intervals on the template weights of the models
-using the maximum likelihood p-value::
+using the maximum likelihood p-value just like before::
 
     p_values_A = []
     p_values_B = []
@@ -257,12 +280,10 @@ using the maximum likelihood p-value::
     p_values_B_syst = []
     values = np.linspace(600, 1600, 21)
     for v in values:
-        fixed_model_A = modelA_shape.fix_parameters((v,))
-        fixed_model_B = modelB_shape.fix_parameters((v,))
-        A = lm.max_likelihood_p_value(fixed_model_A, nproc=4)
-        A_syst = lm_syst.max_likelihood_p_value(fixed_model_A, nproc=4)
-        B = lm.max_likelihood_p_value(fixed_model_B, nproc=4)
-        B_syst = lm_syst.max_likelihood_p_value(fixed_model_B, nproc=4)
+        A = testA.max_likelihood_p_value([v])
+        A_syst = testA_syst.max_likelihood_p_value([v])
+        B = testB.max_likelihood_p_value([v])
+        B_syst = testB_syst.max_likelihood_p_value([v])
         print_(v, A, A_syst, B, B_syst)
         p_values_A.append(A)
         p_values_B.append(B)
@@ -272,16 +293,14 @@ using the maximum likelihood p-value::
     fig, ax = plt.subplots()
     ax.set_xlabel("Model weight")
     ax.set_ylabel("p-value")
-    ax.plot(values, p_values_A, label="Model A", color='b', linestyle='dotted')
-    ax.plot(values, p_values_A_syst, label="Model A syst", color='b',
-        linestyle='solid')
-    ax.plot(values, p_values_B, label="Model B", color='r', linestyle='dotted')
-    ax.plot(values, p_values_B_syst, label="Model B syst", color='r',
-        linestyle='solid')
-    ax.axvline(retA.x[0], color='b', linestyle='dotted')
-    ax.axvline(retA_syst.x[0], color='b', linestyle='solid')
-    ax.axvline(retB.x[0], color='r', linestyle='dotted')
-    ax.axvline(retB_syst.x[0], color='r', linestyle='solid')
+    ax.plot(values, p_values_A, label="Model A", color='C1', linestyle='dotted')
+    ax.plot(values, p_values_A_syst, label="Model A syst", color='C1', linestyle='solid')
+    ax.plot(values, p_values_B, label="Model B", color='C2', linestyle='dotted')
+    ax.plot(values, p_values_B_syst, label="Model B syst", color='C2', linestyle='solid')
+    ax.axvline(retA.x[0], color='C1', linestyle='dotted')
+    ax.axvline(retA_syst.x[0], color='C1', linestyle='solid')
+    ax.axvline(retB.x[0], color='C2', linestyle='dotted')
+    ax.axvline(retB_syst.x[0], color='C2', linestyle='solid')
     ax.axhline(0.32, color='k', linestyle='dashed')
     ax.axhline(0.05, color='k', linestyle='dashed')
     ax.legend(loc='best')
@@ -289,9 +308,8 @@ using the maximum likelihood p-value::
 
 .. image:: p-values.png
 
-The "fixed" models have no free parameters here, making them degenerate
-:class:`.CompositeHypothesis`, equivalent to simple hypotheses. This means
-using the :meth:`.max_likelihood_p_value` is equivalent to testing the
+The "fixed" models have no free parameters here, making them degenerate. This
+means using the :meth:`.max_likelihood_p_value` is equivalent to testing the
 corresponding simple hypotheses using the :meth:`.likelihood_p_value`. No
 actual maximisation is taking place. Note that the p-values for model A are
 generally smaller than those for model B. This is consistent with previous
@@ -306,16 +324,10 @@ Finally, let us construct confidence intervals of the template weights,
     p_values_B_syst = []
     values = np.linspace(600, 1600, 21)
     for v in values:
-        fixed_model_A = modelA_shape.fix_parameters((v,))
-        fixed_model_B = modelB_shape.fix_parameters((v,))
-        A = lm.max_likelihood_ratio_p_value(fixed_model_A, modelA_shape,
-            nproc=4)
-        A_syst = lm_syst.max_likelihood_ratio_p_value(fixed_model_A,
-            modelA_shape, nproc=4)
-        B = lm.max_likelihood_ratio_p_value(fixed_model_B, modelB_shape,
-            nproc=4)
-        B_syst = lm_syst.max_likelihood_ratio_p_value(fixed_model_B,
-            modelB_shape, nproc=4)
+        A = testA.max_likelihood_ratio_p_value([v])
+        A_syst = testA_syst.max_likelihood_ratio_p_value([v])
+        B = testB.max_likelihood_ratio_p_value([v])
+        B_syst = testB_syst.max_likelihood_ratio_p_value([v])
         print_(v, A, A_syst, B, B_syst)
         p_values_A.append(A)
         p_values_B.append(B)
@@ -326,10 +338,8 @@ Finally, let us construct confidence intervals of the template weights,
     p_values_B_wilks = []
     fine_values = np.linspace(600, 1600, 100)
     for v in fine_values:
-        fixed_model_A = modelA_shape.fix_parameters((v,))
-        fixed_model_B = modelB_shape.fix_parameters((v,))
-        A = lm_syst.wilks_max_likelihood_ratio_p_value(fixed_model_A, modelA_shape)
-        B = lm_syst.wilks_max_likelihood_ratio_p_value(fixed_model_B, modelB_shape)
+        A = testA_syst.wilks_max_likelihood_ratio_p_value([v])
+        B = testB_syst.wilks_max_likelihood_ratio_p_value([v])
         print_(v, A, B)
         p_values_A_wilks.append(A)
         p_values_B_wilks.append(B)
@@ -337,20 +347,16 @@ Finally, let us construct confidence intervals of the template weights,
     fig, ax = plt.subplots()
     ax.set_xlabel("Model weight")
     ax.set_ylabel("p-value")
-    ax.plot(values, p_values_A, label="Model A", color='b', linestyle='dotted')
-    ax.plot(values, p_values_A_syst, label="Model A syst", color='b',
-        linestyle='solid')
-    ax.plot(fine_values, p_values_A_wilks, label="Model A Wilks", color='b',
-        linestyle='dashed')
-    ax.plot(values, p_values_B, label="Model B", color='r', linestyle='dotted')
-    ax.plot(values, p_values_B_syst, label="Model B syst", color='r',
-        linestyle='solid')
-    ax.plot(fine_values, p_values_B_wilks, label="Model B Wilks", color='r',
-        linestyle='dashed')
-    ax.axvline(retA.x[0], color='b', linestyle='dotted')
-    ax.axvline(retA_syst.x[0], color='b', linestyle='solid')
-    ax.axvline(retB.x[0], color='r', linestyle='dotted')
-    ax.axvline(retB_syst.x[0], color='r', linestyle='solid')
+    ax.plot(values, p_values_A, label="Model A", color='C1', linestyle='dotted')
+    ax.plot(values, p_values_A_syst, label="Model A syst", color='C1', linestyle='solid')
+    ax.plot(fine_values, p_values_A_wilks, label="Model A Wilks", color='C1', linestyle='dashed')
+    ax.plot(values, p_values_B, label="Model B", color='C2', linestyle='dotted')
+    ax.plot(values, p_values_B_syst, label="Model B syst", color='C2', linestyle='solid')
+    ax.plot(fine_values, p_values_B_wilks, label="Model B Wilks", color='C2', linestyle='dashed')
+    ax.axvline(retA.x[0], color='C1', linestyle='dotted')
+    ax.axvline(retA_syst.x[0], color='C1', linestyle='solid')
+    ax.axvline(retB.x[0], color='C2', linestyle='dotted')
+    ax.axvline(retB_syst.x[0], color='C2', linestyle='solid')
     ax.axhline(0.32, color='k', linestyle='dashed')
     ax.axhline(0.05, color='k', linestyle='dashed')
     ax.legend(loc='best')

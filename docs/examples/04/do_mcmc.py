@@ -2,129 +2,140 @@ from six import print_
 import numpy as np
 from matplotlib import pyplot as plt
 from remu import binning
+from remu import plotting
 from remu import likelihood
-import pymc
+from remu import likelihood_utils
+import emcee
 
 with open("../01/reco-binning.yml", 'rt') as f:
-    reco_binning = binning.yaml.load(f)
+    reco_binning = binning.yaml.full_load(f)
 with open("../01/optimised-truth-binning.yml", 'rt') as f:
-    truth_binning = binning.yaml.load(f)
+    truth_binning = binning.yaml.full_load(f)
 
 reco_binning.fill_from_csv_file("../00/real_data.txt")
 data = reco_binning.get_entries_as_ndarray()
+data_model = likelihood.PoissonData(data)
 
 response_matrix = "../03/response_matrix.npz"
-lm = likelihood.LikelihoodMachine(data, response_matrix, limit_method='prohibit')
+matrix_predictor = likelihood.ResponseMatrixPredictor(response_matrix)
+calc = likelihood.LikelihoodCalculator(data_model, matrix_predictor)
 
 truth_binning.fill_from_csv_file("../00/modelA_truth.txt")
 modelA = truth_binning.get_values_as_ndarray()
 modelA /= np.sum(modelA)
+
+modelA_shape = likelihood.TemplatePredictor([modelA])
+calcA = calc.compose(modelA_shape)
+
+samplerA = likelihood_utils.emcee_sampler(calcA)
+guessA = likelihood_utils.emcee_initial_guess(calcA)
+
+state = samplerA.run_mcmc(guessA, 100)
+chain = samplerA.get_chain(flat=True)
+with open("chain_shape.txt", 'w') as f:
+    print_(chain.shape, file=f)
+
+fig, ax = plt.subplots()
+ax.hist(chain[:,0])
+ax.set_xlabel("model A weight")
+fig.savefig("burn_short.png")
+
+with open("burn_short_tau.txt", 'w') as f:
+    try:
+        tau = samplerA.get_autocorr_time()
+        print_(tau, file=f)
+    except emcee.autocorr.AutocorrError as e:
+        print_(e, file=f)
+
+samplerA.reset()
+state = samplerA.run_mcmc(guessA, 200*50)
+chain = samplerA.get_chain(flat=True)
+
+with open("burn_long_tau.txt", 'w') as f:
+    try:
+        tau = samplerA.get_autocorr_time()
+        print_(tau, file=f)
+    except emcee.autocorr.AutocorrError as e:
+        print_(e, file=f)
+
+fig, ax = plt.subplots()
+ax.hist(chain[:,0])
+ax.set_xlabel("model A weight")
+fig.savefig("burn_long.png")
+
+samplerA.reset()
+state = samplerA.run_mcmc(state, 100*50)
+chain = samplerA.get_chain(flat=True)
+
+with open("tauA.txt", 'w') as f:
+    try:
+        tau = samplerA.get_autocorr_time()
+        print_(tau, file=f)
+    except emcee.autocorr.AutocorrError as e:
+        print_(e, file=f)
+
+fig, ax = plt.subplots()
+ax.hist(chain[:,0])
+ax.set_xlabel("model A weight")
+fig.savefig("weightA.png")
+
+truth, _ = modelA_shape(chain)
+truth.shape = (np.prod(truth.shape[:-1]), truth.shape[-1])
+pltr = plotting.get_plotter(truth_binning)
+pltr.plot_array(truth, stack_function=np.median, label="Post. median", hatch=None)
+pltr.plot_array(truth, stack_function=0.68, label="Post. 68%", scatter=0)
+pltr.legend()
+pltr.savefig("truthA.png")
+
+reco, _ = calcA.predictor(chain)
+reco.shape = (np.prod(reco.shape[:-1]), reco.shape[-1])
+pltr = plotting.get_plotter(reco_binning)
+pltr.plot_array(reco, stack_function=np.median, label="Post. median", hatch=None)
+pltr.plot_array(reco, stack_function=0.68, label="Post. 68%")
+pltr.plot_array(data, label="Data", hatch=None, linewidth=2)
+pltr.legend()
+pltr.savefig("recoA.png")
+
 truth_binning.reset()
 truth_binning.fill_from_csv_file("../00/modelB_truth.txt")
 modelB = truth_binning.get_values_as_ndarray()
 modelB /= np.sum(modelB)
 
-def flat_prior(value=100):
-    if value >= 0 and value <= 2000:
-        return 0
-    else:
-        return -np.inf
+combined = likelihood.TemplatePredictor([modelA, modelB])
+calcC = calc.compose(combined)
 
-modelA_shape = likelihood.TemplateHypothesis([modelA], parameter_priors=[flat_prior], parameter_names=["template_weight"])
-modelB_shape = likelihood.TemplateHypothesis([modelB], parameter_priors=[flat_prior], parameter_names=["template_weight"])
+samplerC = likelihood_utils.emcee_sampler(calcC)
+guessC = likelihood_utils.emcee_initial_guess(calcC)
 
-mcmcA = lm.mcmc(modelA_shape)
+state = samplerC.run_mcmc(guessC, 200*50)
+chain = samplerC.get_chain(flat=True)
+with open("combined_chain_shape.txt", 'w') as f:
+    print_(chain.shape, file=f)
 
-mcmcA.sample(iter=1000)
-pymc.Matplot.plot(mcmcA, suffix='_noburn')
+with open("burn_combined_tau.txt", 'w') as f:
+    try:
+        tau = samplerC.get_autocorr_time()
+        print_(tau, file=f)
+    except emcee.autocorr.AutocorrError as e:
+        print_(e, file=f)
 
-mcmcA.sample(iter=1000, burn=100)
-pymc.Matplot.plot(mcmcA, suffix='_burn')
+samplerC.reset()
+state = samplerC.run_mcmc(state, 100*50)
+chain = samplerC.get_chain(flat=True)
+with open("combined_tau.txt", 'w') as f:
+    try:
+        tau = samplerC.get_autocorr_time()
+        print_(tau, file=f)
+    except emcee.autocorr.AutocorrError as e:
+        print_(e, file=f)
 
-mcmcA.sample(iter=1000*10, burn=100, thin=10)
-pymc.Matplot.plot(mcmcA, suffix='_A')
-
-mcmcB = lm.mcmc(modelB_shape)
-
-mcmcB.sample(iter=1000*10, burn=100, thin=10)
-pymc.Matplot.plot(mcmcB, suffix='_B')
-
-with open("stats.txt", 'wt') as f:
-    print_(mcmcA.stats(), file=f)
-    print_(mcmcB.stats(), file=f)
-
-traceA = mcmcA.trace('template_weight')[:]
-traceB = mcmcB.trace('template_weight')[:]
-with open("percentiles.txt", 'wt') as f:
-    print_(np.percentile(traceA, [2.5, 16., 50, 84, 97.5]), file=f)
-    print_(np.percentile(traceB, [2.5, 16., 50, 84, 97.5]), file=f)
-
-toysA = mcmcA.trace('toy_index')[:]
-toysB = mcmcB.trace('toy_index')[:]
-tA = traceA[:,np.newaxis]
-iA = toysA[:,np.newaxis]
-tB = traceB[:,np.newaxis]
-iB = toysB[:,np.newaxis]
-
-with open("B_posterior.txt", 'wt') as f:
-    print_(lm.marginal_log_likelihood(modelA_shape, tA, iA)
-        - lm.marginal_log_likelihood(modelB_shape, tB, iB), file=f)
-
-mcmcA_prior = lm.mcmc(modelA_shape, prior_only=True)
-mcmcA_prior.sample(iter=1000*10, burn=100, thin=10)
-mcmcB_prior = lm.mcmc(modelB_shape, prior_only=True)
-mcmcB_prior.sample(iter=1000*10, burn=100, thin=10)
-traceA_prior = mcmcA_prior.trace('template_weight')[:]
-traceB_prior = mcmcB_prior.trace('template_weight')[:]
-toysA_prior = mcmcA_prior.trace('toy_index')[:]
-toysB_prior = mcmcB_prior.trace('toy_index')[:]
-tAp = traceA_prior[:,np.newaxis]
-iAp = toysA_prior[:,np.newaxis]
-tBp = traceB_prior[:,np.newaxis]
-iBp = toysB_prior[:,np.newaxis]
-
-with open("B_prior.txt", 'wt') as f:
-    print_(lm.marginal_log_likelihood(modelA_shape, tAp, iAp)
-        - lm.marginal_log_likelihood(modelB_shape, tBp, iBp), file=f)
-
-ratios, preference = lm.plr(modelA_shape, tA, iA, modelB_shape, tB, iB)
-with open("plr.txt", 'wt') as f:
-    print_(preference, file=f)
-
-mixed_model = likelihood.TemplateHypothesis([modelA, modelB])
-
-prior = likelihood.JeffreysPrior(
-    response_matrix = response_matrix,
-    translation_function = mixed_model.translate,
-    parameter_limits = [(0,None), (0,None)],
-    default_values = [10., 10.],
-    total_truth_limit = 2000)
-
-mixed_model.parameter_priors = [prior]
-mixed_model.parameter_names = ["weights"]
-
-mcmc = lm.mcmc(mixed_model, prior_only=True)
-mcmc.sample(iter=25000, burn=1000, tune_throughout=True, thin=25)
-pymc.Matplot.plot(mcmc, suffix='_prior')
-
-mcmc = lm.mcmc(mixed_model)
-mcmc.sample(iter=250000, burn=10000, tune_throughout=True, thin=250)
-pymc.Matplot.plot(mcmc, suffix='_mixed')
-
-weights = mcmc.trace('weights')[:]
 fig, ax = plt.subplots()
-ax.hist2d(weights[:,0],weights[:,1], bins=20)
+ax.hist2d(chain[:,0], chain[:,1])
 ax.set_xlabel("model A weight")
 ax.set_ylabel("model B weight")
-fig.savefig("posterior.png")
+fig.savefig("combined.png")
 
 fig, ax = plt.subplots()
-ax.hist(weights.sum(axis=1), bins=20)
-ax.set_xlabel("sum of template weights")
-fig.savefig("sum_posterior.png")
-
-truth_trace = mixed_model.translate(weights)
-toys = mcmc.trace('toy_index')[:]
-lm.plot_truth_bin_traces("truth_traces.png", truth_trace, plot_limits='relative')
-
-lm.plot_reco_bin_traces("reco_traces.png", truth_trace, toy_index=toys, plot_data=True)
+ax.hist(np.sum(chain, axis=-1))
+ax.set_xlabel("model A weight + model B weight")
+fig.savefig("total.png")
