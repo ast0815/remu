@@ -28,6 +28,11 @@ system::
     $ # Install actual package
     $ pip install -e .
 
+Or you can just source the provided ``setup.sh``. It will do these steps for
+you::
+
+    $ . setup.sh
+
 You might need to install additional system libraries to compile all packages.
 
 ReMU requires Python 2.7 or >=3.4.
