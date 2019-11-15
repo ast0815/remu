@@ -220,7 +220,14 @@ def plot_mahalanobis_distance(first, second, filename=None, plot_expectation=Tru
     """
 
     from remu import plotting
-    plt = plotting.get_plotter(first.truth_binning)
+
+    if len(first.truth_binning.subbinnings) == 0:
+        # Do fancy plots only if there are no subbinnings
+        # These mess up the efficiency during subbinning marginalization
+        plt = plotting.get_plotter(first.truth_binning)
+    else:
+        # Otherwise plot bin by bin
+        plt = plotting.BinningPlotter(first.truth_binning)
 
     args = {
         'hatch': None,
@@ -228,7 +235,6 @@ def plot_mahalanobis_distance(first, second, filename=None, plot_expectation=Tru
         'margin_function': np.sum,
         }
     args.update(kwargs)
-
 
     dist = mahalanobis_distance(first, second)
     if plot_expectation:
@@ -787,13 +793,22 @@ def plot_in_bin_variation(response_matrix, filename=None, **kwargs):
     inbin = response_matrix.get_in_bin_variation_as_ndarray(normalize=False, shape=shape)
     inbin = np.max(inbin, axis=0)
 
-    plt = plotting.get_plotter(response_matrix.truth_binning)
+    if len(response_matrix.truth_binning.subbinnings) == 0:
+        # Do fancy plots only if there are no subbinnings
+        # These mess up the efficiency during subbinning marginalization
+        plt = plotting.get_plotter(response_matrix.truth_binning)
+        funlabs = [
+            (np.min, "min"),
+            (np.max, "max"),
+            (np.median, "median"),
+            ]
+    else:
+        # Otherwise plot bin by bin
+        plt = plotting.BinningPlotter(response_matrix.truth_binning)
+        funlabs = [
+            (np.median, None),
+            ]
 
-    funlabs = [
-        (np.min, "min"),
-        (np.max, "max"),
-        (np.median, "median"),
-        ]
     for fun, lab in funlabs:
         args = {
             'hatch': None,
@@ -846,13 +861,22 @@ def plot_relative_in_bin_variation(response_matrix, filename=None, **kwargs):
     inbin = response_matrix.get_in_bin_variation_as_ndarray(normalize=True, shape=shape)
     inbin = np.max(inbin, axis=0)
 
-    plt = plotting.get_plotter(response_matrix.truth_binning)
+    if len(response_matrix.truth_binning.subbinnings) == 0:
+        # Do fancy plots only if there are no subbinnings
+        # These mess up the efficiency during subbinning marginalization
+        plt = plotting.get_plotter(response_matrix.truth_binning)
+        funlabs = [
+            (np.min, "min"),
+            (np.max, "max"),
+            (np.median, "median"),
+            ]
+    else:
+        # Otherwise plot bin by bin
+        plt = plotting.BinningPlotter(response_matrix.truth_binning)
+        funlabs = [
+            (np.median, None),
+            ]
 
-    funlabs = [
-        (np.min, "min"),
-        (np.max, "max"),
-        (np.median, "median"),
-        ]
     for fun, lab in funlabs:
         args = {
             'hatch': None,
@@ -905,13 +929,22 @@ def plot_statistical_uncertainty(response_matrix, filename=None, **kwargs):
     stat = np.sqrt(response_matrix.get_statistical_variance_as_ndarray(shape=shape))
     stat = np.max(stat, axis = 0)
 
-    plt = plotting.get_plotter(response_matrix.truth_binning)
+    if len(response_matrix.truth_binning.subbinnings) == 0:
+        # Do fancy plots only if there are no subbinnings
+        # These mess up the efficiency during subbinning marginalization
+        plt = plotting.get_plotter(response_matrix.truth_binning)
+        funlabs = [
+            (np.min, "min"),
+            (np.max, "max"),
+            (np.median, "median"),
+            ]
+    else:
+        # Otherwise plot bin by bin
+        plt = plotting.BinningPlotter(response_matrix.truth_binning)
+        funlabs = [
+            (np.median, None),
+            ]
 
-    funlabs = [
-        (np.min, "min"),
-        (np.max, "max"),
-        (np.median, "median"),
-        ]
     for fun, lab in funlabs:
         args = {
             'hatch': None,
@@ -965,13 +998,22 @@ def plot_mean_efficiency(response_matrix, filename=None, nuisance_value=0.0, **k
     eff = np.sum(eff, axis=0)
     eff[nuisance_indices] = nuisance_value
 
-    plt = plotting.get_plotter(response_matrix.truth_binning)
+    if len(response_matrix.truth_binning.subbinnings) == 0:
+        # Do fancy plots only if there are no subbinnings
+        # These mess up the efficiency during subbinning marginalization
+        plt = plotting.get_plotter(response_matrix.truth_binning)
+        funlabs = [
+            (np.min, "min"),
+            (np.max, "max"),
+            (np.median, "median"),
+            ]
+    else:
+        # Otherwise plot bin by bin
+        plt = plotting.BinningPlotter(response_matrix.truth_binning)
+        funlabs = [
+            (np.median, None),
+            ]
 
-    funlabs = [
-        (np.min, "min"),
-        (np.max, "max"),
-        (np.median, "median"),
-        ]
     for fun, lab in funlabs:
         args = {
             'hatch': None,
