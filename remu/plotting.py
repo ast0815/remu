@@ -72,8 +72,8 @@ class Plotter(object):
 
     def __init__(self, figax=None):
         self.figax = figax
-        self.color = cycle('C%d'%(i,) for i in range (0,10))
-        self.hatch = cycle(['//', '\\\\', 'oo', '..'])
+        self.color = cycle('C%d'%(i,) for i in range(0,10))
+        self.hatch = cycle([r'//', r'\\', r'O', '*'])
 
     def __del__(self):
         """Clean up figures."""
