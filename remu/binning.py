@@ -1405,7 +1405,7 @@ class Binning(yaml.YAMLObject):
             remove_i.extend(range(i_data+1, i_data+n_data)) # Skip first one, since we substitute a single bin
 
             # Set marginalized value
-            new_array[i] = np.sum(new_array[i_data:i_data+n_data])
+            new_array[i_data] = np.sum(new_array[i_data:i_data+n_data])
 
         # Remove marginalized elements
         remove_i = np.array(sorted(remove_i))
