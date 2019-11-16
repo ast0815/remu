@@ -224,7 +224,7 @@ class ResponseMatrix(object):
 
         if np.any(new_values < 0):
             i = np.argwhere(new_values < 0)
-            raise RuntimeError("Filled-up values are negative in %d bins."%(i.size,), stacklevel=2)
+            raise RuntimeError("Filled-up values are negative in %d bins."%(i.size,), stacklevel=3)
 
         where = (new_values > 0)
         diff_v = new_values - old_values
@@ -232,10 +232,10 @@ class ResponseMatrix(object):
         # Check for bins where the fill-up is less than the original
         if np.any(where & (diff_v < -1e-9)):
             i = np.argwhere(where & (diff_v < -1e-9))
-            warn("Filled-up values are less than the original filling in %d bins. This should not happen!"%(i.size,), stacklevel=2)
+            warn("Filled-up values are less than the original filling in %d bins. This should not happen!"%(i.size,), stacklevel=3)
         if np.any(where & (diff_e < 0)):
             i = np.argwhere(where & (diff_e < 0))
-            warn("Filled-up entries are less than the original filling in %d bins. This should not happen!"%(i.size,), stacklevel=2)
+            warn("Filled-up entries are less than the original filling in %d bins. This should not happen!"%(i.size,), stacklevel=3)
 
         where = (where & (diff_v >= 0) & (diff_e >= 0))
 
