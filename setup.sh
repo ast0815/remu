@@ -11,16 +11,18 @@ else
     virtualenv ENV
 
     # Activate the environment
-    . ENV/bin/activate
+    . ENV/bin/activate && (
 
-    # Upgrade pip to the latest version (optional)
-    pip install --upgrade pip
+        # Upgrade pip to the latest version (optional)
+        pip install --upgrade pip
 
-    # Install all required packages
-    pip install -r requirements.txt
-    pip install -r test-requirements.txt
-    pip install -r documentation-requirements.txt
+        # Install all required packages
+        pip install -r requirements.txt
+        pip install -r test-requirements.txt
+        pip install -r documentation-requirements.txt
 
-    # Install actual package
-    pip install -e .
+        # Install actual package
+        pip install -e .
+
+    )
 fi
