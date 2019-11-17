@@ -42,7 +42,7 @@ for the reconstructed information::
     variables:
     - reco_x
     - reco_y
-    binedges:
+    bin_edges:
     - [-.inf,
       ...
       .inf]
