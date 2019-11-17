@@ -1,28 +1,31 @@
 #!/bin/bash
 
+SCRIPT=`realpath $BASH_SOURCE`
+SCRIPTPATH=`dirname $SCRIPT`
+
 # Check whether the ENV exists
-if [ -d ENV ]
+if [ -d "$SCRIPTPATH/ENV" ]
 then
     # Activate the environment
     echo "Activating virtual environment."
-    . ENV/bin/activate
+    . "$SCRIPTPATH/ENV/bin/activate"
 else
     # Create a new virtual environment
-    virtualenv ENV
+    virtualenv "$SCRIPTPATH/ENV"
 
     # Activate the environment
-    . ENV/bin/activate && (
+    . "$SCRIPTPATH/ENV/bin/activate" && (
 
         # Upgrade pip to the latest version (optional)
         pip install --upgrade pip
 
         # Install all required packages
-        pip install -r requirements.txt
-        pip install -r test-requirements.txt
-        pip install -r documentation-requirements.txt
+        pip install -r "$SCRIPTPATH/requirements.txt"
+        pip install -r "$SCRIPTPATH/test-requirements.txt"
+        pip install -r "$SCRIPTPATH/documentation-requirements.txt"
 
         # Install actual package
-        pip install -e .
+        pip install -e "$SCRIPTPATH"
 
     )
 fi
