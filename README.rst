@@ -15,7 +15,7 @@ Installing development version from source
 It is recommended to run this software in a virtual Python environment
 (virtualenv). This ensures that all required packages are present in the
 tested version and do not interfere with other packages installed on the
-system::
+system. So after checking out the source code, run these commands::
 
     $ # Create a new virtual environment
     $ virtualenv ENV
@@ -80,7 +80,7 @@ If you use ReMU in a publication, please cite it as follows::
     L. Koch, ReMU - Response Matrix Utilities, http://github.com/ast0815/remu, doi:10.5281/zenodo.1217572
 
 Or just use the DOI and let your bibliography manager handle the rest for you.
-You can cite specififc versions of the software too. Just follow the link
+You can cite specific versions of the software too. Just follow the link
 behind the DOI badge and choose the DOI specific for the release.
 
 
