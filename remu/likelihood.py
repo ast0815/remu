@@ -243,8 +243,8 @@ class DataModel(object):
         """Generate toy data according to the expectation values.
 
         The reco vector can have a shape ``([c,d,]n_reco_bins,)``. Assuming the
-        data is of shape ``([a,b,...,]n_reco_bins,)``, the output will be of
-        shape ``([a,b,...,][c,d,...,])``.
+        requested size is ``(a,b,...,)``, the output will be of shape
+        ``([a,b,...,][c,d,...,])``.
 
         """
 
@@ -350,8 +350,8 @@ class PoissonData(DataModel):
         """Generate toy data according to the expectation values.
 
         The reco vector can have a shape ``([c,d,]n_reco_bins,)``. Assuming the
-        data is of shape ``([a,b,...,]n_reco_bins,)``, the output will be of
-        shape ``([a,b,...,][c,d,...,])``.
+        requested size is ``(a,b,...,)``, the output will be of shape
+        ``([a,b,...,][c,d,...,])``.
 
         """
 
