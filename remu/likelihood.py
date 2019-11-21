@@ -399,8 +399,13 @@ class MarginalLikelihoodSystematics(SystematicsConsumer):
             weights = np.ones_like(log_likelihood)
         log_weights = np.log(weights / np.sum(weights, axis=-1, keepdims=True))
         weighted = log_likelihood + log_weights
+        # Avoid numerical problems by using this "trick"
+        max_weighted = np.max(weighted, axis=-1, keepdims=True)
+        i_inf = ~np.isfinite(max_weighted)
+        max_weighted[i_inf] = 0.
+        weighted = weighted - max_weighted
         with np.errstate(under='ignore'):
-            ret = np.logaddexp.reduce(weighted, axis=-1)
+            ret = max_weighted[...,0] + np.logaddexp.reduce(weighted, axis=-1)
         return ret
 
 class ProfileLikelihoodSystematics(SystematicsConsumer):
