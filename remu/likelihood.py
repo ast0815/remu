@@ -785,8 +785,8 @@ class FixedParameterLinearPredictor(LinearPredictor, FixedParameterPredictor):
 class ResponseMatrixPredictor(LinearPredictor):
     """Event rate predictor from ResponseMatrix objects.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
 
     filename : str or file object
         The exported information of a ResponseMatrix or
@@ -811,8 +811,8 @@ class ResponseMatrixPredictor(LinearPredictor):
 class TemplatePredictor(LinearPredictor):
     """LinearPredictor from templates.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
 
     templates : array like
         The templates to be combined together.
@@ -979,8 +979,8 @@ class BasinHoppingMaximizer(LikelihoodMaximizer):
 
     Uses SciPy's Basin Hopping algorithm.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
 
     **kwargs : optional
         Arguments to be passed to the basin hopping function.

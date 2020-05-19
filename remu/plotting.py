@@ -52,8 +52,8 @@ def get_plotter(obj, *args, **kwargs):
 class Plotter(object):
     """Plotting base class.
 
-    Arguments
-    ---------
+    Parameters
+    ----------
 
     figax : (Figure, Axes), optional
         The figure and axis to plot in.
