@@ -1408,7 +1408,7 @@ class Binning(yaml.YAMLObject):
             new_array[i_data] = np.sum(new_array[i_data:i_data+n_data])
 
         # Remove marginalized elements
-        remove_i = np.array(sorted(remove_i))
+        remove_i = np.array(sorted(remove_i), dtype=int)
         new_array = np.delete(new_array, remove_i, axis=0)
 
         return new_array

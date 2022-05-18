@@ -559,7 +559,7 @@ class CartesianProductBinningPlotter(BinningPlotter):
                     if data.sum() == 0:
                         # Empty data messes with the normalisation
                         data.fill(0.001)
-                    ax.hist2d(xx, yy, weights=data.flat, bins=(x_edg, y_edg), normed=density)
+                    ax.hist2d(xx, yy, weights=data.flat, bins=(x_edg, y_edg), density=density)
 
         # 1D vertical histograms
         for x, i in enumerate(self.x_axis_binnings):
