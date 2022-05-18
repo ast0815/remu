@@ -1,6 +1,6 @@
 pyyaml==5.4
-numpy==1.16.5
-scipy==1.1.0
+numpy==1.22.3
+scipy==1.8.0
 six==1.10.0
-matplotlib==2.2
+matplotlib==3.5.2
 emcee==3.0.1
