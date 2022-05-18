@@ -1,4 +1,5 @@
 emcee==3.0.1
+flit==3.7.1
 matplotlib==3.5.2
 numpy==1.22.3
 precommit=2.19.0
