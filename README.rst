@@ -4,7 +4,7 @@ ReMU - Response Matrix Utilities
 
 A framework for likelihood calculations and hypothesis testing using binned events and response matrices.
 
-|Travis-CI| |Documentation| |Coverage| |MIT-Licence| |DOI|
+|Documentation| |Coverage| |MIT-Licence| |DOI|
 
 Setup
 =====
@@ -86,10 +86,6 @@ Or just use the DOI and let your bibliography manager handle the rest for you.
 You can cite specific versions of the software too. Just follow the link
 behind the DOI badge and choose the DOI specific for the release.
 
-
-.. |Travis-CI| image:: https://travis-ci.org/ast0815/remu.svg?branch=master
-    :target: https://travis-ci.org/ast0815/remu
-    :alt: [Travis-CI]
 
 .. |Documentation| image:: https://readthedocs.org/projects/remu/badge/?version=latest
     :target: https://remu.readthedocs.io/en/latest/
