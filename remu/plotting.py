@@ -23,6 +23,7 @@ from itertools import cycle
 from . import binning
 from . import migration
 
+
 def get_plotter(obj, *args, **kwargs):
     """Return a suitable plotting class instance for the object.
 
@@ -47,7 +48,8 @@ def get_plotter(obj, *args, **kwargs):
         return BinningPlotter(obj, *args, **kwargs)
     if isinstance(obj, np.ndarray):
         return ArrayPlotter(obj, *args, **kwargs)
-    raise TypeError("No known Plotter class for type %s"%(type(obj),))
+    raise TypeError("No known Plotter class for type %s" % (type(obj),))
+
 
 class Plotter(object):
     """Plotting base class.
@@ -72,8 +74,8 @@ class Plotter(object):
 
     def __init__(self, figax=None):
         self.figax = figax
-        self.color = cycle('C%d'%(i,) for i in range(0,10))
-        self.hatch = cycle([r'//', r'\\', r'O', '*'])
+        self.color = cycle("C%d" % (i,) for i in range(0, 10))
+        self.hatch = cycle([r"//", r"\\", r"O", "*"])
 
     def __del__(self):
         """Clean up figures."""
@@ -93,9 +95,10 @@ class Plotter(object):
 
     def savefig(self, *args, **kwargs):
         """Save the figure."""
-        kwargs2 = {'bbox_inches': 'tight'}
+        kwargs2 = {"bbox_inches": "tight"}
         kwargs2.update(kwargs)
         self.figax[0].savefig(*args, **kwargs2)
+
 
 class ArrayPlotter(Plotter):
     """Plotting class for numpy arrays.
@@ -154,8 +157,8 @@ class ArrayPlotter(Plotter):
 
     def get_bin_edges(self, i_min, i_max):
         """Get the bin edges corresponding to bins i_min to i_max."""
-        x = np.arange(i_min,i_max)
-        return np.append(x-0.5, x[-1]+0.5) # Bins centred on integers
+        x = np.arange(i_min, i_max)
+        return np.append(x - 0.5, x[-1] + 0.5)  # Bins centred on integers
 
     def get_axis_label(self):
         """Return the default label for the axis."""
@@ -171,8 +174,8 @@ class ArrayPlotter(Plotter):
             pass
         else:
             # A number.
-            lobound = (1. - stack_function) / 2.
-            hibound = (1. - lobound)
+            lobound = (1.0 - stack_function) / 2.0
+            hibound = 1.0 - lobound
             lower = lambda x, axis=0, bound=lobound: np.quantile(x, bound, axis=axis)
             upper = lambda x, axis=0, bound=hibound: np.quantile(x, bound, axis=axis)
             return lower, upper
@@ -187,7 +190,14 @@ class ArrayPlotter(Plotter):
             upper = stack_function
         return lower, upper
 
-    def plot_array(self, array=None, density=False, stack_function=np.mean, margin_function=None, **kwargs):
+    def plot_array(
+        self,
+        array=None,
+        density=False,
+        stack_function=np.mean,
+        margin_function=None,
+        **kwargs
+    ):
         """Plot an array.
 
         Parameters
@@ -220,16 +230,21 @@ class ArrayPlotter(Plotter):
             n_rows = 1
             bins_per_row = arrays.shape[-1]
 
-        figax = self.subplots(nrows=n_rows, sharey=True, figsize=(6.4, max(2.4*n_rows, 4.8)), squeeze=False)
+        figax = self.subplots(
+            nrows=n_rows,
+            sharey=True,
+            figsize=(6.4, max(2.4 * n_rows, 4.8)),
+            squeeze=False,
+        )
 
-        color = kwargs.get('color', next(self.color))
-        hatch = kwargs.get('hatch', next(self.hatch))
+        color = kwargs.get("color", next(self.color))
+        hatch = kwargs.get("hatch", next(self.hatch))
 
-        for i, ax in enumerate(figax[1][:,0]):
-            i_min = i*bins_per_row
-            i_max = min((i+1)*bins_per_row, arrays.shape[-1])
-            y_hi = np.asfarray(upper(arrays[:,i_min:i_max], axis=0))
-            y_lo = np.asfarray(lower(arrays[:,i_min:i_max], axis=0))
+        for i, ax in enumerate(figax[1][:, 0]):
+            i_min = i * bins_per_row
+            i_max = min((i + 1) * bins_per_row, arrays.shape[-1])
+            y_hi = np.asfarray(upper(arrays[:, i_min:i_max], axis=0))
+            y_lo = np.asfarray(lower(arrays[:, i_min:i_max], axis=0))
             bins = np.asfarray(self.get_bin_edges(i_min, i_max))
 
             # Divide by relative bin widths
@@ -240,11 +255,11 @@ class ArrayPlotter(Plotter):
                 y_lo /= np.asfarray(rel_widths)
 
             args = {
-                'step': 'post',
-                'edgecolor': color,
-                'hatch': hatch,
-                'facecolor': 'none',
-                }
+                "step": "post",
+                "edgecolor": color,
+                "hatch": hatch,
+                "facecolor": "none",
+            }
             args.update(kwargs)
             y_lo = np.append(y_lo, y_lo[-1])
             y_hi = np.append(y_hi, y_hi[-1])
@@ -261,10 +276,11 @@ class ArrayPlotter(Plotter):
     def legend(self, **kwargs):
         """Draw a legend in the first axis."""
         args = {
-            'loc': 'best',
-            }
+            "loc": "best",
+        }
         args.update(kwargs)
-        self.figax[1][0,0].legend(**args)
+        self.figax[1][0, 0].legend(**args)
+
 
 class BinningPlotter(ArrayPlotter):
     """Plotting class for the simplest :class:`.Binning` class.
@@ -301,7 +317,7 @@ class BinningPlotter(ArrayPlotter):
 
     """
 
-    def __init__(self, binning, marginalize_subbinnings=False , **kwargs):
+    def __init__(self, binning, marginalize_subbinnings=False, **kwargs):
         self.binning = binning
         self.marginalize_subbinnings = marginalize_subbinnings
         array = self.binning.value_array
@@ -346,6 +362,7 @@ class BinningPlotter(ArrayPlotter):
 
         binning = self._get_binning(binning)
         return self.plot_array(binning.sumw2_array, **kwargs)
+
 
 class CartesianProductBinningPlotter(BinningPlotter):
     """Plotting class for :class:`.CartesianProductBinning`
@@ -395,25 +412,35 @@ class CartesianProductBinningPlotter(BinningPlotter):
 
     def __init__(self, binning, x_axis_binnings=None, y_axis_binnings=None, **kwargs):
         if x_axis_binnings is None:
-            x_axis_binnings = list(range(int(np.ceil(len(binning.binnings) / 2.))))
+            x_axis_binnings = list(range(int(np.ceil(len(binning.binnings) / 2.0))))
         self.x_axis_binnings = x_axis_binnings
         if y_axis_binnings is None:
-            y_axis_binnings = list(range(int(np.ceil(len(binning.binnings) / 2.)), len(binning.binnings)))
+            y_axis_binnings = list(
+                range(int(np.ceil(len(binning.binnings) / 2.0)), len(binning.binnings))
+            )
         self.y_axis_binnings = y_axis_binnings
-        kwargs['marginalize_subbinnings'] = True
-        kwargs['bins_per_row'] = -1
+        kwargs["marginalize_subbinnings"] = True
+        kwargs["bins_per_row"] = -1
         BinningPlotter.__init__(self, binning, **kwargs)
 
     def get_bin_edges(self, i_min, i_max, j_binning):
         """Get the bin edges corresponding to bins i_min to i_max."""
-        x = np.arange(i_min,i_max)
-        return np.append(x-0.5, x[-1]+0.5) # Bins centred on integers
+        x = np.arange(i_min, i_max)
+        return np.append(x - 0.5, x[-1] + 0.5)  # Bins centred on integers
 
     def get_axis_label(self, j_binning):
         """Return the default label for the axis."""
-        return "Binning %d Bin #"%(j_binning,)
+        return "Binning %d Bin #" % (j_binning,)
 
-    def plot_array(self, array=None, density=True, stack_function=np.mean, margin_function=np.sum, scatter=-1, **kwargs):
+    def plot_array(
+        self,
+        array=None,
+        density=True,
+        stack_function=np.mean,
+        margin_function=np.sum,
+        scatter=-1,
+        **kwargs
+    ):
         """Plot an array.
 
         Parameters
@@ -451,13 +478,17 @@ class CartesianProductBinningPlotter(BinningPlotter):
         shape = self.binning.bins_shape
         arrays = arrays.reshape(arrays.shape[:1] + shape)
 
-        n_col = len(self.x_axis_binnings) + 1 # "+1" for the 1D projections
+        n_col = len(self.x_axis_binnings) + 1  # "+1" for the 1D projections
         n_row = len(self.y_axis_binnings) + 1
 
         # Widths and heights according to number of bins, 10 px (= 0.1") per bin
-        widths = [0.1 * self.binning.binnings[i].data_size for i in self.x_axis_binnings]
-        heights = [0.1 * self.binning.binnings[i].data_size for i in self.y_axis_binnings]
-        heights.reverse() # Axes are counted top to bottom, but we want binnings bottom to top
+        widths = [
+            0.1 * self.binning.binnings[i].data_size for i in self.x_axis_binnings
+        ]
+        heights = [
+            0.1 * self.binning.binnings[i].data_size for i in self.y_axis_binnings
+        ]
+        heights.reverse()  # Axes are counted top to bottom, but we want binnings bottom to top
 
         # Total figure size
         total_width = np.sum(widths)
@@ -465,11 +496,11 @@ class CartesianProductBinningPlotter(BinningPlotter):
         scale = 4.0 / min(max(total_width, total_height), 4.0)
 
         # Room for the 1D histograms
-        if total_width == 0.:
+        if total_width == 0.0:
             widths.append(6 / scale)
         else:
             widths.append(1.5 / scale)
-        if total_height == 0.:
+        if total_height == 0.0:
             heights.insert(0, 4 / scale)
         else:
             heights.insert(0, 1.5 / scale)
@@ -486,25 +517,35 @@ class CartesianProductBinningPlotter(BinningPlotter):
         wspace = 0.1 * widths[-1] / (total_width / len(widths))
         hspace = 0.1 * heights[0] / (total_height / len(heights))
 
-        figax = self.subplots(nrows=n_row, ncols=n_col, sharex='col', sharey='row',
-            figsize=(fig_x, fig_y), gridspec_kw={'width_ratios': widths,
-            'height_ratios': heights, 'wspace': wspace, 'hspace': hspace},
-            squeeze=False)
+        figax = self.subplots(
+            nrows=n_row,
+            ncols=n_col,
+            sharex="col",
+            sharey="row",
+            figsize=(fig_x, fig_y),
+            gridspec_kw={
+                "width_ratios": widths,
+                "height_ratios": heights,
+                "wspace": wspace,
+                "hspace": hspace,
+            },
+            squeeze=False,
+        )
 
-        color = kwargs.get('color', next(self.color))
-        hatch = kwargs.get('hatch', next(self.hatch))
+        color = kwargs.get("color", next(self.color))
+        hatch = kwargs.get("hatch", next(self.hatch))
 
         # 2D histograms
         for x, i in enumerate(self.x_axis_binnings):
             for y, j in enumerate(self.y_axis_binnings):
                 # Get axis to plot in
-                ax = figax[1][-y-1,x] # rows are counted top to bottom
+                ax = figax[1][-y - 1, x]  # rows are counted top to bottom
 
                 # Project array
-                axis = list(range(arrays.ndim - 1)) # -1 because of stack axis 0
-                for k in sorted((i,j), reverse=True):
+                axis = list(range(arrays.ndim - 1))  # -1 because of stack axis 0
+                for k in sorted((i, j), reverse=True):
                     del axis[k]
-                axis = tuple(x+1 for x in axis) # +1 because of stack axis 0
+                axis = tuple(x + 1 for x in axis)  # +1 because of stack axis 0
                 data = np.asfarray(margin_function(arrays, axis=axis))
                 # 2D plots only show upper limit of stack
                 data = upper(data, axis=0)
@@ -524,7 +565,7 @@ class CartesianProductBinningPlotter(BinningPlotter):
                     # Get bin numbers
                     csum = np.asfarray(data.cumsum())
                     csum /= np.max(csum)
-                    indices = np.digitize( np.random.uniform(size=scatter), csum)
+                    indices = np.digitize(np.random.uniform(size=scatter), csum)
 
                     # Get x and y bin numbers
                     x_indices = indices % data.shape[1]
@@ -535,41 +576,43 @@ class CartesianProductBinningPlotter(BinningPlotter):
                     y = []
                     for ix, iy in zip(x_indices, y_indices):
                         x_min = x_edg[ix]
-                        x_max = x_edg[ix+1]
+                        x_max = x_edg[ix + 1]
                         y_min = y_edg[iy]
-                        y_max = y_edg[iy+1]
+                        y_max = y_edg[iy + 1]
                         x.append(np.random.uniform(x_min, x_max))
                         y.append(np.random.uniform(y_min, y_max))
 
                     # Plot the points
                     if data.sum() > 0:
                         # Only actually draw something if we have some events
-                        ax.scatter(x, y, 1, color=color, marker=',')
+                        ax.scatter(x, y, 1, color=color, marker=",")
 
                 else:
                     # Plot a regular 2D histogram
 
                     # Bin centres
-                    x = np.convolve(x_edg, np.ones(2)/2, mode='valid')
-                    y = np.convolve(y_edg, np.ones(2)/2, mode='valid')
-                    xx = np.broadcast_to(x, (len(y),len(x))).flatten()
+                    x = np.convolve(x_edg, np.ones(2) / 2, mode="valid")
+                    y = np.convolve(y_edg, np.ones(2) / 2, mode="valid")
+                    xx = np.broadcast_to(x, (len(y), len(x))).flatten()
                     yy = np.repeat(y, len(x))
 
                     # Plot it
                     if data.sum() == 0:
                         # Empty data messes with the normalisation
                         data.fill(0.001)
-                    ax.hist2d(xx, yy, weights=data.flat, bins=(x_edg, y_edg), density=density)
+                    ax.hist2d(
+                        xx, yy, weights=data.flat, bins=(x_edg, y_edg), density=density
+                    )
 
         # 1D vertical histograms
         for x, i in enumerate(self.x_axis_binnings):
             # Get axis to plot in
-            ax = figax[1][0,x]
+            ax = figax[1][0, x]
 
             # Project array
-            axis = list(range(arrays.ndim - 1)) # -1 because of stack axis 0
+            axis = list(range(arrays.ndim - 1))  # -1 because of stack axis 0
             del axis[i]
-            axis = tuple(x+1 for x in axis) # +1 because of stack axis 0
+            axis = tuple(x + 1 for x in axis)  # +1 because of stack axis 0
             data = np.asfarray(margin_function(arrays, axis=axis))
             # Upper and lower limit of area
             data_hi = upper(data, axis=0)
@@ -585,11 +628,11 @@ class CartesianProductBinningPlotter(BinningPlotter):
 
             # Plot the data
             args = {
-                'step': 'post',
-                'edgecolor': color,
-                'hatch': hatch,
-                'facecolor': 'none',
-                }
+                "step": "post",
+                "edgecolor": color,
+                "hatch": hatch,
+                "facecolor": "none",
+            }
             args.update(kwargs)
             data_lo = np.append(data_lo, data_lo[-1])
             data_hi = np.append(data_hi, data_hi[-1])
@@ -603,18 +646,18 @@ class CartesianProductBinningPlotter(BinningPlotter):
             ax.get_xaxis().set_major_locator(ticker.MaxNLocator(integer=True))
 
             # Add labels at the appropriate axes
-            ax = figax[1][-1,x]
+            ax = figax[1][-1, x]
             ax.set_xlabel(self.get_axis_label(i))
 
         # 1D horizontal histograms
         for y, i in enumerate(self.y_axis_binnings):
             # Get axis to plot in
-            ax = figax[1][-y-1,-1] # Rows are counted top to bottom
+            ax = figax[1][-y - 1, -1]  # Rows are counted top to bottom
 
             # Project array
-            axis = list(range(arrays.ndim - 1)) # -1 because of stack axis 0
+            axis = list(range(arrays.ndim - 1))  # -1 because of stack axis 0
             del axis[i]
-            axis = tuple(x+1 for x in axis) # +1 because of stack axis 0
+            axis = tuple(x + 1 for x in axis)  # +1 because of stack axis 0
             data = np.asfarray(margin_function(arrays, axis=axis))
             # Upper and lower limit of area
             data_hi = upper(data, axis=0)
@@ -630,11 +673,11 @@ class CartesianProductBinningPlotter(BinningPlotter):
 
             # Plot the data
             args = {
-                'step': 'post',
-                'edgecolor': color,
-                'hatch': hatch,
-                'facecolor': 'none',
-                }
+                "step": "post",
+                "edgecolor": color,
+                "hatch": hatch,
+                "facecolor": "none",
+            }
             args.update(kwargs)
             data_lo = np.append(data_lo, data_lo[-1])
             data_hi = np.append(data_hi, data_hi[-1])
@@ -648,22 +691,23 @@ class CartesianProductBinningPlotter(BinningPlotter):
             ax.get_yaxis().set_major_locator(ticker.MaxNLocator(integer=True))
 
             # Add labels at the appropriate axes
-            ax = figax[1][-y-1,0] # Rows are counted top to bottom
+            ax = figax[1][-y - 1, 0]  # Rows are counted top to bottom
             ax.set_ylabel(self.get_axis_label(i))
 
         # Hide empty axes
-        figax[1][0,-1].set_axis_off()
+        figax[1][0, -1].set_axis_off()
 
     def legend(self, **kwargs):
         """Draw a legend in the upper right corner of the plot."""
-        handles, labels = self.figax[1][0,0].get_legend_handles_labels()
+        handles, labels = self.figax[1][0, 0].get_legend_handles_labels()
         args = {
-            'loc': 'center',
-            'borderaxespad': 0.,
-            'frameon': False,
+            "loc": "center",
+            "borderaxespad": 0.0,
+            "frameon": False,
         }
         args.update(kwargs)
-        self.figax[1][0,-1].legend(handles, labels, **args)
+        self.figax[1][0, -1].legend(handles, labels, **args)
+
 
 class LinearBinningPlotter(BinningPlotter):
     """Plotting class for :class:`.LinearBinning`
@@ -704,10 +748,10 @@ class LinearBinningPlotter(BinningPlotter):
     """
 
     def __init__(self, binning, **kwargs):
-        kwargs['marginalize_subbinnings'] = True
+        kwargs["marginalize_subbinnings"] = True
         args = {
-            'bins_per_row': -1,
-            }
+            "bins_per_row": -1,
+        }
         args.update(kwargs)
         BinningPlotter.__init__(self, binning, **args)
 
@@ -718,33 +762,34 @@ class LinearBinningPlotter(BinningPlotter):
 
         """
         # Change default behaviour of `density`
-        kwargs['density'] = kwargs.get('density', True)
+        kwargs["density"] = kwargs.get("density", True)
         return ArrayPlotter.plot_array(self, *args, **kwargs)
 
     def get_bin_edges(self, i_min, i_max):
         """Get the finite bin edges."""
 
-        bins = self.binning.bin_edges[i_min:i_max+1]
+        bins = self.binning.bin_edges[i_min : i_max + 1]
 
         ret = list(bins)
         if not np.isfinite(ret[0]):
             if len(ret) >= 3 and np.isfinite(ret[2]):
                 ret[0] = ret[1] - (ret[2] - ret[1])
             elif np.isfinite(ret[1]):
-                ret[0] = ret[1]-1
+                ret[0] = ret[1] - 1
             else:
                 ret[0] = -0.5
         if not np.isfinite(ret[-1]):
             if len(ret) >= 3 and np.isfinite(ret[-3]):
                 ret[-1] = ret[-2] + (ret[-2] - ret[-3])
             else:
-                ret[-1] = ret[-2]+1
+                ret[-1] = ret[-2] + 1
 
         return np.array(ret)
 
     def get_axis_label(self):
         """Return variable name."""
         return self.binning.variable
+
 
 class RectilinearBinningPlotter(CartesianProductBinningPlotter):
     """Plotting class for :class:`.RectilinearBinning`
@@ -794,37 +839,39 @@ class RectilinearBinningPlotter(CartesianProductBinningPlotter):
 
     def __init__(self, binning, x_axis_binnings=None, y_axis_binnings=None, **kwargs):
         if x_axis_binnings is None:
-            x_axis_binnings = list(range(int(np.ceil(len(binning.binnings) / 2.))))
+            x_axis_binnings = list(range(int(np.ceil(len(binning.binnings) / 2.0))))
         else:
             x_axis_binnings = map(binning.get_variable_index, x_axis_binnings)
         if y_axis_binnings is None:
-            y_axis_binnings = list(range(int(np.ceil(len(binning.binnings) / 2.)), len(binning.binnings)))
+            y_axis_binnings = list(
+                range(int(np.ceil(len(binning.binnings) / 2.0)), len(binning.binnings))
+            )
         else:
             y_axis_binnings = map(binning.get_variable_index, y_axis_binnings)
-        kwargs['x_axis_binnings'] = x_axis_binnings
-        kwargs['y_axis_binnings'] = y_axis_binnings
-        kwargs['marginalize_subbinnings'] = True
-        kwargs['bins_per_row'] = -1
+        kwargs["x_axis_binnings"] = x_axis_binnings
+        kwargs["y_axis_binnings"] = y_axis_binnings
+        kwargs["marginalize_subbinnings"] = True
+        kwargs["bins_per_row"] = -1
         CartesianProductBinningPlotter.__init__(self, binning, **kwargs)
 
     def get_bin_edges(self, i_min, i_max, j_binning):
         """Get the finite bin edges."""
 
-        bins = self.binning.binnings[j_binning].bin_edges[i_min:i_max+1]
+        bins = self.binning.binnings[j_binning].bin_edges[i_min : i_max + 1]
 
         ret = list(bins)
         if not np.isfinite(ret[0]):
             if len(ret) >= 3 and np.isfinite(ret[2]):
                 ret[0] = ret[1] - (ret[2] - ret[1])
             elif np.isfinite(ret[1]):
-                ret[0] = ret[1]-1
+                ret[0] = ret[1] - 1
             else:
                 ret[0] = -0.5
         if not np.isfinite(ret[-1]):
             if len(ret) >= 3 and np.isfinite(ret[-3]):
                 ret[-1] = ret[-2] + (ret[-2] - ret[-3])
             else:
-                ret[-1] = ret[-2]+1
+                ret[-1] = ret[-2] + 1
 
         return np.array(ret)
 

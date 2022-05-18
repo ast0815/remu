@@ -12,6 +12,7 @@ from warnings import warn
 # Use this function/object for parallelization where possible
 mapper = map
 
+
 class JeffreysPrior(object):
     """Universal non-informative prior for use in Bayesian MCMC analysis.
 
@@ -91,7 +92,15 @@ class JeffreysPrior(object):
 
     """
 
-    def __init__(self, response_matrix, translation_function, parameter_limits, default_values, dx=None, total_truth_limit=None):
+    def __init__(
+        self,
+        response_matrix,
+        translation_function,
+        parameter_limits,
+        default_values,
+        dx=None,
+        total_truth_limit=None,
+    ):
         try:
             # Load response matrix and necessary arguments from file
             matrix, args = LikelihoodMachine._args_from_matrix_file(response_matrix)
@@ -107,8 +116,12 @@ class JeffreysPrior(object):
         self._translate = translation_function
 
         limits = list(zip(*parameter_limits))
-        self.lower_limits = np.array([ x if x is not None else -np.inf for x in limits[0] ])
-        self.upper_limits = np.array([ x if x is not None else np.inf for x in limits[1] ])
+        self.lower_limits = np.array(
+            [x if x is not None else -np.inf for x in limits[0]]
+        )
+        self.upper_limits = np.array(
+            [x if x is not None else np.inf for x in limits[1]]
+        )
 
         self.total_truth_limit = total_truth_limit or np.inf
 
@@ -198,10 +211,11 @@ class JeffreysPrior(object):
             return -np.inf
 
         fish = self.fisher_matrix(value, toy_index)
-        with np.errstate(under='ignore'):
+        with np.errstate(under="ignore"):
             sign, log_det = np.linalg.slogdet(fish)
 
-        return 0.5*log_det
+        return 0.5 * log_det
+
 
 class DataModel(object):
     """Base class for representation of data statistical models.
@@ -263,6 +277,7 @@ class DataModel(object):
     def __call__(self, *args, **kwargs):
         return self.log_likelihood(*args, **kwargs)
 
+
 class PoissonData(DataModel):
     """Class for fast Poisson likelihood calculations.
 
@@ -300,19 +315,20 @@ class PoissonData(DataModel):
 
     def __init__(self, data_vector):
         # Save constants for PMF calculation
-        with np.errstate(divide='ignore', invalid='ignore'):
+        with np.errstate(divide="ignore", invalid="ignore"):
             self.data_vector = np.asarray(data_vector, dtype=int)
             k = self.data_vector
-            self.k0 = (k == 0)
+            self.k0 = k == 0
             self.ln_k_factorial = -(
-                stats.poisson.logpmf(k, np.ones_like(k, dtype=float)) + 1.)
+                stats.poisson.logpmf(k, np.ones_like(k, dtype=float)) + 1.0
+            )
 
     @staticmethod
     def _poisson_logpmf(k, k0, ln_k_factorial, mu):
-        with np.errstate(divide='ignore', invalid='ignore'):
-            pmf = k*np.log(mu) - ln_k_factorial - mu
+        with np.errstate(divide="ignore", invalid="ignore"):
+            pmf = k * np.log(mu) - ln_k_factorial - mu
         # Need to take care of special case mu=0:  k=0 -> logpmf=0,  k>=1 -> logpmf=-inf
-        mu0 = (mu==0)
+        mu0 = mu == 0
         pmf[mu0 & k0] = 0
         pmf[mu0 & ~k0] = -np.inf
         pmf[~np.isfinite(pmf)] = -np.inf
@@ -330,20 +346,28 @@ class PoissonData(DataModel):
 
         reco_vector = np.asfarray(reco_vector)
 
-        data_shape = self.data_vector.shape # = ([a,b,...,]n_reco_bins,)
-        reco_shape = reco_vector.shape # = ([c,d,...,]n_reco_bins,)
+        data_shape = self.data_vector.shape  # = ([a,b,...,]n_reco_bins,)
+        reco_shape = reco_vector.shape  # = ([c,d,...,]n_reco_bins,)
 
         # Cast vectors to the shape ([a,b,...,][c,d,...,]n_reco_bins,)
-        data_index = ((slice(None),)*(len(data_shape)-1)
-                    + (np.newaxis,)*(len(reco_shape)-1) + (slice(None),))
-        reco_index = ((np.newaxis,)*(len(data_shape)-1)
-                    + (slice(None),)*(len(reco_shape)-1) + (slice(None),))
+        data_index = (
+            (slice(None),) * (len(data_shape) - 1)
+            + (np.newaxis,) * (len(reco_shape) - 1)
+            + (slice(None),)
+        )
+        reco_index = (
+            (np.newaxis,) * (len(data_shape) - 1)
+            + (slice(None),) * (len(reco_shape) - 1)
+            + (slice(None),)
+        )
 
         # Calculate the log probabilities of shape ([a,b,...,][c,d,...,]).
-        return self._poisson_logpmf(self.data_vector[data_index],
-                                    self.k0[data_index],
-                                    self.ln_k_factorial[data_index],
-                                    reco_vector[reco_index])
+        return self._poisson_logpmf(
+            self.data_vector[data_index],
+            self.k0[data_index],
+            self.ln_k_factorial[data_index],
+            reco_vector[reco_index],
+        )
 
     @classmethod
     def generate_toy_data(cls, reco_vector, size=None):
@@ -368,6 +392,7 @@ class PoissonData(DataModel):
         data = np.random.poisson(mu, size=size)
         return data
 
+
 class SystematicsConsumer(object):
     """Class that consumes the systematics axis on an array of log likelihoods."""
 
@@ -379,12 +404,14 @@ class SystematicsConsumer(object):
     def __call__(self, *args, **kwargs):
         return self.consume_axis(*args, **kwargs)
 
+
 class NoSystematics(SystematicsConsumer):
     """SystematicsConsumer that does nothing."""
 
     @staticmethod
     def consume_axis(log_likelihood, weights=None):
         return log_likelihood
+
 
 class MarginalLikelihoodSystematics(SystematicsConsumer):
     """SystematicsConsumer that averages over the systematic axis.
@@ -402,11 +429,12 @@ class MarginalLikelihoodSystematics(SystematicsConsumer):
         # Avoid numerical problems by using this "trick"
         max_weighted = np.max(weighted, axis=-1, keepdims=True)
         i_inf = ~np.isfinite(max_weighted)
-        max_weighted[i_inf] = 0.
+        max_weighted[i_inf] = 0.0
         weighted = weighted - max_weighted
-        with np.errstate(under='ignore'):
-            ret = max_weighted[...,0] + np.logaddexp.reduce(weighted, axis=-1)
+        with np.errstate(under="ignore"):
+            ret = max_weighted[..., 0] + np.logaddexp.reduce(weighted, axis=-1)
         return ret
+
 
 class ProfileLikelihoodSystematics(SystematicsConsumer):
     """SystematicsConsumer that maximises over the systematic axes."""
@@ -414,6 +442,7 @@ class ProfileLikelihoodSystematics(SystematicsConsumer):
     @staticmethod
     def consume_axis(log_likelihood, weights=None):
         return np.max(log_likelihood, axis=-1)
+
 
 class Predictor(object):
     """Base class for objects that turn sets of parameters to predictions.
@@ -443,8 +472,7 @@ class Predictor(object):
     def check_bounds(self, parameters):
         parameters = np.asfarray(parameters)
         """Check that all parameters are within bounds."""
-        check = ((parameters >= self.bounds[:,0])
-                & (parameters <= self.bounds[:,1]))
+        check = (parameters >= self.bounds[:, 0]) & (parameters <= self.bounds[:, 1])
         return np.all(check, axis=-1)
 
     def prediction(self, parameters, systematics_index=slice(None)):
@@ -507,10 +535,11 @@ class Predictor(object):
 
         """
 
-        return ComposedPredictor([self,other])
+        return ComposedPredictor([self, other])
 
     def __call__(self, *args, **kwargs):
         return self.prediction(*args, **kwargs)
+
 
 class ComposedPredictor(Predictor):
     """Wrapper class that composes different Predictors into one.
@@ -573,16 +602,27 @@ class ComposedPredictor(Predictor):
         shape = parameters.shape
         shape_len = len(shape)
         #           c,d,...                    syst0,syst1,...                             n_reco
-        new_order = tuple(range(orig_len-1)) + tuple(range(shape_len-2, orig_len-2, -1)) + (shape_len-1,)
+        new_order = (
+            tuple(range(orig_len - 1))
+            + tuple(range(shape_len - 2, orig_len - 2, -1))
+            + (shape_len - 1,)
+        )
         parameters = np.transpose(parameters, new_order)
-        parameters = parameters.reshape(orig_shape[:-1] + (np.prod(shape[orig_len-1:-1]),) + shape[-1:])
+        parameters = parameters.reshape(
+            orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),) + shape[-1:]
+        )
 
         #           c,d,...                    syst0,syst1,...
-        new_order = tuple(range(orig_len-1)) + tuple(range(shape_len-2, orig_len-2, -1))
+        new_order = tuple(range(orig_len - 1)) + tuple(
+            range(shape_len - 2, orig_len - 2, -1)
+        )
         weights = np.transpose(weights, new_order)
-        weights = weights.reshape(orig_shape[:-1] + (np.prod(shape[orig_len-1:-1]),))
+        weights = weights.reshape(
+            orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),)
+        )
 
         return parameters, weights
+
 
 class FixedParameterPredictor(Predictor):
     """Wrapper class that fixes parameters of another predictor."""
@@ -622,6 +662,7 @@ class FixedParameterPredictor(Predictor):
 
         parameters = self.insert_fixed_parameters(parameters)
         return self.predictor(parameters, systematics_index)
+
 
 class LinearPredictor(Predictor):
     """Predictor that uses a matrix to fold parameters into reco space.
@@ -667,20 +708,28 @@ class LinearPredictor(Predictor):
 
     """
 
-    def __init__(self, matrices, constants=0., weights=1., bounds=None, defaults=None, sparse_indices=None):
+    def __init__(
+        self,
+        matrices,
+        constants=0.0,
+        weights=1.0,
+        bounds=None,
+        defaults=None,
+        sparse_indices=None,
+    ):
         self.matrices = np.asfarray(matrices)
         while self.matrices.ndim < 3:
-            self.matrices = self.matrices[np.newaxis,...]
+            self.matrices = self.matrices[np.newaxis, ...]
         self.constants = np.asfarray(constants)
         while self.constants.ndim < 2:
-            self.constants = self.constants[np.newaxis,...]
+            self.constants = self.constants[np.newaxis, ...]
         self.weights = np.asfarray(weights)
         while self.weights.ndim < 1:
-            self.weights = self.weights[np.newaxis,...]
+            self.weights = self.weights[np.newaxis, ...]
         if bounds is None:
             bounds = np.array([(-np.inf, np.inf)] * self.matrices.shape[-1])
         if defaults is None:
-            defaults = np.array([1.] * self.matrices.shape[-1])
+            defaults = np.array([1.0] * self.matrices.shape[-1])
         if sparse_indices is None:
             self.sparse_indices = slice(None)
         else:
@@ -701,8 +750,8 @@ class LinearPredictor(Predictor):
         weights = self.weights[systematics_index]
         constants = self.constants[systematics_index]
 
-        parameters = np.asarray(parameters)[...,self.sparse_indices]
-        prediction = np.tensordot(parameters, matrix, axes=((-1,),(-1,)))
+        parameters = np.asarray(parameters)[..., self.sparse_indices]
+        prediction = np.tensordot(parameters, matrix, axes=((-1,), (-1,)))
         prediction += constants
         weights = np.broadcast_to(weights, prediction.shape[:-1])
         return prediction, weights
@@ -717,9 +766,9 @@ class LinearPredictor(Predictor):
         """
 
         if isinstance(other, LinearPredictor):
-            return ComposedLinearPredictor([self,other])
+            return ComposedLinearPredictor([self, other])
         else:
-            return Predictor.compose(self,other)
+            return Predictor.compose(self, other)
 
     def fix_parameters(self, fix_values):
         """Return a new Predictor with fewer free parameters.
@@ -732,6 +781,7 @@ class LinearPredictor(Predictor):
         """
 
         return FixedParameterLinearPredictor(self, fix_values)
+
 
 class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
     """Composition of LinearPredictors.
@@ -756,17 +806,28 @@ class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
         self.defaults = predictors[-1].defaults
 
         # Use methods of regular ComposedPredictor to calculate everything
-        constants, weights = ComposedPredictor.prediction(self, np.zeros_like(self.defaults))
+        constants, weights = ComposedPredictor.prediction(
+            self, np.zeros_like(self.defaults)
+        )
         columns = []
         for i in range(len(self.defaults)):
             par = np.zeros_like(self.defaults)
-            par[i] = 1.
+            par[i] = 1.0
             col, _ = ComposedPredictor.prediction(self, par)
             col -= constants
-            columns.append(col[...,np.newaxis])
+            columns.append(col[..., np.newaxis])
         matrices = np.concatenate(columns, axis=-1)
 
-        LinearPredictor.__init__(self, matrices, constants=constants, weights=weights, bounds=self.bounds, defaults=self.defaults, sparse_indices=None)
+        LinearPredictor.__init__(
+            self,
+            matrices,
+            constants=constants,
+            weights=weights,
+            bounds=self.bounds,
+            defaults=self.defaults,
+            sparse_indices=None,
+        )
+
 
 class FixedParameterLinearPredictor(LinearPredictor, FixedParameterPredictor):
     """Wrapper class that fixes parameters of a linear predictor."""
@@ -774,13 +835,22 @@ class FixedParameterLinearPredictor(LinearPredictor, FixedParameterPredictor):
     def __init__(self, predictor, fix_values):
         FixedParameterPredictor.__init__(self, predictor, fix_values)
 
-        matrices = self.predictor.matrices[...,np.isnan(self.fix_values)]
+        matrices = self.predictor.matrices[..., np.isnan(self.fix_values)]
 
         const_par = self.fix_values
-        const_par[np.isnan(self.fix_values)] = 0.
+        const_par[np.isnan(self.fix_values)] = 0.0
         constants, weights = self.predictor(const_par)
 
-        LinearPredictor.__init__(self, matrices, constants=constants, weights=weights, bounds=self.bounds, defaults=self.defaults, sparse_indices=None)
+        LinearPredictor.__init__(
+            self,
+            matrices,
+            constants=constants,
+            weights=weights,
+            bounds=self.bounds,
+            defaults=self.defaults,
+            sparse_indices=None,
+        )
+
 
 class ResponseMatrixPredictor(LinearPredictor):
     """Event rate predictor from ResponseMatrix objects.
@@ -796,17 +866,28 @@ class ResponseMatrixPredictor(LinearPredictor):
 
     def __init__(self, filename):
         data = np.load(filename)
-        matrices = data['matrices']
-        constants = 0.
-        weights = data.get('weights', 1.)
-        if data.get('is_sparse', False):
-            sparse_indices = data['sparse_indices']
+        matrices = data["matrices"]
+        constants = 0.0
+        weights = data.get("weights", 1.0)
+        if data.get("is_sparse", False):
+            sparse_indices = data["sparse_indices"]
         else:
             sparse_indices = slice(None)
-        eps = np.finfo(float).eps # Add epsilon so there is a very small allowed range for empty bins
-        bounds = [ (0., x+eps) for x in data['truth_entries'] ]
-        defaults = data['truth_entries'] / 2.
-        LinearPredictor.__init__(self, matrices, constants=constants, weights=weights, bounds=bounds, defaults=defaults, sparse_indices=sparse_indices)
+        eps = np.finfo(
+            float
+        ).eps  # Add epsilon so there is a very small allowed range for empty bins
+        bounds = [(0.0, x + eps) for x in data["truth_entries"]]
+        defaults = data["truth_entries"] / 2.0
+        LinearPredictor.__init__(
+            self,
+            matrices,
+            constants=constants,
+            weights=weights,
+            bounds=bounds,
+            defaults=defaults,
+            sparse_indices=sparse_indices,
+        )
+
 
 class TemplatePredictor(LinearPredictor):
     """LinearPredictor from templates.
@@ -828,9 +909,17 @@ class TemplatePredictor(LinearPredictor):
     def __init__(self, templates, constants=0, **kwargs):
         matrices = np.asarray(templates)
         matrices = np.array(np.swapaxes(matrices, -1, -2))
-        bounds = kwargs.pop('bounds', [ (0., np.inf) ] * matrices.shape[-1])
-        defaults = kwargs.pop('defaults', [ 1. ] * matrices.shape[-1])
-        LinearPredictor.__init__(self, matrices, constants=constants, bounds=bounds, defaults=defaults, **kwargs)
+        bounds = kwargs.pop("bounds", [(0.0, np.inf)] * matrices.shape[-1])
+        defaults = kwargs.pop("defaults", [1.0] * matrices.shape[-1])
+        LinearPredictor.__init__(
+            self,
+            matrices,
+            constants=constants,
+            bounds=bounds,
+            defaults=defaults,
+            **kwargs
+        )
+
 
 class LikelihoodCalculator(object):
     """Class that calculates the likelihoods of parameter sets.
@@ -853,12 +942,12 @@ class LikelihoodCalculator(object):
 
     """
 
-    def __init__(self, data_model, predictor, systematics='marginal'):
+    def __init__(self, data_model, predictor, systematics="marginal"):
         self.data_model = data_model
         self.predictor = predictor
-        if systematics == 'marginal' or systematics == 'average':
+        if systematics == "marginal" or systematics == "average":
             self.systematics = MarginalLikelihoodSystematics
-        elif systematics == 'profile' or systematics == 'maximum':
+        elif systematics == "profile" or systematics == "maximum":
             self.systematics = ProfileLikelihoodSystematics
         else:
             self.systematics = systematics
@@ -879,7 +968,7 @@ class LikelihoodCalculator(object):
             if not check:
                 log_likelihood = -np.inf
         else:
-            log_likelihood[...,~check] = -np.inf
+            log_likelihood[..., ~check] = -np.inf
         return log_likelihood
 
     def generate_toy_likelihood_calculators(self, parameters, N=1, **kwargs):
@@ -946,6 +1035,7 @@ class LikelihoodCalculator(object):
     def __call__(self, *args, **kwargs):
         return self.log_likelihood(*args, **kwargs)
 
+
 class LikelihoodMaximizer(object):
     """Class to maximise the likelihood over a parameter space."""
 
@@ -955,9 +1045,11 @@ class LikelihoodMaximizer(object):
 
     def maximize_log_likelihood(self, likelihood_calculator, **kwargs):
         """Maximise the likelihood"""
+
         def fun(x):
             fun = -likelihood_calculator(x)
             return fun
+
         bounds = likelihood_calculator.predictor.bounds
         x0 = likelihood_calculator.predictor.defaults
         if len(x0) == 0:
@@ -973,6 +1065,7 @@ class LikelihoodMaximizer(object):
 
     def __call__(self, *args, **kwargs):
         return self.maximize_log_likelihood(*args, **kwargs)
+
 
 class BasinHoppingMaximizer(LikelihoodMaximizer):
     """Class to maximise the likelihood over a parameter space.
@@ -992,21 +1085,20 @@ class BasinHoppingMaximizer(LikelihoodMaximizer):
 
     def minimize(self, fun, x0, bounds, **kwargs):
         minimizer_kwargs = {
-            'bounds' : bounds,
-            }
+            "bounds": bounds,
+        }
         # expected log likelihood variation in the order of degrees of freedom
         args = {
-            'T': len(x0),
-            'niter': 10,
-            'minimizer_kwargs': minimizer_kwargs,
+            "T": len(x0),
+            "niter": 10,
+            "minimizer_kwargs": minimizer_kwargs,
         }
         args.update(self.kwargs)
         return optimize.basinhopping(fun, x0, **args)
 
-class HypothesisTester(object):
-    """Class for statistical tests of hypotheses.
 
-    """
+class HypothesisTester(object):
+    """Class for statistical tests of hypotheses."""
 
     def __init__(self, likelihood_calculator, maximizer=BasinHoppingMaximizer()):
         self.likelihood_calculator = likelihood_calculator
@@ -1073,15 +1165,17 @@ class HypothesisTester(object):
         shape = parameters.shape[:-1]
         parameters.shape = (np.prod(shape, dtype=int), parameters.shape[-1])
 
-        LC = self.likelihood_calculator # Calculator
+        LC = self.likelihood_calculator  # Calculator
 
         p_values = []
 
         for par in parameters:
-            L0 = LC(par, **kwargs) # Likelihood given data
+            L0 = LC(par, **kwargs)  # Likelihood given data
 
             toy_LC = LC.generate_toy_likelihood_calculators(par, N=N, **kwargs)
-            toy_L = list(mapper(lambda C, par=par, kwargs=kwargs: C(par, **kwargs), toy_LC))
+            toy_L = list(
+                mapper(lambda C, par=par, kwargs=kwargs: C(par, **kwargs), toy_LC)
+            )
             toy_L = np.array(toy_L)
 
             p_values.append(np.sum(L0 >= toy_L, axis=-1) / N)
@@ -1152,10 +1246,10 @@ class HypothesisTester(object):
         """
 
         if fix_parameters is None:
-            LC = self.likelihood_calculator # Calculator
+            LC = self.likelihood_calculator  # Calculator
         else:
-            LC = self.likelihood_calculator.fix_parameters(fix_parameters) # Calculator
-        maxer = self.maximizer # Maximiser
+            LC = self.likelihood_calculator.fix_parameters(fix_parameters)  # Calculator
+        maxer = self.maximizer  # Maximiser
 
         opt = maxer(LC)
         opt_par = opt.x
@@ -1163,13 +1257,15 @@ class HypothesisTester(object):
 
         toy_LC = LC.generate_toy_likelihood_calculators(opt_par, N=N)
         toy_opt = list(mapper(lambda C, maxer=maxer: maxer(C), toy_LC))
-        toy_L = np.asfarray([ O.log_likelihood for O in toy_opt ])
+        toy_L = np.asfarray([O.log_likelihood for O in toy_opt])
 
         p_value = np.sum(L0 >= toy_L, axis=-1) / N
 
         return p_value
 
-    def _max_log_likelihood_ratio(self, LC, fix_parameters, alternative_fix_parameters, return_parameters=False):
+    def _max_log_likelihood_ratio(
+        self, LC, fix_parameters, alternative_fix_parameters, return_parameters=False
+    ):
         # Calculator 0
         LC0 = LC.fix_parameters(fix_parameters)
 
@@ -1179,7 +1275,7 @@ class HypothesisTester(object):
         else:
             LC1 = LC.fix_parameters(alternative_fix_parameters)
 
-        maxer = self.maximizer # Maximiser
+        maxer = self.maximizer  # Maximiser
 
         opt0 = maxer(LC0)
         opt1 = maxer(LC1)
@@ -1194,7 +1290,9 @@ class HypothesisTester(object):
         else:
             return L0 - L1
 
-    def max_likelihood_ratio_p_value(self, fix_parameters, alternative_fix_parameters=None, N=250, **kwargs):
+    def max_likelihood_ratio_p_value(
+        self, fix_parameters, alternative_fix_parameters=None, N=250, **kwargs
+    ):
         """Calculate the maximum-likelihood-ratio p-value.
 
         The maximum-likelihood-ratio p-value is the probability of the data
@@ -1264,14 +1362,22 @@ class HypothesisTester(object):
         """
 
         LC = self.likelihood_calculator
-        ratio0, parameters = self._max_log_likelihood_ratio(LC, fix_parameters, alternative_fix_parameters, return_parameters=True)
+        ratio0, parameters = self._max_log_likelihood_ratio(
+            LC, fix_parameters, alternative_fix_parameters, return_parameters=True
+        )
 
         # Generate toy data
         toy_LC = LC.generate_toy_likelihood_calculators(parameters, N=N)
 
         # Calculate ratios for toys
-        def fun(LC, fix_parameters=fix_parameters, alternative_fix_parameters=alternative_fix_parameters):
-            return self._max_log_likelihood_ratio(LC, fix_parameters, alternative_fix_parameters)
+        def fun(
+            LC,
+            fix_parameters=fix_parameters,
+            alternative_fix_parameters=alternative_fix_parameters,
+        ):
+            return self._max_log_likelihood_ratio(
+                LC, fix_parameters, alternative_fix_parameters
+            )
 
         toy_ratios = np.array(list(mapper(fun, toy_LC)))
 
@@ -1280,7 +1386,9 @@ class HypothesisTester(object):
 
         return p_value
 
-    def wilks_max_likelihood_ratio_p_value(self, fix_parameters, alternative_fix_parameters=None, **kwargs):
+    def wilks_max_likelihood_ratio_p_value(
+        self, fix_parameters, alternative_fix_parameters=None, **kwargs
+    ):
         """Calculate the maximum-likelihood-ratio p-value using Wilk's theorem.
 
         The maximum-likelihood-ratio p-value is the probability of the data
@@ -1333,13 +1441,19 @@ class HypothesisTester(object):
         """
 
         LC = self.likelihood_calculator
-        ratio0 = self._max_log_likelihood_ratio(LC, fix_parameters, alternative_fix_parameters)
+        ratio0 = self._max_log_likelihood_ratio(
+            LC, fix_parameters, alternative_fix_parameters
+        )
 
         # Likelihood ratio should be distributed like a chi2 distribution
         if alternative_fix_parameters is None:
             # All parameters - unfixed parameters in H0
-            ndof = len(fix_parameters) - np.sum(np.isnan(np.array(fix_parameters, dtype=float)))
+            ndof = len(fix_parameters) - np.sum(
+                np.isnan(np.array(fix_parameters, dtype=float))
+            )
         else:
             # Unfixed parameters in H1 - unfixed parameters in H0
-            ndof = np.sum(np.isnan(np.array(alternative_fix_parameters, dtype=float))) - np.sum(np.isnan(np.array(fix_parameters, dtype=float)))
-        return stats.chi2.sf(-2.*ratio0, df=ndof)
+            ndof = np.sum(
+                np.isnan(np.array(alternative_fix_parameters, dtype=float))
+            ) - np.sum(np.isnan(np.array(fix_parameters, dtype=float)))
+        return stats.chi2.sf(-2.0 * ratio0, df=ndof)

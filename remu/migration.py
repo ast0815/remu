@@ -9,6 +9,7 @@ from warnings import warn
 
 from .binning import Binning, CartesianProductBinning
 
+
 class ResponseMatrix(object):
     """Matrix that describes the detector response to true events.
 
@@ -65,20 +66,31 @@ class ResponseMatrix(object):
 
     """
 
-    def __init__(self, reco_binning, truth_binning, nuisance_indices=[], impossible_indices=[], response_binning=None):
+    def __init__(
+        self,
+        reco_binning,
+        truth_binning,
+        nuisance_indices=[],
+        impossible_indices=[],
+        response_binning=None,
+    ):
         self.truth_binning = truth_binning
         self.reco_binning = reco_binning
         if response_binning is None:
-            self.response_binning = CartesianProductBinning([reco_binning.clone(dummy=True), truth_binning.clone(dummy=True)])
+            self.response_binning = CartesianProductBinning(
+                [reco_binning.clone(dummy=True), truth_binning.clone(dummy=True)]
+            )
         else:
             self.response_binning = response_binning
-        self.nuisance_indices=nuisance_indices
-        self.impossible_indices=impossible_indices
+        self.nuisance_indices = nuisance_indices
+        self.impossible_indices = impossible_indices
         self._update_filled_indices()
 
     def _update_filled_indices(self):
         """Update the list of filled truth indices."""
-        self.filled_truth_indices = np.argwhere(self.get_truth_entries_as_ndarray() > 0).flatten()
+        self.filled_truth_indices = np.argwhere(
+            self.get_truth_entries_as_ndarray() > 0
+        ).flatten()
 
     def fill(self, *args, **kwargs):
         """Fill events into the binnings."""
@@ -92,19 +104,23 @@ class ResponseMatrix(object):
 
         resp = self.get_response_values_as_ndarray()
         truth = self.get_truth_values_as_ndarray()
-        resp = resp.reshape((resp.size // truth.size, truth.size), order='C')
+        resp = resp.reshape((resp.size // truth.size, truth.size), order="C")
         resp = np.sum(resp, axis=0)
-        diff = truth-resp
+        diff = truth - resp
 
         if np.any(truth < 0):
             raise RuntimeError("Illegal response matrix: Negative true weight!")
         if np.any(resp < 0):
-            raise RuntimeError("Illegal response matrix: Negative total reconstructed weight!")
+            raise RuntimeError(
+                "Illegal response matrix: Negative total reconstructed weight!"
+            )
 
-        if np.any(diff < -1e-9): # Allow rounding errors
-            raise RuntimeError("Illegal response matrix: Higher total reconstructed than true weight!")
+        if np.any(diff < -1e-9):  # Allow rounding errors
+            raise RuntimeError(
+                "Illegal response matrix: Higher total reconstructed than true weight!"
+            )
 
-        if np.any(diff < 0.): # But make sure truth is >= reco
+        if np.any(diff < 0.0):  # But make sure truth is >= reco
             fixed_truth = np.where(diff < 0, resp, truth)
             self.truth_binning.set_values_from_ndarray(fixed_truth)
 
@@ -121,7 +137,11 @@ class ResponseMatrix(object):
         fill_up_truth_from_csv_file : Re-fill only truth bins from different file.
 
         """
-        Binning.fill_multiple_from_csv_file([self.truth_binning, self.reco_binning, self.response_binning], *args, **kwargs)
+        Binning.fill_multiple_from_csv_file(
+            [self.truth_binning, self.reco_binning, self.response_binning],
+            *args,
+            **kwargs
+        )
         self._fix_rounding_errors()
         self._update_filled_indices()
 
@@ -224,23 +244,37 @@ class ResponseMatrix(object):
 
         if np.any(new_values < 0):
             i = np.argwhere(new_values < 0)
-            raise RuntimeError("Filled-up values are negative in %d bins."%(i.size,), stacklevel=3)
+            raise RuntimeError(
+                "Filled-up values are negative in %d bins." % (i.size,), stacklevel=3
+            )
 
-        where = (new_values > 0)
+        where = new_values > 0
         diff_v = new_values - old_values
         diff_e = new_entries - old_entries
         # Check for bins where the fill-up is less than the original
         if np.any(where & (diff_v < -1e-9)):
             i = np.argwhere(where & (diff_v < -1e-9))
-            warn("Filled-up values are less than the original filling in %d bins. This should not happen!"%(i.size,), stacklevel=3)
+            warn(
+                "Filled-up values are less than the original filling in %d bins. This should not happen!"
+                % (i.size,),
+                stacklevel=3,
+            )
         if np.any(where & (diff_e < 0)):
             i = np.argwhere(where & (diff_e < 0))
-            warn("Filled-up entries are less than the original filling in %d bins. This should not happen!"%(i.size,), stacklevel=3)
+            warn(
+                "Filled-up entries are less than the original filling in %d bins. This should not happen!"
+                % (i.size,),
+                stacklevel=3,
+            )
 
-        where = (where & (diff_v >= 0) & (diff_e >= 0))
+        where = where & (diff_v >= 0) & (diff_e >= 0)
 
-        self.truth_binning.set_values_from_ndarray(np.where(where, new_values, old_values))
-        self.truth_binning.set_entries_from_ndarray(np.where(where, new_entries, old_entries))
+        self.truth_binning.set_values_from_ndarray(
+            np.where(where, new_values, old_values)
+        )
+        self.truth_binning.set_entries_from_ndarray(
+            np.where(where, new_entries, old_entries)
+        )
         self.truth_binning.set_sumw2_from_ndarray(np.where(where, new_sumw2, old_sumw2))
 
         self._fix_rounding_errors()
@@ -330,7 +364,7 @@ class ResponseMatrix(object):
     def _normalize_matrix(M):
         """Make sure all efficiencies are less than or equal to 1."""
         eff = np.sum(M, axis=-2)
-        eff = np.where(eff < 1., 1., eff)[...,np.newaxis,:]
+        eff = np.where(eff < 1.0, 1.0, eff)[..., np.newaxis, :]
         return M / eff
 
     def get_response_matrix_as_ndarray(self, shape=None, truth_indices=None):
@@ -378,21 +412,27 @@ class ResponseMatrix(object):
         original_shape = (self.reco_binning.data_size, self.truth_binning.data_size)
 
         # Get the bin response entries
-        M = self.get_response_values_as_ndarray(original_shape)[:,truth_indices]
+        M = self.get_response_values_as_ndarray(original_shape)[:, truth_indices]
 
         # Normalize to number of simulated events
         N_t = self.get_truth_values_as_ndarray(indices=truth_indices)
-        M /= np.where(N_t > 0., N_t, 1.)
+        M /= np.where(N_t > 0.0, N_t, 1.0)
 
         # Deal with bins where N_reco > N_truth
         M = ResponseMatrix._normalize_matrix(M)
 
         if shape is not None:
-            M = M.reshape(shape, order='C')
+            M = M.reshape(shape, order="C")
 
         return M
 
-    def _get_stat_error_parameters(self, expected_weight=1., nuisance_indices=None, impossible_indices=None, truth_indices=None):
+    def _get_stat_error_parameters(
+        self,
+        expected_weight=1.0,
+        nuisance_indices=None,
+        impossible_indices=None,
+        truth_indices=None,
+    ):
         r"""Return $\beta^t_1j$, $\beta^t_2j$, $\alpha^t_{ij}$, $\hat{w}^t_{ij}$ and $\sigma(w^t_{ij})$.
 
         Used for calculations of statistical variance.
@@ -415,7 +455,7 @@ class ResponseMatrix(object):
             mask = i < len(truth_indices)
             i = i[mask]
             nuisance_indices = np.asarray(nuisance_indices)[mask]
-            mask = (nuisance_indices == np.asarray(truth_indices)[i])
+            mask = nuisance_indices == np.asarray(truth_indices)[i]
             nuisance_indices = np.array(i[mask])
             del mask
             del i
@@ -425,7 +465,9 @@ class ResponseMatrix(object):
         orig_shape = (N_reco, N_truth)
         epsilon = 1e-50
 
-        resp_entries = self.get_response_entries_as_ndarray(orig_shape)[:,truth_indices]
+        resp_entries = self.get_response_entries_as_ndarray(orig_shape)[
+            :, truth_indices
+        ]
         truth_entries = self.get_truth_entries_as_ndarray(indices=truth_indices)
 
         # Get parameters of Beta distribution characterizing the efficiency.
@@ -434,7 +476,9 @@ class ResponseMatrix(object):
         # "Waste bin" of not selected events
         waste_entries = truth_entries - beta1
         if np.any(waste_entries < 0):
-            raise RuntimeError("Illegal response matrix: More reconstructed than true events!")
+            raise RuntimeError(
+                "Illegal response matrix: More reconstructed than true events!"
+            )
         beta1 = np.asfarray(beta1 + 1)
         beta2 = np.asfarray(waste_entries + 1)
 
@@ -449,26 +493,30 @@ class ResponseMatrix(object):
         # This leads to prior parameters >1 for degenerate reco binnings with < 3 bins/variable.
         # We protect against that by setting the maximum prior value to 1.
         n_vars = len(self.reco_binning.phasespace)
-        prior = min(1., 3.**n_vars / (N_reco - len(impossible_indices)))
+        prior = min(1.0, 3.0**n_vars / (N_reco - len(impossible_indices)))
         alpha = np.asfarray(resp_entries) + prior
 
         # Set efficiency of impossible bins to (almost) 0
         alpha[impossible_indices] = epsilon
 
         # Estimate mean weight
-        resp1 = self.get_response_values_as_ndarray(orig_shape)[:,truth_indices]
-        resp2 = self.get_response_sumw2_as_ndarray(orig_shape)[:,truth_indices]
+        resp1 = self.get_response_values_as_ndarray(orig_shape)[:, truth_indices]
+        resp2 = self.get_response_sumw2_as_ndarray(orig_shape)[:, truth_indices]
         truth1 = self.get_truth_values_as_ndarray(indices=truth_indices)
         truth2 = self.get_truth_sumw2_as_ndarray(indices=truth_indices)
         # Add truth bin of all events
-        resp1 = np.append(resp1, truth1[np.newaxis,:], axis=0)
-        resp2 = np.append(resp2, truth2[np.newaxis,:], axis=0)
-        resp_entries = np.append(resp_entries, truth_entries[np.newaxis,:], axis=0)
+        resp1 = np.append(resp1, truth1[np.newaxis, :], axis=0)
+        resp2 = np.append(resp2, truth2[np.newaxis, :], axis=0)
+        resp_entries = np.append(resp_entries, truth_entries[np.newaxis, :], axis=0)
 
-        i = ((resp_entries > 0) & (resp1 > 0))
-        mu = resp1/np.where(i, resp_entries, 1)
-        mu[-1] = np.where(i[-1], mu[-1], expected_weight) # Set empty truth bins to expected weight
-        mu[:-1,:] = np.where(i[:-1], mu[:-1,:], mu[-1,:]) # Set empty reco bins to average truth weight
+        i = (resp_entries > 0) & (resp1 > 0)
+        mu = resp1 / np.where(i, resp_entries, 1)
+        mu[-1] = np.where(
+            i[-1], mu[-1], expected_weight
+        )  # Set empty truth bins to expected weight
+        mu[:-1, :] = np.where(
+            i[:-1], mu[:-1, :], mu[-1, :]
+        )  # Set empty reco bins to average truth weight
 
         # Add pseudo observation for variance estimation
         resp1_p = resp1 + expected_weight
@@ -486,7 +534,9 @@ class ResponseMatrix(object):
         #                    ^
         #                    |----- sum of squared weights
         #
-        var = ((resp2_p/resp_entries_p) - (resp1_p/resp_entries_p)**2) / resp_entries_p
+        var = (
+            (resp2_p / resp_entries_p) - (resp1_p / resp_entries_p) ** 2
+        ) / resp_entries_p
 
         sigma = np.sqrt(var)
         # Add an epsilon so sigma is always > 0
@@ -555,12 +605,12 @@ class ResponseMatrix(object):
         mij = wij / wj
 
         # Combine the three
-        MM = mij*pij*effj
+        MM = mij * pij * effj
         # Re-normalise after weight corrections
         MM = ResponseMatrix._normalize_matrix(MM)
 
         if shape is not None:
-            MM = MM.reshape(shape, order='C')
+            MM = MM.reshape(shape, order="C")
 
         return MM
 
@@ -662,7 +712,7 @@ class ResponseMatrix(object):
         beta0 = beta1 + beta2
         effj = beta1 / beta0
         # Posterior variance
-        effj_var = beta1*beta2 / (beta0**2 * (beta0+1))
+        effj_var = beta1 * beta2 / (beta0**2 * (beta0 + 1))
 
         # Unweighted (multinomial) smearing probabilty
         # Posterior mean estimate = alpha / alpha0
@@ -671,7 +721,7 @@ class ResponseMatrix(object):
         # Posterior variance
         pij_var = np.asfarray(alpha0 - alpha)
         pij_var *= alpha
-        pij_var /= (alpha0**2 * (alpha0+1))
+        pij_var /= alpha0**2 * (alpha0 + 1)
 
         # Weight correction
         wij = mu[:-1]
@@ -683,7 +733,7 @@ class ResponseMatrix(object):
         #     var(m_ij) = var(w_ij) / w_j**2 + (w_ij/w_j**2)**2 * var(w_j)
         wj2 = wj**2
         var = sigma**2
-        mij_var = var[:-1]/wj2 + (wij/wj2)**2 * var[-1]
+        mij_var = var[:-1] / wj2 + (wij / wj2) ** 2 * var[-1]
 
         # Combine uncertainties
         effj2 = effj**2
@@ -692,11 +742,13 @@ class ResponseMatrix(object):
         MM = mij2 * pij2 * effj_var + mij2 * pij_var * effj2 + mij_var * pij2 * effj2
 
         if shape is not None:
-            MM = MM.reshape(shape, order='C')
+            MM = MM.reshape(shape, order="C")
 
         return MM
 
-    def get_in_bin_variation_as_ndarray(self, shape=None, truth_indices=None, normalize=True, **kwargs):
+    def get_in_bin_variation_as_ndarray(
+        self, shape=None, truth_indices=None, normalize=True, **kwargs
+    ):
         """Get an estimate for the variation of the response within a bin.
 
         The in-bin variation is estimated from the maximum difference to the
@@ -746,11 +798,11 @@ class ResponseMatrix(object):
                 if normalize:
                     var = variance[reco_index, truth_index]
                     var = var + variance[reco_index, adjacent[truth_index]]
-                    diff = diff/var
+                    diff = diff / var
                 variation[reco_index, truth_index] = np.sqrt(np.max(diff))
 
         if truth_indices is not None:
-            variation = variation[:,truth_indices]
+            variation = variation[:, truth_indices]
 
         if shape is not None:
             variation.shape = shape
@@ -768,7 +820,7 @@ class ResponseMatrix(object):
         params = np.asfarray(alpha)
 
         if size is None:
-            total_size = (len(alpha))
+            total_size = len(alpha)
         else:
             try:
                 total_size = tuple(list(size) + [len(alpha)])
@@ -781,14 +833,14 @@ class ResponseMatrix(object):
 
         xs = np.zeros(total_size)
 
-        xs[...,0] = np.random.beta(params[0], np.sum(params[1:]), size=size)
-        for j in range(1,len(params)-1):
-            phi = np.random.beta(params[j], sum(params[j+1:]), size=size)
-            xs[...,j] = (1-np.sum(xs, axis=-1)) * phi
-        xs[...,-1] = (1-np.sum(xs, axis=-1))
+        xs[..., 0] = np.random.beta(params[0], np.sum(params[1:]), size=size)
+        for j in range(1, len(params) - 1):
+            phi = np.random.beta(params[j], sum(params[j + 1 :]), size=size)
+            xs[..., j] = (1 - np.sum(xs, axis=-1)) * phi
+        xs[..., -1] = 1 - np.sum(xs, axis=-1)
 
         # Fix rounding errors
-        xs[xs<0] = 0
+        xs[xs < 0] = 0
 
         return xs
 
@@ -870,22 +922,22 @@ class ResponseMatrix(object):
 
         # Generate random weights
         wij = np.abs(np.random.normal(mu, sigma, size=size))
-        wj = wij[...,-1,:]
-        wij = wij[...,:-1,:]
-        mij = (wij / wj[...,np.newaxis,:])
+        wj = wij[..., -1, :]
+        wij = wij[..., :-1, :]
+        mij = wij / wj[..., np.newaxis, :]
 
-        response = mij * pij * effj[...,np.newaxis,:]
+        response = mij * pij * effj[..., np.newaxis, :]
         # Re-normalise after weight corrections
         response = ResponseMatrix._normalize_matrix(response)
 
         # Adjust shape
         if shape is None:
-            truth_indices = kwargs.pop('truth_indices', None)
+            truth_indices = kwargs.pop("truth_indices", None)
             if truth_indices is None:
                 shape = (self.reco_binning.data_size, self.truth_binning.data_size)
             else:
                 shape = (self.reco_binning.data_size, len(truth_indices))
-        response = response.reshape(list(response.shape[:-2])+list(shape), order='C')
+        response = response.reshape(list(response.shape[:-2]) + list(shape), order="C")
 
         return response
 
@@ -926,25 +978,25 @@ class ResponseMatrix(object):
         """
 
         if nstat is None:
-            matrices = self.get_mean_response_matrix_as_ndarray()[np.newaxis,...]
+            matrices = self.get_mean_response_matrix_as_ndarray()[np.newaxis, ...]
         else:
             matrices = self.generate_random_response_matrices(size=nstat)
         truth_entries = self.get_truth_entries_as_ndarray()
 
         if sparse:
             sparse_indices = np.flatnonzero(truth_entries)
-            matrices = matrices[...,sparse_indices]
+            matrices = matrices[..., sparse_indices]
             data = {
-                'matrices': matrices,
-                'truth_entries': truth_entries,
-                'sparse_indices': sparse_indices,
-                'is_sparse': True,
-                }
+                "matrices": matrices,
+                "truth_entries": truth_entries,
+                "sparse_indices": sparse_indices,
+                "is_sparse": True,
+            }
         else:
             data = {
-                'matrices': matrices,
-                'truth_entries': truth_entries,
-                }
+                "matrices": matrices,
+                "truth_entries": truth_entries,
+            }
 
         if compress:
             np.savez_compressed(filename, **data)
@@ -958,7 +1010,14 @@ class ResponseMatrix(object):
         truth_binning = self.truth_binning.clone()
         nuisance_indices = deepcopy(self.nuisance_indices)
         impossible_indices = deepcopy(self.impossible_indices)
-        return ResponseMatrix(reco_binning, truth_binning, nuisance_indices=nuisance_indices, impossible_indices=impossible_indices, response_binning=response_binning)
+        return ResponseMatrix(
+            reco_binning,
+            truth_binning,
+            nuisance_indices=nuisance_indices,
+            impossible_indices=impossible_indices,
+            response_binning=response_binning,
+        )
+
 
 class ResponseMatrixArrayBuilder(object):
     """Class that generates consistent ndarrays from multiple response matrix objects.
@@ -1031,7 +1090,7 @@ class ResponseMatrixArrayBuilder(object):
         self._filled_indices = []
         self._nuisance_indices = None
 
-    def add_matrix(self, response_matrix, weight=1.):
+    def add_matrix(self, response_matrix, weight=1.0):
         """Add a matrix to the collection.
 
         Parameters
@@ -1062,12 +1121,22 @@ class ResponseMatrixArrayBuilder(object):
 
         filled_indices = response_matrix.filled_truth_indices
         if self.nstat > 0:
-            matrix = response_matrix.generate_random_response_matrices(self.nstat, truth_indices=filled_indices)
+            matrix = response_matrix.generate_random_response_matrices(
+                self.nstat, truth_indices=filled_indices
+            )
         else:
-            matrix = response_matrix.get_response_matrix_as_ndarray(truth_indices=filled_indices)[np.newaxis,...]
-        mean_matrix = response_matrix.get_mean_response_matrix_as_ndarray(truth_indices=filled_indices)
-        truth_values = response_matrix.get_truth_values_as_ndarray(indices=filled_indices)
-        truth_entries = response_matrix.get_truth_entries_as_ndarray() # We need *all* entries
+            matrix = response_matrix.get_response_matrix_as_ndarray(
+                truth_indices=filled_indices
+            )[np.newaxis, ...]
+        mean_matrix = response_matrix.get_mean_response_matrix_as_ndarray(
+            truth_indices=filled_indices
+        )
+        truth_values = response_matrix.get_truth_values_as_ndarray(
+            indices=filled_indices
+        )
+        truth_entries = (
+            response_matrix.get_truth_entries_as_ndarray()
+        )  # We need *all* entries
 
         self._filled_indices.append(filled_indices)
         self._matrices.append(matrix)
@@ -1128,9 +1197,9 @@ class ResponseMatrixArrayBuilder(object):
         filled_nuisance_indices = all_indices & nuisance_indices
         max_tv = np.max(tv, axis=0)
         max_tv = np.where(max_tv > 0, max_tv, 1.0)
-        scale = np.ones_like(tv) # Start with scales = 1
+        scale = np.ones_like(tv)  # Start with scales = 1
         for i in np.searchsorted(sorted(all_indices), sorted(filled_nuisance_indices)):
-            scale[:,i] = tv[:,i] / max_tv[i] # Set scale of nuisance indices
+            scale[:, i] = tv[:, i] / max_tv[i]  # Set scale of nuisance indices
         return scale
 
     def get_random_response_matrices_as_ndarray(self):
@@ -1170,16 +1239,20 @@ class ResponseMatrixArrayBuilder(object):
         # Insert missing columns
         all_indices = self._get_filled_truth_indices_set()
         nuisance_indices = set(self._nuisance_indices)
-        for indices, matrix, truth_values in zip(self._filled_indices, self._matrices, self._truth_values):
+        for indices, matrix, truth_values in zip(
+            self._filled_indices, self._matrices, self._truth_values
+        ):
             missing_indices = all_indices - set(indices)
             # Make sure only nuisance indices are missing
-            if (len(missing_indices - nuisance_indices) > 0):
+            if len(missing_indices - nuisance_indices) > 0:
                 raise RuntimeError("Truth difference in non-nuisance index!")
             missing_indices = list(missing_indices)
             insert_positions = np.searchsorted(indices, missing_indices)
-            extended_matrix = np.insert(matrix, insert_positions, 0., axis=-1)
+            extended_matrix = np.insert(matrix, insert_positions, 0.0, axis=-1)
             M.append(extended_matrix)
-            extended_truth_values = np.insert(truth_values, insert_positions, 0., axis=-1)
+            extended_truth_values = np.insert(
+                truth_values, insert_positions, 0.0, axis=-1
+            )
             tv.append(extended_truth_values)
 
         M = np.array(M)
@@ -1187,10 +1260,10 @@ class ResponseMatrixArrayBuilder(object):
 
         # Scale (nuisance) truth bins so they are consistent
         scale = self._get_truth_value_scale(tv)
-        M = M * scale[:,np.newaxis,np.newaxis,:]
+        M = M * scale[:, np.newaxis, np.newaxis, :]
 
         # Broadcast weights
-        weights = np.broadcast_to(np.array(self._weights)[:,np.newaxis], M.shape[:2])
+        weights = np.broadcast_to(np.array(self._weights)[:, np.newaxis], M.shape[:2])
 
         # Reshape to vector of matrices.
         M.shape = (max(self.nstat, 1) * self.nmatrices,) + M.shape[2:]
@@ -1235,16 +1308,20 @@ class ResponseMatrixArrayBuilder(object):
         # Insert missing columns
         all_indices = self._get_filled_truth_indices_set()
         nuisance_indices = set(self._nuisance_indices)
-        for indices, matrix, truth_values in zip(self._filled_indices, self._mean_matrices, self._truth_values):
+        for indices, matrix, truth_values in zip(
+            self._filled_indices, self._mean_matrices, self._truth_values
+        ):
             missing_indices = all_indices - set(indices)
             # Make sure only nuisance indices are missing
-            if (len(missing_indices - nuisance_indices) > 0):
+            if len(missing_indices - nuisance_indices) > 0:
                 raise RuntimeError("Truth difference in non-nuisance index!")
             missing_indices = list(missing_indices)
             insert_positions = np.searchsorted(indices, missing_indices)
-            extended_matrix = np.insert(matrix, insert_positions, 0., axis=-1)
+            extended_matrix = np.insert(matrix, insert_positions, 0.0, axis=-1)
             M.append(extended_matrix)
-            extended_truth_values = np.insert(truth_values, insert_positions, 0., axis=-1)
+            extended_truth_values = np.insert(
+                truth_values, insert_positions, 0.0, axis=-1
+            )
             tv.append(extended_truth_values)
 
         M = np.array(M)
@@ -1252,7 +1329,7 @@ class ResponseMatrixArrayBuilder(object):
 
         # Scale (nuisance) truth bins so they are consistent
         scale = self._get_truth_value_scale(tv)
-        M = M * scale[:,np.newaxis,:]
+        M = M * scale[:, np.newaxis, :]
         weights = np.array(self._weights)
 
         return M, weights
@@ -1278,16 +1355,16 @@ class ResponseMatrixArrayBuilder(object):
 
         """
 
-        matrices, weights =  self.get_random_response_matrices_as_ndarray()
+        matrices, weights = self.get_random_response_matrices_as_ndarray()
         truth_entries = self.get_truth_entries_as_ndarray()
 
         data = {
-            'matrices': matrices,
-            'weights': weights,
-            'truth_entries': truth_entries,
-            'sparse_indices': np.flatnonzero(truth_entries),
-            'is_sparse': True,
-            }
+            "matrices": matrices,
+            "weights": weights,
+            "truth_entries": truth_entries,
+            "sparse_indices": np.flatnonzero(truth_entries),
+            "is_sparse": True,
+        }
 
         if compress:
             np.savez_compressed(filename, **data)
