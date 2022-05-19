@@ -10,4 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Calculate M. distance truth-bin by bin to avoid memory issues.
 - Relax requirements for exact Matplotlib version.
 
+### Removed
+- Removed support for Python versions below 3.6.
+
 ## [0.6.0] - 2019-11-13
