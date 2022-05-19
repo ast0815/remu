@@ -19,7 +19,7 @@
 # -- Project information -----------------------------------------------------
 
 project = "ReMU"
-copyright = "2020, Lukas Koch"
+copyright = "2022, Lukas Koch"
 author = "Lukas Koch"
 
 # The short X.Y version
