@@ -1,4 +1,4 @@
 coverage==4.3
-coveralls==1.1
+coveralls==3.3.1
 pandas==1.1.5
 unittest2==1.1.0

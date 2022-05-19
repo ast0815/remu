@@ -32,7 +32,7 @@ jobs:
     - name: Build documentation
       run: cd docs; make html
     - name: Coveralls
-      uses: coverallsapp/github-action@master
+      run: coveralls --service=github
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
 
