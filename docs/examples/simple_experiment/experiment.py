@@ -17,7 +17,7 @@ def build_array(dictionary):
     return arr
 
 
-class Generator(object):
+class Generator:
     """Generates "true" events according to model."""
 
     def __init__(self, cross_section=100.0):
@@ -85,7 +85,7 @@ class NoiseGenerator(Generator):
         return build_array({"reco_x": x, "reco_y": y})
 
 
-class Detector(object):
+class Detector:
     """Turn truth data into reconstructed events.
 
     ``x`` is smeared with a normal ``sigma=1``.
