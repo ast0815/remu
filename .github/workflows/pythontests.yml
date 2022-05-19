@@ -32,9 +32,9 @@ jobs:
     - name: Build documentation
       run: cd docs; make html
     - name: Coveralls
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: coveralls --service=github
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
 
   pre-commit:
 
