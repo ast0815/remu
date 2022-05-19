@@ -35,7 +35,9 @@ jobs:
   pre-commit:
 
     runs-on: ubuntu-latest
-    python-version: "3.8"
+    strategy:
+      matrix:
+        python-version: ["3.6", "3.7", "3.8", "3.9", "3.10"]
 
     steps:
     - uses: actions/checkout@v2
