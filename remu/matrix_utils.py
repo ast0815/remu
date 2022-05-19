@@ -1,12 +1,11 @@
 """Utility functions for the work with response matrices."""
 
-from __future__ import division
+
 import numpy as np
-from scipy import stats
 from matplotlib import pyplot as plt
-from remu import binning
-from remu import migration
-from remu import plotting
+from scipy import stats
+
+from remu import binning, migration, plotting
 
 
 def _block_mahalanobis2(X, mu, inv_cov):
@@ -103,8 +102,8 @@ def mahalanobis_distance(
     truth_indices = kwargs.pop(
         "truth_indices", list(range(first.truth_binning.data_size))
     )
-    n_truth = len(truth_indices)
-    n_bins = n_truth * n_reco
+    # n_truth = len(truth_indices)
+    # n_bins = n_truth * n_reco
     if N is None:
         N = n_reco + 100
 
@@ -207,11 +206,11 @@ def _expected_mahalanobis_distance(first, second):
     n_reco_vars = len(first.reco_binning.phasespace)
 
     n_reco_events_1 = first.get_response_entries_as_ndarray(shape=shape).sum(axis=0)
-    n_truth_events_1 = first.get_truth_entries_as_ndarray()
-    n_lost_events_1 = n_truth_events_1 - n_reco_events_1
+    # n_truth_events_1 = first.get_truth_entries_as_ndarray()
+    # n_lost_events_1 = n_truth_events_1 - n_reco_events_1
     n_reco_events_2 = second.get_response_entries_as_ndarray(shape=shape).sum(axis=0)
-    n_truth_events_2 = second.get_truth_entries_as_ndarray()
-    n_lost_events_2 = n_truth_events_2 - n_reco_events_2
+    # n_truth_events_2 = second.get_truth_entries_as_ndarray()
+    # n_lost_events_2 = n_truth_events_2 - n_reco_events_2
 
     prior_events = np.minimum(n_reco_bins, 3**n_reco_vars)
     n_reco_events = np.minimum(n_reco_events_1, n_reco_events_2)
@@ -301,7 +300,7 @@ def compatibility(
     return_all=False,
     truth_indices=None,
     min_quality=0.95,
-    **kwargs
+    **kwargs,
 ):
     """Calculate the compatibility between this and another response matrix.
 
@@ -440,7 +439,7 @@ def compatibility(
         N=N,
         truth_indices=truth_indices,
         return_distances_from_mean=True,
-        **kwargs
+        **kwargs,
     )
 
     # Sum up truth bins to total distance
@@ -498,11 +497,13 @@ def plot_compatibility(first, second, filename=None, **kwargs):
         nbins,
         density=True,
         histtype="stepfilled",
-        label="actual distribution, C=%.3f" % (prob_count,),
+        label=f"actual distribution, C={prob_count:.3f}",
     )
     x = np.linspace(df - 3 * np.sqrt(2 * df), df + 5 * np.sqrt(2 * df), 50)
     ax.plot(
-        x, stats.chi2.pdf(x, df), label="$\chi^2$ distribution, C=%.3f" % (prob_chi2,)
+        x,
+        stats.chi2.pdf(x, df),
+        label=rf"$\chi^2$ distribution, C={prob_chi2:.3f}",
     )
     ax.axvline(dist, label="null distance", color="k", linestyle="dashed")
     ax.legend(loc="best", framealpha=0.5)
@@ -579,7 +580,7 @@ def _merge_suggestions_from_subbinnings(binning, i_bin, i_data):
 
         def fun(
             array,
-            binning=binning.clone(dummy=True),
+            binning=binning.clone(dummy=True),  # noqa: B008
             marginalized_binning=marginalized_binning,
             fun0=fun0,
             data_offset=data_offset,

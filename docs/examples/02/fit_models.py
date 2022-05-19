@@ -1,18 +1,16 @@
-from six import print_
 import numpy as np
-from remu import binning
-from remu import plotting
-from remu import likelihood
 from multiprocess import Pool
+
+from remu import binning, likelihood, plotting
 
 pool = Pool(8)
 likelihood.mapper = pool.map
 
 response_matrix = "../01/response_matrix.npz"
 
-with open("../01/reco-binning.yml", "rt") as f:
+with open("../01/reco-binning.yml") as f:
     reco_binning = binning.yaml.full_load(f)
-with open("../01/optimised-truth-binning.yml", "rt") as f:
+with open("../01/optimised-truth-binning.yml") as f:
     truth_binning = binning.yaml.full_load(f)
 
 reco_binning.fill_from_csv_file("../00/real_data.txt")
@@ -33,10 +31,10 @@ modelB = truth_binning.get_values_as_ndarray()
 modelB /= np.sum(modelB)
 
 with open("simple_hypotheses.txt", "w") as f:
-    print_(calc(modelA * 1000), file=f)
-    print_(test.likelihood_p_value(modelA * 1000), file=f)
-    print_(calc(modelB * 1000), file=f)
-    print_(test.likelihood_p_value(modelB * 1000), file=f)
+    print(calc(modelA * 1000), file=f)
+    print(test.likelihood_p_value(modelA * 1000), file=f)
+    print(calc(modelB * 1000), file=f)
+    print(test.likelihood_p_value(modelB * 1000), file=f)
 
 modelA_shape = likelihood.TemplatePredictor([modelA])
 modelA_reco_shape = matrix_predictor.compose(modelA_shape)
@@ -45,20 +43,20 @@ calcA = likelihood.LikelihoodCalculator(data_model, modelA_reco_shape)
 maxi = likelihood.BasinHoppingMaximizer()
 retA = maxi(calcA)
 with open("modelA_fit.txt", "w") as f:
-    print_(retA, file=f)
+    print(retA, file=f)
 
 modelB_shape = likelihood.TemplatePredictor([modelB])
 calcB = calc.compose(modelB_shape)
 retB = maxi(calcB)
 with open("modelB_fit.txt", "w") as f:
-    print_(retB, file=f)
+    print(retB, file=f)
 
 testA = likelihood.HypothesisTester(calcA, maximizer=maxi)
 testB = likelihood.HypothesisTester(calcB, maximizer=maxi)
 
 with open("fit_p-values.txt", "w") as f:
-    print_(testA.max_likelihood_p_value(), file=f)
-    print_(testB.max_likelihood_p_value(), file=f)
+    print(testA.max_likelihood_p_value(), file=f)
+    print(testB.max_likelihood_p_value(), file=f)
 
 pltr = plotting.get_plotter(reco_binning)
 pltr.plot_entries(label="data", hatch=None)
@@ -70,13 +68,13 @@ modelB_logL = calcB(retB.x)
 modelB_p = testB.likelihood_p_value(retB.x)
 pltr.plot_array(
     modelA_reco,
-    label="model A: $\log L=%.1f$, $p=%.3f$" % (modelA_logL, modelA_p),
+    label=rf"model A: $\log L={modelA_logL:.1f}$, $p={modelA_p:.3f}$",
     hatch=None,
     linestyle="dashed",
 )
 pltr.plot_array(
     modelB_reco,
-    label="model B: $\log L=%.1f$, $p=%.3f$" % (modelB_logL, modelB_p),
+    label=rf"model B: $\log L={modelB_logL:.1f}$, $p={modelB_p:.3f}$",
     hatch=None,
     linestyle="dotted",
 )
@@ -87,24 +85,24 @@ mix_model = likelihood.TemplatePredictor([modelA, modelB])
 calc_mix = calc.compose(mix_model)
 ret = maxi.maximize_log_likelihood(calc_mix)
 with open("mix_model_fit.txt", "w") as f:
-    print_(ret, file=f)
+    print(ret, file=f)
 
 test = likelihood.HypothesisTester(calc_mix)
 with open("mix_model_p_value.txt", "w") as f:
-    print_(test.max_likelihood_p_value(), file=f)
+    print(test.max_likelihood_p_value(), file=f)
 
 p_values = []
 A_values = np.linspace(0, 1000, 11)
 for A in A_values:
     p = test.max_likelihood_ratio_p_value((A, None))
-    print_(A, p)
+    print(A, p)
     p_values.append(p)
 
 wilks_p_values = []
 fine_A_values = np.linspace(0, 1000, 100)
 for A in fine_A_values:
     p = test.wilks_max_likelihood_ratio_p_value((A, None))
-    print_(A, p)
+    print(A, p)
     wilks_p_values.append(p)
 
 from matplotlib import pyplot as plt

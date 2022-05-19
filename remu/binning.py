@@ -14,15 +14,13 @@ using the ``binning.yaml`` module::
 
 """
 
-from __future__ import division
-from six.moves import map, zip, range
-from copy import copy, deepcopy
-import yaml
-import re
-import numpy as np
-from numpy.lib.recfunctions import rename_fields
-import csv
+
+from copy import deepcopy
 from tempfile import TemporaryFile
+
+import numpy as np
+import yaml
+from numpy.lib.recfunctions import rename_fields
 
 
 class PhaseSpace(yaml.YAMLObject):
@@ -119,7 +117,7 @@ class PhaseSpace(yaml.YAMLObject):
         return "('" + "' X '".join(self.variables) + "')"
 
     def __repr__(self):
-        return "%s(variables=%r)" % (type(self).__name__, self.variables)
+        return f"{type(self).__name__}(variables={self.variables!r})"
 
     def clone(self):
         """Return a copy of the object."""
@@ -202,7 +200,7 @@ class Bin(yaml.YAMLObject):
                     del kwargs[key]
 
         if len(kwargs) > 0:
-            raise TypeError("Unknown kwargs: %s" % (kwargs,))
+            raise TypeError(f"Unknown kwargs: {kwargs}")
 
     @property
     def value(self):
@@ -334,9 +332,9 @@ class Bin(yaml.YAMLObject):
         return self.__div__(other)
 
     def __repr__(self):
-        return "%s(%s)" % (
+        return "{}({})".format(
             type(self).__name__,
-            ", ".join(["%s=%r" % (k, v) for k, v in self._get_clone_kwargs().items()]),
+            ", ".join([f"{k}={v!r}" for k, v in self._get_clone_kwargs().items()]),
         )
 
     def _get_clone_kwargs(self, **kwargs):
@@ -446,12 +444,12 @@ class RectangularBin(Bin):
         # Check that all edges are valid tuples
         for i, var in enumerate(self.variables):
             if var not in self.phasespace:
-                raise ValueError("Variable not part of PhaseSpace: %s" % (var,))
+                raise ValueError(f"Variable not part of PhaseSpace: {var}")
             mi, ma = self.edges[i]
 
             if ma < mi:
                 raise ValueError(
-                    "Upper edge is smaller than lower edge for variable %s." % (var,)
+                    f"Upper edge is smaller than lower edge for variable {var}."
                 )
 
     def event_in_bin(self, event):
@@ -703,7 +701,7 @@ class Binning(yaml.YAMLObject):
     def __init__(
         self,
         bins,
-        subbinnings={},
+        subbinnings=None,
         value_array=None,
         entries_array=None,
         sumw2_array=None,
@@ -715,7 +713,10 @@ class Binning(yaml.YAMLObject):
             self.bins = bins
         else:
             self.bins = tuple(bins)
-        self.subbinnings = dict(subbinnings)
+        if subbinnings is None:
+            self.subbinnings = {}
+        else:
+            self.subbinnings = dict(subbinnings)
         self.phasespace = phasespace
         if self.phasespace is None:
             self.phasespace = self._get_phasespace()
@@ -988,7 +989,7 @@ class Binning(yaml.YAMLObject):
 
         return i_data
 
-    def fill(self, event, weight=1, raise_error=False, rename={}):
+    def fill(self, event, weight=1, raise_error=False, rename=None):
         """Fill the events into their respective bins.
 
         Parameters
@@ -1019,6 +1020,8 @@ class Binning(yaml.YAMLObject):
             # Not an iterable
             event = [event]
 
+        if rename is None:
+            rename = {}
         if len(rename) > 0:
             try:
                 # Numpy array?
@@ -1115,7 +1118,7 @@ class Binning(yaml.YAMLObject):
     def _genfromtxt(filename, delimiter=",", names=True, chunksize=10000):
         """Replacement for numpy's genfromtxt, that should need less memory."""
 
-        with open(filename, "r") as f:
+        with open(filename) as f:
             if names:
                 namelist = f.readline().split(delimiter)
                 dtype = [(name.strip(), float) for name in namelist]
@@ -1167,11 +1170,11 @@ class Binning(yaml.YAMLObject):
         filename,
         weightfield=None,
         weight=1.0,
-        rename={},
+        rename=None,
         cut_function=lambda x: x,
         buffer_csv_files=False,
         chunksize=10000,
-        **kwargs
+        **kwargs,
     ):
         """Fill multiple Binnings from the same csv file(s).
 
@@ -1181,6 +1184,9 @@ class Binning(yaml.YAMLObject):
         method :meth:`fill_from_csv_file`.
 
         """
+
+        if rename is None:
+            rename = {}
 
         # Handle lists recursively
         if isinstance(filename, list):
@@ -1194,7 +1200,7 @@ class Binning(yaml.YAMLObject):
                         rename=rename,
                         cut_function=cut_function,
                         buffer_csv_files=buffer_csv_files,
-                        **kwargs
+                        **kwargs,
                     )
             except TypeError:
                 for item in filename:
@@ -1206,7 +1212,7 @@ class Binning(yaml.YAMLObject):
                         rename=rename,
                         cut_function=cut_function,
                         buffer_csv_files=buffer_csv_files,
-                        **kwargs
+                        **kwargs,
                     )
             return
 
@@ -1633,10 +1639,9 @@ class Binning(yaml.YAMLObject):
     def _get_clone_kwargs(self, **kwargs):
         """Get the necessary arguments to clone this object."""
         args = {
-            "subbinnings": dict(
-                (i, binning.clone(dummy=True))
-                for i, binning in self.subbinnings.items()
-            ),
+            "subbinnings": {
+                i: binning.clone(dummy=True) for i, binning in self.subbinnings.items()
+            },
             "phasespace": deepcopy(self.phasespace),
         }
         if "bins" in kwargs:
@@ -1668,9 +1673,9 @@ class Binning(yaml.YAMLObject):
         return type(self)(**args)
 
     def __repr__(self):
-        return "%s(%s)" % (
+        return "{}({})".format(
             type(self).__name__,
-            ", ".join(["%s=%r" % (k, v) for k, v in self._get_clone_kwargs().items()]),
+            ", ".join([f"{k}={v!r}" for k, v in self._get_clone_kwargs().items()]),
         )
 
     @classmethod
@@ -1742,11 +1747,11 @@ class RectangularBinning(Binning):
         self.variables = tuple(variables)
         self.include_upper = bool(include_upper)
         bins = []
-        for i, edges in enumerate(bin_edges):
+        for edges in bin_edges:
             bins.append(
                 RectangularBin(
                     variables=variables,
-                    edges=bin_edges[i],
+                    edges=edges,
                     include_upper=self.include_upper,
                     include_lower=not self.include_upper,
                     dummy=True,
@@ -1774,7 +1779,7 @@ class RectangularBinning(Binning):
     yaml_tag = "!RectangularBinning"
 
 
-class _BinProxy(object):
+class _BinProxy:
     """Base class for all bin proxies."""
 
     def __init__(self, binning):
@@ -2549,7 +2554,6 @@ class RectilinearBinning(CartesianProductBinning):
             binning_i = [binning_i]
 
         binning_i = [self.get_variable_index(i) for i in binning_i]
-        variables = [self.variables[i] for i in binning_i]
 
         # Create new binning
         new_variables = list(self.variables)
@@ -2757,8 +2761,10 @@ class RectilinearBinning(CartesianProductBinning):
             type(self) == type(other)
             and self.variables == other.variables
             and all(
-                np.array_equal(self.bin_edges[i], other.bin_edges[i])
-                for i in range(len(self.variables))
+                tuple(
+                    np.array_equal(self.bin_edges[i], other.bin_edges[i])
+                    for i in range(len(self.variables))
+                )
             )
             and self.include_upper == other.include_upper
             and self.subbinnings == other.subbinnings

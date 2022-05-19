@@ -1,16 +1,18 @@
-from __future__ import division
 import sys
+from tempfile import TemporaryFile
+
+import numpy as np
+import pandas as pd
 import unittest2 as unittest
 import yaml
-from remu.binning import *
-from remu.migration import *
-from remu.likelihood import *
-from remu.plotting import *
-from remu.matrix_utils import *
-from remu.likelihood_utils import *
-import numpy as np
-from numpy import array, inf
-import pandas as pd
+from scipy import stats
+
+import remu.binning as binning
+import remu.likelihood as likelihood
+import remu.likelihood_utils as likelihood_utils
+import remu.matrix_utils as matrix_utils
+import remu.migration as migration
+import remu.plotting as plotting
 
 if __name__ == "__main__":
     # Parse arguments for skipping tests
@@ -23,10 +25,10 @@ if __name__ == "__main__":
 
 class TestPhaseSpaces(unittest.TestCase):
     def setUp(self):
-        self.psX = PhaseSpace(variables=["x"])
-        self.psY = PhaseSpace(variables=["y"])
-        self.psXY = PhaseSpace(variables=["x", "y"])
-        self.psXYZ = PhaseSpace(variables=["x", "y", "z"])
+        self.psX = binning.PhaseSpace(variables=["x"])
+        self.psY = binning.PhaseSpace(variables=["y"])
+        self.psXY = binning.PhaseSpace(variables=["x", "y"])
+        self.psXYZ = binning.PhaseSpace(variables=["x", "y", "z"])
 
     def test_contains(self):
         """Test behaviour of 'in' operator."""
@@ -48,7 +50,7 @@ class TestPhaseSpaces(unittest.TestCase):
 
     def test_equality(self):
         """Test the equlaity of phase spaces."""
-        ps = PhaseSpace(variables=["x"])
+        ps = binning.PhaseSpace(variables=["x"])
         self.assertTrue(self.psX == ps)
         self.assertTrue(self.psY != ps)
         self.assertFalse(self.psX != ps)
@@ -74,9 +76,11 @@ class TestPhaseSpaces(unittest.TestCase):
 
     def test_repr(self):
         """Test whether the repr reproduces same object."""
-        self.assertEqual(self.psX, eval(repr(self.psX)))
-        self.assertEqual(self.psXY, eval(repr(self.psXY)))
-        self.assertEqual(self.psXYZ, eval(repr(self.psXYZ)))
+        env = vars(binning)
+        env.update(vars(np))
+        self.assertEqual(self.psX, eval(repr(self.psX), env))
+        self.assertEqual(self.psXY, eval(repr(self.psXY), env))
+        self.assertEqual(self.psXYZ, eval(repr(self.psXYZ), env))
 
     def test_yaml_representation(self):
         """Test whether the text parsing can reproduce the original object."""
@@ -87,10 +91,10 @@ class TestPhaseSpaces(unittest.TestCase):
 
 class TestBins(unittest.TestCase):
     def setUp(self):
-        ps = PhaseSpace(["x"])
-        self.b0 = Bin(phasespace=ps)
-        self.b1 = Bin(phasespace=ps, value=1.0)
-        self.b2 = Bin(phasespace=ps, value=2.0)
+        ps = binning.PhaseSpace(["x"])
+        self.b0 = binning.Bin(phasespace=ps)
+        self.b1 = binning.Bin(phasespace=ps, value=1.0)
+        self.b2 = binning.Bin(phasespace=ps, value=2.0)
 
     def test_init_values(self):
         """Test initialization values."""
@@ -126,7 +130,7 @@ class TestBins(unittest.TestCase):
         self.assertFalse(self.b0 != self.b0)
         self.assertTrue(self.b0 == self.b1)
         self.assertFalse(self.b0 != self.b1)
-        self.b1.phasespace *= PhaseSpace(["abc"])
+        self.b1.phasespace *= binning.PhaseSpace(["abc"])
         self.assertFalse(self.b0 == self.b1)
         self.assertTrue(self.b0 != self.b1)
 
@@ -137,10 +141,12 @@ class TestBins(unittest.TestCase):
 
     def test_repr(self):
         """Test whether the repr reproduces same object."""
-        self.assertEqual(self.b0.phasespace, eval(repr(self.b0)).phasespace)
-        self.assertEqual(self.b0.value, eval(repr(self.b0)).value)
-        self.assertEqual(self.b1.value, eval(repr(self.b1)).value)
-        self.assertEqual(self.b2.value, eval(repr(self.b2)).value)
+        env = vars(binning)
+        env.update(vars(np))
+        self.assertEqual(self.b0.phasespace, eval(repr(self.b0), env).phasespace)
+        self.assertEqual(self.b0.value, eval(repr(self.b0), env).value)
+        self.assertEqual(self.b1.value, eval(repr(self.b1), env).value)
+        self.assertEqual(self.b2.value, eval(repr(self.b2), env).value)
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
@@ -152,8 +158,8 @@ class TestBins(unittest.TestCase):
 
 class TestRectangularBins(unittest.TestCase):
     def setUp(self):
-        self.b = RectangularBin(["x", "y"], [(0, 1), (5, float("inf"))])
-        self.c = RectangularBin(["x", "y"], [(1, 2), (5, float("inf"))])
+        self.b = binning.RectangularBin(["x", "y"], [(0, 1), (5, float("inf"))])
+        self.c = binning.RectangularBin(["x", "y"], [(1, 2), (5, float("inf"))])
 
     def test_inclusion(self):
         """Test basic inclusion."""
@@ -205,7 +211,9 @@ class TestRectangularBins(unittest.TestCase):
     def test_repr(self):
         """Test whether the repr reproduces same object."""
         obj = self.b
-        self.assertEqual(obj, eval(repr(obj)))
+        env = vars(binning)
+        env.update(vars(np))
+        self.assertEqual(obj, eval(repr(obj), env))
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
@@ -217,17 +225,17 @@ class TestRectangularBins(unittest.TestCase):
 
 class TestCartesianProductBins(unittest.TestCase):
     def setUp(self):
-        self.x0 = RectangularBin(variables=["x"], edges=[(0, 1)], dummy=True)
-        self.x1 = RectangularBin(variables=["x"], edges=[(1, 2)], dummy=True)
-        self.y0 = RectangularBin(variables=["y"], edges=[(0, 1)], dummy=True)
-        self.y1 = RectangularBin(variables=["y"], edges=[(1, 2)], dummy=True)
-        self.z0 = RectangularBin(variables=["z"], edges=[(0, 1)], dummy=True)
-        self.z1 = RectangularBin(variables=["z"], edges=[(1, 2)], dummy=True)
-        self.bx = Binning(bins=[self.x0, self.x1], dummy=True)
-        self.by = Binning(bins=[self.y0, self.y1], dummy=True)
-        self.bz = Binning(bins=[self.z0, self.z1], dummy=True)
-        self.b = CartesianProductBin([self.bx, self.by, self.bz], [0, 1, 0])
-        self.c = CartesianProductBin([self.bx, self.by, self.bz], [0, 1, 1])
+        self.x0 = binning.RectangularBin(variables=["x"], edges=[(0, 1)], dummy=True)
+        self.x1 = binning.RectangularBin(variables=["x"], edges=[(1, 2)], dummy=True)
+        self.y0 = binning.RectangularBin(variables=["y"], edges=[(0, 1)], dummy=True)
+        self.y1 = binning.RectangularBin(variables=["y"], edges=[(1, 2)], dummy=True)
+        self.z0 = binning.RectangularBin(variables=["z"], edges=[(0, 1)], dummy=True)
+        self.z1 = binning.RectangularBin(variables=["z"], edges=[(1, 2)], dummy=True)
+        self.bx = binning.Binning(bins=[self.x0, self.x1], dummy=True)
+        self.by = binning.Binning(bins=[self.y0, self.y1], dummy=True)
+        self.bz = binning.Binning(bins=[self.z0, self.z1], dummy=True)
+        self.b = binning.CartesianProductBin([self.bx, self.by, self.bz], [0, 1, 0])
+        self.c = binning.CartesianProductBin([self.bx, self.by, self.bz], [0, 1, 1])
 
     def test_inclusion(self):
         """Test basic inclusion."""
@@ -251,7 +259,9 @@ class TestCartesianProductBins(unittest.TestCase):
     def test_repr(self):
         """Test whether the repr reproduces same object."""
         obj = self.b
-        self.assertEqual(obj, eval(repr(obj)))
+        env = vars(binning)
+        env.update(vars(np))
+        self.assertEqual(obj, eval(repr(obj), env))
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
@@ -263,19 +273,21 @@ class TestCartesianProductBins(unittest.TestCase):
 
 class TestBinnings(unittest.TestCase):
     def setUp(self):
-        self.b0 = RectangularBin(
+        self.b0 = binning.RectangularBin(
             variables=["x", "y"], edges=[(0, 1), (5, float("inf"))]
         )
-        self.b1 = RectangularBin(
+        self.b1 = binning.RectangularBin(
             variables=["x", "y"], edges=[(1, 2), (5, float("inf"))]
         )
-        self.binning = Binning(bins=[self.b0, self.b1])
-        self.binning0 = Binning(phasespace=self.b0.phasespace, bins=[self.b0.clone()])
-        self.binning1 = Binning(
+        self.binning = binning.Binning(bins=[self.b0, self.b1])
+        self.binning0 = binning.Binning(
+            phasespace=self.b0.phasespace, bins=[self.b0.clone()]
+        )
+        self.binning1 = binning.Binning(
             bins=[self.b0.clone(), self.b1.clone()],
             subbinnings={0: self.binning.clone()},
         )
-        self.binning2 = Binning(
+        self.binning2 = binning.Binning(
             bins=[self.b0.clone(), self.b1.clone()],
             subbinnings={0: self.binning1.clone()},
         )
@@ -503,7 +515,9 @@ class TestBinnings(unittest.TestCase):
     def test_repr(self):
         """Test whether the repr reproduces same object."""
         obj = self.binning
-        self.assertEqual(obj, eval(repr(obj)))
+        env = vars(binning)
+        env.update(vars(np))
+        self.assertEqual(obj, eval(repr(obj), env))
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
@@ -527,13 +541,13 @@ class TestBinnings(unittest.TestCase):
 
 class TestCartesianProductBinnings(unittest.TestCase):
     def setUp(self):
-        self.bx = LinearBinning("x", [0, 1, 2], dummy=True)
-        self.by = LinearBinning("y", [0, 1, 2], dummy=True)
-        self.bz = LinearBinning("z", [0, 1, 2], dummy=True)
-        self.bynest = LinearBinning(
+        self.bx = binning.LinearBinning("x", [0, 1, 2], dummy=True)
+        self.by = binning.LinearBinning("y", [0, 1, 2], dummy=True)
+        self.bz = binning.LinearBinning("z", [0, 1, 2], dummy=True)
+        self.bynest = binning.LinearBinning(
             "y", [0, 1, 2], subbinnings={0: self.bz.clone()}, dummy=True
         )
-        self.b0 = CartesianProductBinning(
+        self.b0 = binning.CartesianProductBinning(
             [self.bx, self.bynest], subbinnings={2: self.bz.clone()}
         )
 
@@ -566,7 +580,7 @@ class TestCartesianProductBinnings(unittest.TestCase):
 
     def test_bins(self):
         """Test that the bin proxy works."""
-        A, B = self.b0.bins[3], CartesianProductBin(
+        A, B = self.b0.bins[3], binning.CartesianProductBin(
             [self.bx.clone(), self.bynest.clone()], [1, 0]
         )
         self.assertEqual(A, B)
@@ -600,7 +614,9 @@ class TestCartesianProductBinnings(unittest.TestCase):
     def test_repr(self):
         """Test whether the repr reproduces same object."""
         obj = self.b0
-        self.assertEqual(obj, eval(repr(obj)))
+        env = vars(binning)
+        env.update(vars(np))
+        self.assertEqual(obj, eval(repr(obj), env))
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
@@ -612,7 +628,7 @@ class TestCartesianProductBinnings(unittest.TestCase):
 
 class TestRectangularBinnings(unittest.TestCase):
     def setUp(self):
-        self.b0 = RectangularBinning(
+        self.b0 = binning.RectangularBinning(
             ["x", "y"], [((0, 2), (0, 2)), ((0, 1), (2, 3)), ((1, 2), (2, 3))]
         )
 
@@ -631,7 +647,9 @@ class TestRectangularBinnings(unittest.TestCase):
     def test_repr(self):
         """Test whether the repr reproduces same object."""
         obj = self.b0
-        self.assertEqual(obj, eval(repr(obj)))
+        env = vars(binning)
+        env.update(vars(np))
+        self.assertEqual(obj, eval(repr(obj), env))
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
@@ -643,9 +661,11 @@ class TestRectangularBinnings(unittest.TestCase):
 
 class TestLinearBinnings(unittest.TestCase):
     def setUp(self):
-        self.bx = LinearBinning("x", [0, 1, 2])
-        self.by = LinearBinning("y", [0, 1, 2])
-        self.b0 = LinearBinning("x", [0, 1, 2], subbinnings={0: self.by.clone()})
+        self.bx = binning.LinearBinning("x", [0, 1, 2])
+        self.by = binning.LinearBinning("y", [0, 1, 2])
+        self.b0 = binning.LinearBinning(
+            "x", [0, 1, 2], subbinnings={0: self.by.clone()}
+        )
 
     def test_get_event_data_index(self):
         """Test that events are put in the right data bins."""
@@ -666,7 +686,7 @@ class TestLinearBinnings(unittest.TestCase):
 
     def test_bins(self):
         """Test that the bin proxy works."""
-        A, B = self.b0.bins[0], RectangularBin(["x"], [(0, 1)])
+        A, B = self.b0.bins[0], binning.RectangularBin(["x"], [(0, 1)])
         self.assertEqual(A, B)
 
     def test_slice(self):
@@ -697,7 +717,9 @@ class TestLinearBinnings(unittest.TestCase):
     def test_repr(self):
         """Test whether the repr reproduces same object."""
         obj = self.b0
-        self.assertEqual(obj, eval(repr(obj)))
+        env = vars(binning)
+        env.update(vars(np))
+        self.assertEqual(obj, eval(repr(obj), env))
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
@@ -709,18 +731,18 @@ class TestLinearBinnings(unittest.TestCase):
 
 class TestRectilinearBinnings(unittest.TestCase):
     def setUp(self):
-        self.bl = RectilinearBinning(
+        self.bl = binning.RectilinearBinning(
             variables=["x", "y"], bin_edges=[[0, 1, 2], (-10, 0, 10, 20, float("inf"))]
         )
-        self.bl0 = RectilinearBinning(
+        self.bl0 = binning.RectilinearBinning(
             variables=["x", "y"], bin_edges=[[0, 1], (-10, 0, 10, 20, float("inf"))]
         )
-        self.bu = RectilinearBinning(
+        self.bu = binning.RectilinearBinning(
             variables=["x", "y"],
             bin_edges=[np.linspace(0, 2, 3), (-10, 0, 10, 20, float("inf"))],
             include_upper=True,
         )
-        self.bxyz = RectilinearBinning(
+        self.bxyz = binning.RectilinearBinning(
             variables=["x", "y", "z"],
             bin_edges=[[0, 1, 2], (-10, 0, 10, 20, float("inf")), (0, 1, 2)],
         )
@@ -908,7 +930,9 @@ class TestRectilinearBinnings(unittest.TestCase):
     def test_repr(self):
         """Test whether the repr reproduces same object."""
         obj = self.bl
-        self.assertEqual(obj, eval(repr(obj)))
+        env = vars(binning)
+        env.update(vars(np))
+        self.assertEqual(obj, eval(repr(obj), env))
 
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
@@ -920,11 +944,11 @@ class TestRectilinearBinnings(unittest.TestCase):
 
 class TestResponseMatrices(unittest.TestCase):
     def setUp(self):
-        with open("testdata/test-truth-binning.yml", "r") as f:
+        with open("testdata/test-truth-binning.yml") as f:
             self.tb = yaml.full_load(f)
-        with open("testdata/test-reco-binning.yml", "r") as f:
+        with open("testdata/test-reco-binning.yml") as f:
             self.rb = yaml.full_load(f)
-        self.rm = ResponseMatrix(self.rb, self.tb)
+        self.rm = migration.ResponseMatrix(self.rb, self.tb)
 
     def test_fill(self):
         self.rm.fill_from_csv_file("testdata/test-data.csv", weightfield="w")
@@ -1098,12 +1122,12 @@ class TestResponseMatrices(unittest.TestCase):
 
 class TestResponseMatrixArrayBuilders(unittest.TestCase):
     def setUp(self):
-        with open("testdata/test-truth-binning.yml", "r") as f:
+        with open("testdata/test-truth-binning.yml") as f:
             self.tb = yaml.full_load(f)
-        with open("testdata/test-reco-binning.yml", "r") as f:
+        with open("testdata/test-reco-binning.yml") as f:
             self.rb = yaml.full_load(f)
-        self.rm = ResponseMatrix(self.rb, self.tb, nuisance_indices=[2])
-        self.builder = ResponseMatrixArrayBuilder(5)
+        self.rm = migration.ResponseMatrix(self.rb, self.tb, nuisance_indices=[2])
+        self.builder = migration.ResponseMatrixArrayBuilder(5)
 
     def test_mean(self):
         """Test ResponseMatrixArrayBuilder mean matrix."""
@@ -1150,7 +1174,7 @@ class TestResponseMatrixArrayBuilders(unittest.TestCase):
 class TestPoissonData(unittest.TestCase):
     def setUp(self):
         self.data = np.arange(4, dtype=int)
-        self.calc = PoissonData(self.data)
+        self.calc = likelihood.PoissonData(self.data)
 
     def test_log_likelihood(self):
         self.assertAlmostEqual(self.calc(self.data), -3.8027754226637804)
@@ -1173,7 +1197,7 @@ class TestPoissonData(unittest.TestCase):
 
 class TestLinearPredictors(unittest.TestCase):
     def setUp(self):
-        self.pred = LinearPredictor(
+        self.pred = likelihood.LinearPredictor(
             [[[1.0, 0.0], [0.5, 1.0], [0.0, 1.0]]] * 2,
             [0.1, 0.2, 0.3],
             weights=[1.0, 0.5],
@@ -1201,12 +1225,12 @@ class TestLinearPredictors(unittest.TestCase):
 
 class TestTemplatePredictors(unittest.TestCase):
     def setUp(self):
-        self.pred = TemplatePredictor(
+        self.pred = likelihood.TemplatePredictor(
             [[[1.0, 0.0], [0.5, 1.0], [0.0, 1.0]]] * 2,
             [0.1, 0.2, 0.3],
             weights=[1.0, 0.5],
         )
-        self.pred = TemplatePredictor(
+        self.pred = likelihood.TemplatePredictor(
             [[[1.0, 0.5, 0.0], [0.0, 1.0, 1.0]]] * 2,
             constants=[0.1, 0.2, 0.3],
             weights=[1.0, 0.5],
@@ -1228,14 +1252,14 @@ class TestTemplatePredictors(unittest.TestCase):
 
 class TestFixedParameterPredictors(unittest.TestCase):
     def setUp(self):
-        self.pred = LinearPredictor(
+        self.pred = likelihood.LinearPredictor(
             [[[1.0, 0.0], [0.5, 1.0], [0.0, 1.0]]] * 2,
             [0.1, 0.2, 0.3],
             weights=[1.0, 0.5],
         )
-        self.pred0 = FixedParameterPredictor(self.pred, [1, None])
-        self.pred1 = FixedParameterPredictor(self.pred, [None, 10])
-        self.pred2 = FixedParameterPredictor(self.pred, [1, 10])
+        self.pred0 = likelihood.FixedParameterPredictor(self.pred, [1, None])
+        self.pred1 = likelihood.FixedParameterPredictor(self.pred, [None, 10])
+        self.pred2 = likelihood.FixedParameterPredictor(self.pred, [1, 10])
 
     def test_prediction(self):
         pred, weights = self.pred0([10])
@@ -1259,14 +1283,14 @@ class TestFixedParameterPredictors(unittest.TestCase):
 
 class TestFixedParameterLinearPredictors(unittest.TestCase):
     def setUp(self):
-        self.pred = LinearPredictor(
+        self.pred = likelihood.LinearPredictor(
             [[[1.0, 0.0], [0.5, 1.0], [0.0, 1.0]]] * 2,
             [0.1, 0.2, 0.3],
             weights=[1.0, 0.5],
         )
-        self.pred0 = FixedParameterLinearPredictor(self.pred, [1, None])
-        self.pred1 = FixedParameterLinearPredictor(self.pred, [None, 10])
-        self.pred2 = FixedParameterLinearPredictor(self.pred, [1, 10])
+        self.pred0 = likelihood.FixedParameterLinearPredictor(self.pred, [1, None])
+        self.pred1 = likelihood.FixedParameterLinearPredictor(self.pred, [None, 10])
+        self.pred2 = likelihood.FixedParameterLinearPredictor(self.pred, [1, 10])
 
     def test_prediction(self):
         pred, weights = self.pred0([10])
@@ -1291,12 +1315,16 @@ class TestFixedParameterLinearPredictors(unittest.TestCase):
 class TestComposedPredictors(unittest.TestCase):
     def setUp(self):
         self.w0 = np.array([1, 2])
-        self.pred0 = LinearPredictor([[[1.0, 1.0, 1.0]]] * 2, weights=self.w0)
+        self.pred0 = likelihood.LinearPredictor(
+            [[[1.0, 1.0, 1.0]]] * 2, weights=self.w0
+        )
         self.w1 = np.array([1, 2, 3])
-        self.pred1 = LinearPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
+        self.pred1 = likelihood.LinearPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
         self.w2 = np.array([1, 2, 3, 4])
-        self.pred2 = LinearPredictor([np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w2)
-        self.pred = ComposedPredictor([self.pred2, self.pred1, self.pred0])
+        self.pred2 = likelihood.LinearPredictor(
+            [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w2
+        )
+        self.pred = likelihood.ComposedPredictor([self.pred2, self.pred1, self.pred0])
 
     def test_prediction(self):
         pred, weights = self.pred([1, 2, 3])
@@ -1315,12 +1343,18 @@ class TestComposedPredictors(unittest.TestCase):
 class TestComposedLinearPredictors(unittest.TestCase):
     def setUp(self):
         self.w0 = np.array([1, 2])
-        self.pred0 = LinearPredictor([[[1.0, 1.0, 1.0]]] * 2, weights=self.w0)
+        self.pred0 = likelihood.LinearPredictor(
+            [[[1.0, 1.0, 1.0]]] * 2, weights=self.w0
+        )
         self.w1 = np.array([1, 2, 3])
-        self.pred1 = LinearPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
+        self.pred1 = likelihood.LinearPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
         self.w2 = np.array([1, 2, 3, 4])
-        self.pred2 = LinearPredictor([np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w2)
-        self.pred = ComposedLinearPredictor([self.pred2, self.pred1, self.pred0])
+        self.pred2 = likelihood.LinearPredictor(
+            [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w2
+        )
+        self.pred = likelihood.ComposedLinearPredictor(
+            [self.pred2, self.pred1, self.pred0]
+        )
 
     def test_prediction(self):
         pred, weights = self.pred([1, 2, 3])
@@ -1338,12 +1372,12 @@ class TestComposedLinearPredictors(unittest.TestCase):
 
 class TestResponseMatrixPredictors(unittest.TestCase):
     def setUp(self):
-        with open("testdata/test-truth-binning.yml", "r") as f:
+        with open("testdata/test-truth-binning.yml") as f:
             self.tb = yaml.full_load(f)
-        with open("testdata/test-reco-binning.yml", "r") as f:
+        with open("testdata/test-reco-binning.yml") as f:
             self.rb = yaml.full_load(f)
-        self.rm = ResponseMatrix(self.rb, self.tb, nuisance_indices=[2])
-        self.builder = ResponseMatrixArrayBuilder(5)
+        self.rm = migration.ResponseMatrix(self.rb, self.tb, nuisance_indices=[2])
+        self.builder = migration.ResponseMatrixArrayBuilder(5)
 
         self.rm.fill_from_csv_file("testdata/test-data.csv", weightfield="w")
         self.builder.add_matrix(self.rm, 1.0)
@@ -1352,7 +1386,7 @@ class TestResponseMatrixPredictors(unittest.TestCase):
         with TemporaryFile() as f:
             self.builder.export(f)
             f.seek(0)
-            self.pred = ResponseMatrixPredictor(f)
+            self.pred = likelihood.ResponseMatrixPredictor(f)
 
     def test_prediction(self):
         y, w = self.pred([1, 0, 0, 0])
@@ -1365,7 +1399,7 @@ class TestResponseMatrixPredictors(unittest.TestCase):
         with TemporaryFile() as f:
             self.rm.export(f, sparse=True)
             f.seek(0)
-            pred = ResponseMatrixPredictor(f)
+            pred = likelihood.ResponseMatrixPredictor(f)
         y, w = pred([1, 0, 0, 0])
         self.assertEqual(y.shape, (1, 4))
         self.assertEqual(y[0, 0], 0.0)
@@ -1377,13 +1411,13 @@ class TestSystematics(unittest.TestCase):
         self.data.shape = (2, 3, 5)
 
     def test_marginal_systematics(self):
-        ret = MarginalLikelihoodSystematics.consume_axis(self.data)
+        ret = likelihood.MarginalLikelihoodSystematics.consume_axis(self.data)
 
         for A, B in zip(np.exp(ret).flat, np.mean(np.exp(self.data), axis=-1).flat):
             self.assertAlmostEqual(A, B)
 
     def test_profile_systematics(self):
-        ret = ProfileLikelihoodSystematics.consume_axis(self.data)
+        ret = likelihood.ProfileLikelihoodSystematics.consume_axis(self.data)
 
         for A, B in zip(np.exp(ret).flat, np.max(np.exp(self.data), axis=-1).flat):
             self.assertAlmostEqual(A, B)
@@ -1392,9 +1426,9 @@ class TestSystematics(unittest.TestCase):
 class TestLikelihoodCalculators(unittest.TestCase):
     def setUp(self):
         self.data = np.arange(4, dtype=int)
-        self.data_model = PoissonData([self.data] * 2)
-        self.predictor = TemplatePredictor([np.eye(4)] * 3)
-        self.calc = LikelihoodCalculator(self.data_model, self.predictor)
+        self.data_model = likelihood.PoissonData([self.data] * 2)
+        self.predictor = likelihood.TemplatePredictor([np.eye(4)] * 3)
+        self.calc = likelihood.LikelihoodCalculator(self.data_model, self.predictor)
 
     def test_log_likelihood(self):
         test_reco = np.asarray([0.5, 0.5, 0.5, 0.5])
@@ -1421,7 +1455,7 @@ class TestLikelihoodCalculators(unittest.TestCase):
 
     def test_compose(self):
         test_reco = np.array([0.5, 0.5, 0.5, 0.5])
-        pred = TemplatePredictor([[1, 1, 1, 1]])
+        pred = likelihood.TemplatePredictor([[1, 1, 1, 1]])
         calc = self.calc.compose(pred)
         ret = calc([test_reco[:1]] * 5)
         self.assertAlmostEqual(
@@ -1433,12 +1467,12 @@ class TestLikelihoodCalculators(unittest.TestCase):
 class TestLikelihoodMaximizers(unittest.TestCase):
     def setUp(self):
         self.data = np.arange(4, dtype=int)
-        self.data_model = PoissonData(self.data)
-        self.predictor = LinearPredictor(np.eye(4), bounds=[(0, np.inf)] * 4)
-        self.calc = LikelihoodCalculator(self.data_model, self.predictor)
+        self.data_model = likelihood.PoissonData(self.data)
+        self.predictor = likelihood.LinearPredictor(np.eye(4), bounds=[(0, np.inf)] * 4)
+        self.calc = likelihood.LikelihoodCalculator(self.data_model, self.predictor)
 
     def test_basinhopping(self):
-        maxer = BasinHoppingMaximizer()
+        maxer = likelihood.BasinHoppingMaximizer()
         opt = maxer(self.calc)
         for i in range(4):
             self.assertAlmostEqual(opt.x[i], self.data[i], places=3)
@@ -1447,10 +1481,10 @@ class TestLikelihoodMaximizers(unittest.TestCase):
 class TestHypothesisTesters(unittest.TestCase):
     def setUp(self):
         self.data = np.arange(4, dtype=int)
-        self.data_model = PoissonData(self.data)
-        self.predictor = LinearPredictor(np.eye(4), bounds=[(0, np.inf)] * 4)
-        self.calc = LikelihoodCalculator(self.data_model, self.predictor)
-        self.test = HypothesisTester(self.calc)
+        self.data_model = likelihood.PoissonData(self.data)
+        self.predictor = likelihood.LinearPredictor(np.eye(4), bounds=[(0, np.inf)] * 4)
+        self.calc = likelihood.LikelihoodCalculator(self.data_model, self.predictor)
+        self.test = likelihood.HypothesisTester(self.calc)
 
     def test_likelihood_p_value(self):
         ret = self.test.likelihood_p_value(self.data)
@@ -1495,7 +1529,7 @@ class TestPlotting(unittest.TestCase):
 
     def test_array_plotter(self):
         array = np.array([1, 3, 2, 5])
-        plt = get_plotter(array, bins_per_row=3)
+        plt = plotting.get_plotter(array, bins_per_row=3)
         plt.plot_array(hatch=None)
         plt.plot_array(array * 2, hatch=None)
         plt.plot_array([array, array * 2], stack_function=np.mean, hatch=None)
@@ -1505,43 +1539,49 @@ class TestPlotting(unittest.TestCase):
         )
 
     def test_binning_plotter(self):
-        b0 = RectangularBin(variables=["x", "y"], edges=[(0, 1), (5, float("inf"))])
-        b1 = RectangularBin(variables=["x", "y"], edges=[(1, 2), (5, float("inf"))])
-        binning0 = Binning(bins=[b0, b1])
-        binning = Binning(bins=[b0, b1], subbinnings={0: binning0.clone(dummy=True)})
-        binning.set_values_from_ndarray([2.0, 1.0, 4.0])
-        binning.set_entries_from_ndarray([4, 2, 8])
-        binning.set_sumw2_from_ndarray([1.0, 0.5, 2.0])
-        plt = get_plotter(binning, marginalize_subbinnings=False)
-        plt.plot_values(binning.clone())
+        b0 = binning.RectangularBin(
+            variables=["x", "y"], edges=[(0, 1), (5, float("inf"))]
+        )
+        b1 = binning.RectangularBin(
+            variables=["x", "y"], edges=[(1, 2), (5, float("inf"))]
+        )
+        bins0 = binning.Binning(bins=[b0, b1])
+        bins = binning.Binning(bins=[b0, b1], subbinnings={0: bins0.clone(dummy=True)})
+        bins.set_values_from_ndarray([2.0, 1.0, 4.0])
+        bins.set_entries_from_ndarray([4, 2, 8])
+        bins.set_sumw2_from_ndarray([1.0, 0.5, 2.0])
+        plt = plotting.get_plotter(bins, marginalize_subbinnings=False)
+        plt.plot_values(bins.clone())
         plt.plot_entries()
         plt.plot_sumw2()
-        plt = get_plotter(binning, marginalize_subbinnings=True)
-        plt.plot_sumw2(binning.clone(), label="Z")
+        plt = plotting.get_plotter(bins, marginalize_subbinnings=True)
+        plt.plot_sumw2(bins.clone(), label="Z")
         plt.plot_entries(label="Y", hatch="")
         plt.plot_values(label="X")
-        plt.plot_array(binning.value_array)
-        plt.plot_array(binning0.value_array)
+        plt.plot_array(bins.value_array)
+        plt.plot_array(bins0.value_array)
         plt.legend()
 
     def test_cartesian_plotter(self):
-        x0 = RectangularBin(variables=["x"], edges=[(0, 1)], dummy=True)
-        x1 = RectangularBin(variables=["x"], edges=[(1, 2)], dummy=True)
-        y0 = RectangularBin(variables=["y"], edges=[(0, 1)], dummy=True)
-        y1 = RectangularBin(variables=["y"], edges=[(1, 2)], dummy=True)
-        z0 = RectangularBin(variables=["z"], edges=[(0, 1)], dummy=True)
-        z1 = RectangularBin(variables=["z"], edges=[(1, 2)], dummy=True)
-        bx = Binning(bins=[x0, x1], dummy=True)
-        by = Binning(bins=[y0, y1], dummy=True)
-        bz = Binning(bins=[z0, z1], dummy=True)
-        bynest = Binning(
+        x0 = binning.RectangularBin(variables=["x"], edges=[(0, 1)], dummy=True)
+        x1 = binning.RectangularBin(variables=["x"], edges=[(1, 2)], dummy=True)
+        y0 = binning.RectangularBin(variables=["y"], edges=[(0, 1)], dummy=True)
+        y1 = binning.RectangularBin(variables=["y"], edges=[(1, 2)], dummy=True)
+        z0 = binning.RectangularBin(variables=["z"], edges=[(0, 1)], dummy=True)
+        z1 = binning.RectangularBin(variables=["z"], edges=[(1, 2)], dummy=True)
+        bx = binning.Binning(bins=[x0, x1], dummy=True)
+        # by = binning.Binning(bins=[y0, y1], dummy=True)
+        bz = binning.Binning(bins=[z0, z1], dummy=True)
+        bynest = binning.Binning(
             bins=[y0.clone(), y1.clone()], subbinnings={0: bz.clone()}, dummy=True
         )
-        b0 = CartesianProductBinning([bx, bynest, bz], subbinnings={2: bz.clone()})
+        b0 = binning.CartesianProductBinning(
+            [bx, bynest, bz], subbinnings={2: bz.clone()}
+        )
         b0.set_values_from_ndarray(np.arange(13))
         b0.set_entries_from_ndarray(np.arange(13) * 2)
         b0.set_sumw2_from_ndarray(np.arange(13) * 3)
-        plt = get_plotter(b0)
+        plt = plotting.get_plotter(b0)
         plt.plot_sumw2(label="Z")
         plt.plot_entries(label="Y")
         plt.plot_values(label="X")
@@ -1549,24 +1589,24 @@ class TestPlotting(unittest.TestCase):
         plt.legend()
 
     def test_linear_plotter(self):
-        b0 = LinearBinning("x", [0, 1, 5, 7, inf])
+        b0 = binning.LinearBinning("x", [0, 1, 5, 7, np.inf])
         b0.set_values_from_ndarray(np.arange(4))
         b0.set_entries_from_ndarray(np.arange(4) * 2)
         b0.set_sumw2_from_ndarray(np.arange(4) * 3)
-        plt = get_plotter(b0, bins_per_row=2)
+        plt = plotting.get_plotter(b0, bins_per_row=2)
         plt.plot_sumw2(label="Z")
         plt.plot_entries(label="Y")
         plt.plot_values(label="X")
         plt.legend()
 
     def test_rectilinear_plotter(self):
-        b0 = RectilinearBinning(
-            ["x", "y"], [[-1, 0, 1, 5, 7, inf], [-inf, 0, 5, 10, inf]]
+        b0 = binning.RectilinearBinning(
+            ["x", "y"], [[-1, 0, 1, 5, 7, np.inf], [-np.inf, 0, 5, 10, np.inf]]
         )
         b0.set_values_from_ndarray(np.arange(20))
         b0.set_entries_from_ndarray(np.arange(20) * 2)
         b0.set_sumw2_from_ndarray(np.arange(20) * 3)
-        plt = get_plotter(b0)
+        plt = plotting.get_plotter(b0)
         plt.plot_sumw2(label="Z", scatter=100)
         plt.plot_entries(label="Y", scatter=100)
         plt.plot_values(label="X", scatter=100)
@@ -1575,12 +1615,12 @@ class TestPlotting(unittest.TestCase):
 
 class TestMatrixUtils(unittest.TestCase):
     def setUp(self):
-        with open("testdata/test-truth-binning.yml", "r") as f:
+        with open("testdata/test-truth-binning.yml") as f:
             tb = yaml.full_load(f)
-        with open("testdata/test-reco-binning.yml", "r") as f:
+        with open("testdata/test-reco-binning.yml") as f:
             rb = yaml.full_load(f)
-        tb = tb.insert_subbinning(3, LinearBinning("y_truth", [1.0, 1.5, 2.0]))
-        rm = ResponseMatrix(rb, tb)
+        tb = tb.insert_subbinning(3, binning.LinearBinning("y_truth", [1.0, 1.5, 2.0]))
+        rm = migration.ResponseMatrix(rb, tb)
         rm.fill_from_csv_file("testdata/test-data.csv", weightfield="w")
         self.rm = rm
 
@@ -1590,7 +1630,7 @@ class TestMatrixUtils(unittest.TestCase):
         rA.fill_from_csv_file("testdata/test-data.csv", weightfield="w")
         rB.fill_from_csv_file("testdata/test-data.csv", weightfield="w")
         rB.fill_from_csv_file("testdata/test-data.csv", weightfield="w")
-        null_distance, distances = mahalanobis_distance(
+        null_distance, distances = matrix_utils.mahalanobis_distance(
             rA, rB, return_distances_from_mean=True
         )
         self.assertTrue(null_distance.shape == (5,))
@@ -1604,7 +1644,7 @@ class TestMatrixUtils(unittest.TestCase):
         rA.fill_from_csv_file("testdata/test-data.csv", weightfield="w")
         rB.fill_from_csv_file("testdata/test-data.csv", weightfield="w")
         rB.fill_from_csv_file("testdata/test-data.csv", weightfield="w")
-        p_count, p_chi2, null_distance, distances, n_bins = compatibility(
+        p_count, p_chi2, null_distance, distances, n_bins = matrix_utils.compatibility(
             rA, rB, return_all=True, min_quality=0.0
         )
         self.assertTrue(p_count >= 0.0 and p_count <= 1.0)
@@ -1615,19 +1655,21 @@ class TestMatrixUtils(unittest.TestCase):
 
     def test_plotting(self):
         """Test plotting matrices."""
-        plot_compatibility(self.rm, self.rm.clone(), filename=None, min_quality=0.0)
-        plot_mahalanobis_distance(
+        matrix_utils.plot_compatibility(
+            self.rm, self.rm.clone(), filename=None, min_quality=0.0
+        )
+        matrix_utils.plot_mahalanobis_distance(
             self.rm, self.rm.clone(), plot_expectation=True, filename=None
         )
-        plot_in_bin_variation(self.rm, filename=None)
-        plot_statistical_uncertainty(self.rm, filename=None)
-        plot_relative_in_bin_variation(self.rm, filename=None)
-        plot_mean_efficiency(self.rm, filename=None)
-        plot_mean_response_matrix(self.rm, filename=None)
+        matrix_utils.plot_in_bin_variation(self.rm, filename=None)
+        matrix_utils.plot_statistical_uncertainty(self.rm, filename=None)
+        matrix_utils.plot_relative_in_bin_variation(self.rm, filename=None)
+        matrix_utils.plot_mean_efficiency(self.rm, filename=None)
+        matrix_utils.plot_mean_response_matrix(self.rm, filename=None)
 
     def test_improve_stats(self):
         """Test the automatic optimization of ResponseMatrices."""
-        rm0 = improve_stats(self.rm)
+        rm0 = matrix_utils.improve_stats(self.rm)
         self.assertEqual(
             self.rm.response_binning.value_array.sum(),
             rm0.response_binning.value_array.sum(),
@@ -1638,7 +1680,7 @@ class TestMatrixUtils(unittest.TestCase):
         self.assertEqual(
             self.rm.reco_binning.value_array.sum(), rm0.reco_binning.value_array.sum()
         )
-        rm1 = improve_stats(rm0)
+        rm1 = matrix_utils.improve_stats(rm0)
         self.assertEqual(
             self.rm.response_binning.value_array.sum(),
             rm1.response_binning.value_array.sum(),
@@ -1649,7 +1691,7 @@ class TestMatrixUtils(unittest.TestCase):
         self.assertEqual(
             self.rm.reco_binning.value_array.sum(), rm1.reco_binning.value_array.sum()
         )
-        rm1 = improve_stats(rm0, data_index=3)
+        rm1 = matrix_utils.improve_stats(rm0, data_index=3)
         self.assertEqual(
             self.rm.response_binning.value_array.sum(),
             rm1.response_binning.value_array.sum(),
@@ -1660,7 +1702,7 @@ class TestMatrixUtils(unittest.TestCase):
         self.assertEqual(
             self.rm.reco_binning.value_array.sum(), rm1.reco_binning.value_array.sum()
         )
-        rm1 = improve_stats(self.rm, data_index=3)
+        rm1 = matrix_utils.improve_stats(self.rm, data_index=3)
         self.assertEqual(
             self.rm.response_binning.value_array.sum(),
             rm1.response_binning.value_array.sum(),
@@ -1676,14 +1718,14 @@ class TestMatrixUtils(unittest.TestCase):
 class TestLikelihoodUtils(unittest.TestCase):
     def setUp(self):
         self.data = np.arange(4)
-        self.pred = TemplatePredictor([np.eye(4), np.eye(4)])
-        self.data_model = PoissonData(self.data)
-        self.calc = LikelihoodCalculator(self.data_model, self.pred)
-        self.test = HypothesisTester(self.calc)
+        self.pred = likelihood.TemplatePredictor([np.eye(4), np.eye(4)])
+        self.data_model = likelihood.PoissonData(self.data)
+        self.calc = likelihood.LikelihoodCalculator(self.data_model, self.pred)
+        self.test = likelihood.HypothesisTester(self.calc)
 
     def test_emcee(self):
-        sampler = emcee_sampler(self.calc)
-        guess = emcee_initial_guess(self.calc)
+        sampler = likelihood_utils.emcee_sampler(self.calc)
+        guess = likelihood_utils.emcee_initial_guess(self.calc)
         state = sampler.run_mcmc(guess, 500)
         sampler.reset()
         sampler.run_mcmc(state, 500)

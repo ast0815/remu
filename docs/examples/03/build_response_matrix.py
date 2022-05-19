@@ -1,11 +1,10 @@
-from remu import binning
-from remu import migration
+from remu import binning, migration
 
 builder = migration.ResponseMatrixArrayBuilder(1)
 
-with open("../01/reco-binning.yml", "rt") as f:
+with open("../01/reco-binning.yml") as f:
     reco_binning = binning.yaml.full_load(f)
-with open("../01/optimised-truth-binning.yml", "rt") as f:
+with open("../01/optimised-truth-binning.yml") as f:
     truth_binning = binning.yaml.full_load(f)
 
 resp = migration.ResponseMatrix(reco_binning, truth_binning)

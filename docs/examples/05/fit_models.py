@@ -1,16 +1,14 @@
-from six import print_
 import numpy as np
-from remu import binning
-from remu import plotting
-from remu import likelihood
 from multiprocess import Pool
+
+from remu import binning, likelihood, plotting
 
 pool = Pool(8)
 likelihood.mapper = pool.map
 
-with open("../01/reco-binning.yml", "rt") as f:
+with open("../01/reco-binning.yml") as f:
     reco_binning = binning.yaml.full_load(f)
-with open("truth-binning.yml", "rt") as f:
+with open("truth-binning.yml") as f:
     truth_binning = binning.yaml.full_load(f)
 
 reco_binning.fill_from_csv_file("real_data.txt")
@@ -57,56 +55,56 @@ calcA_only = calc.compose(modelA_only)
 
 retA_only = maxi(calcA_only)
 with open("modelA_only_fit.txt", "w") as f:
-    print_(retA_only, file=f)
+    print(retA_only, file=f)
 
 testA_only = likelihood.HypothesisTester(calcA_only)
 with open("modelA_only_gof.txt", "w") as f:
-    print_(testA_only.likelihood_p_value(retA_only.x), file=f)
+    print(testA_only.likelihood_p_value(retA_only.x), file=f)
 
 with open("modelA_only_p_value.txt", "w") as f:
-    print_(testA_only.max_likelihood_p_value(), file=f)
+    print(testA_only.max_likelihood_p_value(), file=f)
 
 modelA_bg = likelihood.TemplatePredictor([noise, bg, modelA])
 calcA_bg = calc.compose(modelA_bg)
 
 retA_bg = maxi(calcA_bg)
 with open("modelA_bg_fit.txt", "w") as f:
-    print_(retA_bg, file=f)
+    print(retA_bg, file=f)
 
 testA_bg = likelihood.HypothesisTester(calcA_bg)
 with open("modelA_bg_gof.txt", "w") as f:
-    print_(testA_bg.likelihood_p_value(retA_bg.x), file=f)
+    print(testA_bg.likelihood_p_value(retA_bg.x), file=f)
 
 with open("modelA_bg_p_value.txt", "w") as f:
-    print_(testA_bg.max_likelihood_p_value(), file=f)
+    print(testA_bg.max_likelihood_p_value(), file=f)
 
 modelB_only = likelihood.TemplatePredictor([modelB])
 calcB_only = calc.compose(modelB_only)
 
 retB_only = maxi(calcB_only)
 with open("modelB_only_fit.txt", "w") as f:
-    print_(retB_only, file=f)
+    print(retB_only, file=f)
 
 testB_only = likelihood.HypothesisTester(calcB_only)
 with open("modelB_only_gof.txt", "w") as f:
-    print_(testB_only.likelihood_p_value(retB_only.x), file=f)
+    print(testB_only.likelihood_p_value(retB_only.x), file=f)
 
 with open("modelB_only_p_value.txt", "w") as f:
-    print_(testB_only.max_likelihood_p_value(), file=f)
+    print(testB_only.max_likelihood_p_value(), file=f)
 
 modelB_bg = likelihood.TemplatePredictor([noise, bg, modelB])
 calcB_bg = calc.compose(modelB_bg)
 
 retB_bg = maxi(calcB_bg)
 with open("modelB_bg_fit.txt", "w") as f:
-    print_(retB_bg, file=f)
+    print(retB_bg, file=f)
 
 testB_bg = likelihood.HypothesisTester(calcB_bg)
 with open("modelB_bg_gof.txt", "w") as f:
-    print_(testB_bg.likelihood_p_value(retB_bg.x), file=f)
+    print(testB_bg.likelihood_p_value(retB_bg.x), file=f)
 
 with open("modelB_bg_p_value.txt", "w") as f:
-    print_(testB_bg.max_likelihood_p_value(), file=f)
+    print(testB_bg.max_likelihood_p_value(), file=f)
 
 pltr = plotting.get_plotter(reco_binning)
 modelA_reco, modelA_weights = calcA_only.predictor(retA_only.x)

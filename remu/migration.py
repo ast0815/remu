@@ -1,16 +1,15 @@
 """Module handling the creation and use of migration matrices."""
 
-from __future__ import division
-import numpy as np
-from scipy import stats
-from scipy import linalg
-from copy import copy, deepcopy
+
+from copy import deepcopy
 from warnings import warn
+
+import numpy as np
 
 from .binning import Binning, CartesianProductBinning
 
 
-class ResponseMatrix(object):
+class ResponseMatrix:
     """Matrix that describes the detector response to true events.
 
     Parameters
@@ -70,10 +69,14 @@ class ResponseMatrix(object):
         self,
         reco_binning,
         truth_binning,
-        nuisance_indices=[],
-        impossible_indices=[],
+        nuisance_indices=None,
+        impossible_indices=None,
         response_binning=None,
     ):
+        if nuisance_indices is None:
+            nuisance_indices = []
+        if impossible_indices is None:
+            impossible_indices = []
         self.truth_binning = truth_binning
         self.reco_binning = reco_binning
         if response_binning is None:
@@ -522,7 +525,7 @@ class ResponseMatrix(object):
         resp1_p = resp1 + expected_weight
         resp2_p = resp2 + expected_weight**2
         resp_entries_p = resp_entries + 1
-        resp_entries_p2 = resp_entries_p**2
+        # resp_entries_p2 = resp_entries_p**2
 
         # Since `w_ij` is the mean weight, the variance is just the error of the mean.
         #
@@ -1019,7 +1022,7 @@ class ResponseMatrix(object):
         )
 
 
-class ResponseMatrixArrayBuilder(object):
+class ResponseMatrixArrayBuilder:
     """Class that generates consistent ndarrays from multiple response matrix objects.
 
     Parameters

@@ -6,9 +6,9 @@ This creates some output data like a MC simulation.
 """
 
 import argparse
-import experiment
-import numpy as np
 import csv
+
+import experiment
 
 parser = argparse.ArgumentParser(
     description="Simulate the experiment and get reconstructed and true events."
@@ -41,7 +41,7 @@ true_events = gen.generate_exposed(args.years)
 csvfields = true_events.dtype.names
 with open(args.truthfilename, "wt") as f:
     writer = csv.DictWriter(f, csvfields, delimiter=",")
-    writer.writerow(dict((fn, fn) for fn in csvfields))  # Write the field names
+    writer.writerow({fn: fn for fn in csvfields})  # Write the field names
     for event in true_events:
         writer.writerow({k: event[k] for k in event.dtype.names})
 
@@ -60,6 +60,6 @@ else:
 csvfields = reco_events.dtype.names
 with open(args.datafilename, "wt") as f:
     writer = csv.DictWriter(f, csvfields, delimiter=",")
-    writer.writerow(dict((fn, fn) for fn in csvfields))  # Write the field names
+    writer.writerow({fn: fn for fn in csvfields})  # Write the field names
     for event in reco_events:
         writer.writerow({k: event[k] for k in event.dtype.names})

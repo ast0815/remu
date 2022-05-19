@@ -1,14 +1,12 @@
 import numpy as np
-from remu import binning
-from remu import migration
-from remu import matrix_utils
-from remu import plotting
+
+from remu import binning, matrix_utils, migration, plotting
 
 builder = migration.ResponseMatrixArrayBuilder(1)
 
-with open("../01/reco-binning.yml", "rt") as f:
+with open("../01/reco-binning.yml") as f:
     reco_binning = binning.yaml.full_load(f)
-with open("../01/optimised-truth-binning.yml", "rt") as f:
+with open("../01/optimised-truth-binning.yml") as f:
     signal_binning = binning.yaml.full_load(f)
 
 bg_binning = signal_binning.clone()

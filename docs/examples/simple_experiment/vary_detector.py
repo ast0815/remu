@@ -6,10 +6,11 @@ This modifies the output data of a MC simulation.
 """
 
 import argparse
+import csv
+
 import experiment
 import numpy as np
 import numpy.lib.recfunctions as rfn
-import csv
 
 parser = argparse.ArgumentParser(
     description="Modify the reconstructed events of a simulation."
@@ -66,6 +67,6 @@ events = rfn.merge_arrays([events, weights, reco_x], flatten=True, usemask=False
 csvfields = events.dtype.names
 with open(args.datafilename, "wt") as f:
     writer = csv.DictWriter(f, csvfields, delimiter=",")
-    writer.writerow(dict((fn, fn) for fn in csvfields))  # Write the field names
+    writer.writerow({fn: fn for fn in csvfields})  # Write the field names
     for event in events:
         writer.writerow({k: event[k] for k in event.dtype.names})

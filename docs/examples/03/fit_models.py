@@ -1,17 +1,15 @@
-from six import print_
 import numpy as np
 from matplotlib import pyplot as plt
-from remu import binning
-from remu import plotting
-from remu import likelihood
 from multiprocess import Pool
+
+from remu import binning, likelihood, plotting
 
 pool = Pool(8)
 likelihood.mapper = pool.map
 
-with open("../01/reco-binning.yml", "rt") as f:
+with open("../01/reco-binning.yml") as f:
     reco_binning = binning.yaml.full_load(f)
-with open("../01/optimised-truth-binning.yml", "rt") as f:
+with open("../01/optimised-truth-binning.yml") as f:
     truth_binning = binning.yaml.full_load(f)
 
 reco_binning.fill_from_csv_file("../00/real_data.txt")
@@ -41,23 +39,23 @@ modelA_shape = likelihood.TemplatePredictor([modelA])
 calcA = calc.compose(modelA_shape)
 retA = maxi(calcA)
 with open("modelA_fit.txt", "w") as f:
-    print_(retA, file=f)
+    print(retA, file=f)
 
 calcA_syst = calc_syst.compose(modelA_shape)
 retA_syst = maxi(calcA_syst)
 with open("modelA_fit_syst.txt", "w") as f:
-    print_(retA_syst, file=f)
+    print(retA_syst, file=f)
 
 modelB_shape = likelihood.TemplatePredictor([modelB])
 calcB = calc.compose(modelB_shape)
 retB = maxi(calcB)
 with open("modelB_fit.txt", "w") as f:
-    print_(retB, file=f)
+    print(retB, file=f)
 
 calcB_syst = calc_syst.compose(modelB_shape)
 retB_syst = maxi(calcB_syst)
 with open("modelB_fit_syst.txt", "w") as f:
-    print_(retB_syst, file=f)
+    print(retB_syst, file=f)
 
 pltr = plotting.get_plotter(reco_binning)
 pltr.plot_values(edgecolor="C0", label="data", hatch=None, linewidth=2.0)
@@ -87,14 +85,14 @@ pltr.savefig("reco-comparison.png")
 testA = likelihood.HypothesisTester(calcA)
 testB = likelihood.HypothesisTester(calcB)
 with open("fit_p-values.txt", "w") as f:
-    print_(testA.max_likelihood_p_value(), file=f)
-    print_(testB.max_likelihood_p_value(), file=f)
+    print(testA.max_likelihood_p_value(), file=f)
+    print(testB.max_likelihood_p_value(), file=f)
 
 testA_syst = likelihood.HypothesisTester(calcA_syst)
 testB_syst = likelihood.HypothesisTester(calcB_syst)
 with open("fit_p-values_syst.txt", "w") as f:
-    print_(testA_syst.max_likelihood_p_value(), file=f)
-    print_(testB_syst.max_likelihood_p_value(), file=f)
+    print(testA_syst.max_likelihood_p_value(), file=f)
+    print(testB_syst.max_likelihood_p_value(), file=f)
 
 p_values_A = []
 p_values_B = []
@@ -106,7 +104,7 @@ for v in values:
     A_syst = testA_syst.max_likelihood_p_value([v])
     B = testB.max_likelihood_p_value([v])
     B_syst = testB_syst.max_likelihood_p_value([v])
-    print_(v, A, A_syst, B, B_syst)
+    print(v, A, A_syst, B, B_syst)
     p_values_A.append(A)
     p_values_B.append(B)
     p_values_A_syst.append(A_syst)
@@ -138,7 +136,7 @@ for v in values:
     A_syst = testA_syst.max_likelihood_ratio_p_value([v])
     B = testB.max_likelihood_ratio_p_value([v])
     B_syst = testB_syst.max_likelihood_ratio_p_value([v])
-    print_(v, A, A_syst, B, B_syst)
+    print(v, A, A_syst, B, B_syst)
     p_values_A.append(A)
     p_values_B.append(B)
     p_values_A_syst.append(A_syst)
@@ -150,7 +148,7 @@ fine_values = np.linspace(600, 1600, 100)
 for v in fine_values:
     A = testA_syst.wilks_max_likelihood_ratio_p_value([v])
     B = testB_syst.wilks_max_likelihood_ratio_p_value([v])
-    print_(v, A, B)
+    print(v, A, B)
     p_values_A_wilks.append(A)
     p_values_B_wilks.append(B)
 

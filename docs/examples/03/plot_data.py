@@ -1,8 +1,8 @@
-from remu import binning
-from remu import plotting
 import numpy as np
 
-with open("../01/reco-binning.yml", "r") as f:
+from remu import binning, plotting
+
+with open("../01/reco-binning.yml") as f:
     reco_binning = binning.yaml.full_load(f)
 
 # Get real data

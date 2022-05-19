@@ -6,9 +6,10 @@ This creates some output data like a real experiment.
 """
 
 import argparse
+import csv
+
 import experiment
 import numpy as np
-import csv
 
 parser = argparse.ArgumentParser(
     description="Run the experiment and get reconstructed events."
@@ -49,6 +50,6 @@ else:
 csvfields = reco_events.dtype.names
 with open(args.filename, "wt") as f:
     writer = csv.DictWriter(f, csvfields, delimiter=",")
-    writer.writerow(dict((fn, fn) for fn in csvfields))  # Write the field names
+    writer.writerow({fn: fn for fn in csvfields})  # Write the field names
     for event in reco_events:
         writer.writerow({k: event[k] for k in event.dtype.names})

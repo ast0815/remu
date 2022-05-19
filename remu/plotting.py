@@ -13,15 +13,14 @@ Examples
 
 """
 
-from __future__ import division
-from matplotlib import pyplot as plt
-from matplotlib.colors import LogNorm
-from matplotlib import ticker
-import numpy as np
+
 from itertools import cycle
 
+import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib import ticker
+
 from . import binning
-from . import migration
 
 
 def get_plotter(obj, *args, **kwargs):
@@ -48,10 +47,10 @@ def get_plotter(obj, *args, **kwargs):
         return BinningPlotter(obj, *args, **kwargs)
     if isinstance(obj, np.ndarray):
         return ArrayPlotter(obj, *args, **kwargs)
-    raise TypeError("No known Plotter class for type %s" % (type(obj),))
+    raise TypeError(f"No known Plotter class for type {type(obj)}")
 
 
-class Plotter(object):
+class Plotter:
     """Plotting base class.
 
     Parameters
@@ -176,8 +175,13 @@ class ArrayPlotter(Plotter):
             # A number.
             lobound = (1.0 - stack_function) / 2.0
             hibound = 1.0 - lobound
-            lower = lambda x, axis=0, bound=lobound: np.quantile(x, bound, axis=axis)
-            upper = lambda x, axis=0, bound=hibound: np.quantile(x, bound, axis=axis)
+
+            def lower(x, axis=0, bound=lobound):
+                return np.quantile(x, bound, axis=axis)
+
+            def upper(x, axis=0, bound=hibound):
+                return np.quantile(x, bound, axis=axis)
+
             return lower, upper
 
         # No number
@@ -186,7 +190,9 @@ class ArrayPlotter(Plotter):
             lower, upper = stack_function
         except TypeError:
             # Nope
-            lower = lambda x, axis=0: np.sum(np.zeros_like(x), axis=axis)
+            def lower(x, axis=0):
+                return np.sum(np.zeros_like(x), axis=axis)
+
             upper = stack_function
         return lower, upper
 
@@ -196,7 +202,7 @@ class ArrayPlotter(Plotter):
         density=False,
         stack_function=np.mean,
         margin_function=None,
-        **kwargs
+        **kwargs,
     ):
         """Plot an array.
 
@@ -439,7 +445,7 @@ class CartesianProductBinningPlotter(BinningPlotter):
         stack_function=np.mean,
         margin_function=np.sum,
         scatter=-1,
-        **kwargs
+        **kwargs,
     ):
         """Plot an array.
 
@@ -481,14 +487,16 @@ class CartesianProductBinningPlotter(BinningPlotter):
         n_col = len(self.x_axis_binnings) + 1  # "+1" for the 1D projections
         n_row = len(self.y_axis_binnings) + 1
 
-        # Widths and heights according to number of bins, 10 px (= 0.1") per bin
+        # Widths and heights according to number of bins,
+        # 10 px (= 0.1") per bin
         widths = [
             0.1 * self.binning.binnings[i].data_size for i in self.x_axis_binnings
         ]
         heights = [
             0.1 * self.binning.binnings[i].data_size for i in self.y_axis_binnings
         ]
-        heights.reverse()  # Axes are counted top to bottom, but we want binnings bottom to top
+        # Axes are counted top to bottom, but we want binnings bottom to top
+        heights.reverse()
 
         # Total figure size
         total_width = np.sum(widths)

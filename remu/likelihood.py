@@ -1,19 +1,18 @@
 """Module that deals with the calculations of likelihoods."""
 
-from __future__ import division
-from six.moves import map, zip
+
 import numpy as np
-from scipy import stats
-from scipy import optimize
+from scipy import optimize, stats
 from scipy.misc import derivative
-import inspect
-from warnings import warn
 
 # Use this function/object for parallelization where possible
 mapper = map
 
+# Empty slices
+_SLICE = slice(None)
 
-class JeffreysPrior(object):
+
+class JeffreysPrior:
     """Universal non-informative prior for use in Bayesian MCMC analysis.
 
     Parameters
@@ -101,14 +100,6 @@ class JeffreysPrior(object):
         dx=None,
         total_truth_limit=None,
     ):
-        try:
-            # Load response matrix and necessary arguments from file
-            matrix, args = LikelihoodMachine._args_from_matrix_file(response_matrix)
-        except (TypeError, AttributeError):
-            pass
-        else:
-            response_matrix = matrix
-
         old_shape = response_matrix.shape
         new_shape = (int(np.prod(old_shape[:-2])), old_shape[-2], old_shape[-1])
         self.response_matrix = response_matrix.reshape(new_shape)
@@ -217,7 +208,7 @@ class JeffreysPrior(object):
         return 0.5 * log_det
 
 
-class DataModel(object):
+class DataModel:
     """Base class for representation of data statistical models.
 
     The resulting object can be called like a function::
@@ -351,14 +342,14 @@ class PoissonData(DataModel):
 
         # Cast vectors to the shape ([a,b,...,][c,d,...,]n_reco_bins,)
         data_index = (
-            (slice(None),) * (len(data_shape) - 1)
+            (_SLICE,) * (len(data_shape) - 1)
             + (np.newaxis,) * (len(reco_shape) - 1)
-            + (slice(None),)
+            + (_SLICE,)
         )
         reco_index = (
             (np.newaxis,) * (len(data_shape) - 1)
-            + (slice(None),) * (len(reco_shape) - 1)
-            + (slice(None),)
+            + (_SLICE,) * (len(reco_shape) - 1)
+            + (_SLICE,)
         )
 
         # Calculate the log probabilities of shape ([a,b,...,][c,d,...,]).
@@ -393,7 +384,7 @@ class PoissonData(DataModel):
         return data
 
 
-class SystematicsConsumer(object):
+class SystematicsConsumer:
     """Class that consumes the systematics axis on an array of log likelihoods."""
 
     @staticmethod
@@ -444,7 +435,7 @@ class ProfileLikelihoodSystematics(SystematicsConsumer):
         return np.max(log_likelihood, axis=-1)
 
 
-class Predictor(object):
+class Predictor:
     """Base class for objects that turn sets of parameters to predictions.
 
     Parameters
@@ -475,7 +466,7 @@ class Predictor(object):
         check = (parameters >= self.bounds[:, 0]) & (parameters <= self.bounds[:, 1])
         return np.all(check, axis=-1)
 
-    def prediction(self, parameters, systematics_index=slice(None)):
+    def prediction(self, parameters, systematics_index=_SLICE):
         """Turn a set of parameters into an ndarray of reco predictions.
 
         Parameters
@@ -563,7 +554,7 @@ class ComposedPredictor(Predictor):
         self.bounds = predictors[-1].bounds
         self.defaults = predictors[-1].defaults
 
-    def prediction(self, parameters, systematics_index=slice(None)):
+    def prediction(self, parameters, systematics_index=_SLICE):
         """Turn a set of parameters into an ndarray of predictions.
 
         Parameters
@@ -644,7 +635,7 @@ class FixedParameterPredictor(Predictor):
         parameters = np.asarray(parameters)
         return np.insert(parameters, self.insert_indices, self.insert_values, axis=-1)
 
-    def prediction(self, parameters, systematics_index=slice(None)):
+    def prediction(self, parameters, systematics_index=_SLICE):
         """Turn a set of parameters into an ndarray of predictions.
 
         Parameters
@@ -731,12 +722,12 @@ class LinearPredictor(Predictor):
         if defaults is None:
             defaults = np.array([1.0] * self.matrices.shape[-1])
         if sparse_indices is None:
-            self.sparse_indices = slice(None)
+            self.sparse_indices = _SLICE
         else:
             self.sparse_indices = sparse_indices
         Predictor.__init__(self, bounds, defaults)
 
-    def prediction(self, parameters, systematics_index=slice(None)):
+    def prediction(self, parameters, systematics_index=_SLICE):
         """Turn a set of parameters into a reco prediction.
 
         Returns
@@ -872,7 +863,7 @@ class ResponseMatrixPredictor(LinearPredictor):
         if data.get("is_sparse", False):
             sparse_indices = data["sparse_indices"]
         else:
-            sparse_indices = slice(None)
+            sparse_indices = _SLICE
         eps = np.finfo(
             float
         ).eps  # Add epsilon so there is a very small allowed range for empty bins
@@ -921,7 +912,7 @@ class TemplatePredictor(LinearPredictor):
         )
 
 
-class LikelihoodCalculator(object):
+class LikelihoodCalculator:
     """Class that calculates the likelihoods of parameter sets.
 
     Parameters
@@ -994,7 +985,7 @@ class LikelihoodCalculator(object):
         weights = weights / np.sum(weights, axis=-1)
 
         toys = []
-        for i in range(N):
+        for _i in range(N):
             j = np.random.choice(len(weights), p=weights)
             data_model = self.data_model.generate_toy_data_model(prediction[j])
             toys.append(LikelihoodCalculator(data_model, predictor, systematics))
@@ -1036,7 +1027,7 @@ class LikelihoodCalculator(object):
         return self.log_likelihood(*args, **kwargs)
 
 
-class LikelihoodMaximizer(object):
+class LikelihoodMaximizer:
     """Class to maximise the likelihood over a parameter space."""
 
     def minimize(self, fun, x0, bounds, **kwargs):
@@ -1097,10 +1088,12 @@ class BasinHoppingMaximizer(LikelihoodMaximizer):
         return optimize.basinhopping(fun, x0, **args)
 
 
-class HypothesisTester(object):
+class HypothesisTester:
     """Class for statistical tests of hypotheses."""
 
-    def __init__(self, likelihood_calculator, maximizer=BasinHoppingMaximizer()):
+    _default_maximizer = BasinHoppingMaximizer()
+
+    def __init__(self, likelihood_calculator, maximizer=_default_maximizer):
         self.likelihood_calculator = likelihood_calculator
         self.maximizer = maximizer
 
@@ -1257,7 +1250,7 @@ class HypothesisTester(object):
 
         toy_LC = LC.generate_toy_likelihood_calculators(opt_par, N=N)
         toy_opt = list(mapper(lambda C, maxer=maxer: maxer(C), toy_LC))
-        toy_L = np.asfarray([O.log_likelihood for O in toy_opt])
+        toy_L = np.asfarray([topt.log_likelihood for topt in toy_opt])
 
         p_value = np.sum(L0 >= toy_L, axis=-1) / N
 
