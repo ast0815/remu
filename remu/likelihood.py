@@ -511,7 +511,16 @@ class Predictor:
         Parameters
         ----------
 
-        fix_values
+        fix_values : iterable
+            List of the parameter values that the parameters should be fixed at.
+            The list must be of the same length as the number of parameters of `predictor`.
+            Any parameters that should remain unfixed should be specified with ``None`` or
+            ``np.nan``.
+
+        See also
+        --------
+
+        FixedParameterPredictor
 
         """
 
@@ -616,7 +625,23 @@ class ComposedPredictor(Predictor):
 
 
 class FixedParameterPredictor(Predictor):
-    """Wrapper class that fixes parameters of another predictor."""
+    """Wrapper class that fixes parameters of another predictor.
+
+    The resulting `Predictor` will have fewer parameters, namely those that have
+    not been fixed.
+
+    Paramters
+    ---------
+
+    predictor : Predictor
+        The original predictor which will have some of its parameters fixed.
+    fix_values : iterable
+        List of the parameter values that the parameters should be fixed at.
+        The list must be of the same length as the number of parameters of `predictor`.
+        Any parameters that should remain unfixed should be specified with ``None`` or
+        ``np.nan``.
+
+    """
 
     def __init__(self, predictor, fix_values):
         self.predictor = predictor
@@ -767,7 +792,16 @@ class LinearPredictor(Predictor):
         Parameters
         ----------
 
-        fix_values
+        fix_values : iterable
+            List of the parameter values that the parameters should be fixed at.
+            The list must be of the same length as the number of parameters of `predictor`.
+            Any parameters that should remain unfixed should be specified with ``None`` or
+            ``np.nan``.
+
+        See also
+        --------
+
+        FixedParameterLinearPredictor
 
         """
 
@@ -821,7 +855,29 @@ class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
 
 
 class FixedParameterLinearPredictor(LinearPredictor, FixedParameterPredictor):
-    """Wrapper class that fixes parameters of a linear predictor."""
+    """Wrapper class that fixes parameters of a linear predictor.
+
+    Speeds things up considerably compared to the universal `FixedParameterPredictor`,
+    but only works with `LinearPredictor`.
+
+    Paramters
+    ---------
+
+    predictor : LinearPredictor
+        The original predictor which will have some of its parameters fixed.
+    fix_values : iterable
+        List of the parameter values that the parameters should be fixed at.
+        The list must be of the same length as the number of parameters of `predictor`.
+        Any parameters that should remain unfixed should be specified with ``None`` or
+        ``np.nan``.
+
+    See also
+    --------
+
+    FixedParameterPredictor
+    LinearPredictor
+
+    """
 
     def __init__(self, predictor, fix_values):
         FixedParameterPredictor.__init__(self, predictor, fix_values)
