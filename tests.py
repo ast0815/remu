@@ -1718,7 +1718,10 @@ class TestMatrixUtils(unittest.TestCase):
 class TestLikelihoodUtils(unittest.TestCase):
     def setUp(self):
         self.data = np.arange(4)
-        self.pred = likelihood.TemplatePredictor([np.eye(4), np.eye(4)])
+        self.pred = likelihood.TemplatePredictor(
+            [np.eye(4), np.eye(4)],
+            bounds=[(0, np.inf), (-np.inf, 1.001), (1.0, np.inf), (0.0, 1.0)],
+        )
         self.data_model = likelihood.PoissonData(self.data)
         self.calc = likelihood.LikelihoodCalculator(self.data_model, self.pred)
         self.test = likelihood.HypothesisTester(self.calc)
