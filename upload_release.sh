@@ -6,4 +6,3 @@ then
 else
     echo 'twine upload dist/*'
 fi
-

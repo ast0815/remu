@@ -1,15 +1,12 @@
-from six import print_
+import emcee
 import numpy as np
 from matplotlib import pyplot as plt
-from remu import binning
-from remu import plotting
-from remu import likelihood
-from remu import likelihood_utils
-import emcee
 
-with open("../01/reco-binning.yml", 'rt') as f:
+from remu import binning, likelihood, likelihood_utils, plotting
+
+with open("../01/reco-binning.yml") as f:
     reco_binning = binning.yaml.full_load(f)
-with open("../01/optimised-truth-binning.yml", 'rt') as f:
+with open("../01/optimised-truth-binning.yml") as f:
     truth_binning = binning.yaml.full_load(f)
 
 reco_binning.fill_from_csv_file("../00/real_data.txt")
@@ -32,50 +29,50 @@ guessA = likelihood_utils.emcee_initial_guess(calcA)
 
 state = samplerA.run_mcmc(guessA, 100)
 chain = samplerA.get_chain(flat=True)
-with open("chain_shape.txt", 'w') as f:
-    print_(chain.shape, file=f)
+with open("chain_shape.txt", "w") as f:
+    print(chain.shape, file=f)
 
 fig, ax = plt.subplots()
-ax.hist(chain[:,0])
+ax.hist(chain[:, 0])
 ax.set_xlabel("model A weight")
 fig.savefig("burn_short.png")
 
-with open("burn_short_tau.txt", 'w') as f:
+with open("burn_short_tau.txt", "w") as f:
     try:
         tau = samplerA.get_autocorr_time()
-        print_(tau, file=f)
+        print(tau, file=f)
     except emcee.autocorr.AutocorrError as e:
-        print_(e, file=f)
+        print(e, file=f)
 
 samplerA.reset()
-state = samplerA.run_mcmc(guessA, 200*50)
+state = samplerA.run_mcmc(guessA, 200 * 50)
 chain = samplerA.get_chain(flat=True)
 
-with open("burn_long_tau.txt", 'w') as f:
+with open("burn_long_tau.txt", "w") as f:
     try:
         tau = samplerA.get_autocorr_time()
-        print_(tau, file=f)
+        print(tau, file=f)
     except emcee.autocorr.AutocorrError as e:
-        print_(e, file=f)
+        print(e, file=f)
 
 fig, ax = plt.subplots()
-ax.hist(chain[:,0])
+ax.hist(chain[:, 0])
 ax.set_xlabel("model A weight")
 fig.savefig("burn_long.png")
 
 samplerA.reset()
-state = samplerA.run_mcmc(state, 100*50)
+state = samplerA.run_mcmc(state, 100 * 50)
 chain = samplerA.get_chain(flat=True)
 
-with open("tauA.txt", 'w') as f:
+with open("tauA.txt", "w") as f:
     try:
         tau = samplerA.get_autocorr_time()
-        print_(tau, file=f)
+        print(tau, file=f)
     except emcee.autocorr.AutocorrError as e:
-        print_(e, file=f)
+        print(e, file=f)
 
 fig, ax = plt.subplots()
-ax.hist(chain[:,0])
+ax.hist(chain[:, 0])
 ax.set_xlabel("model A weight")
 fig.savefig("weightA.png")
 
@@ -107,30 +104,30 @@ calcC = calc.compose(combined)
 samplerC = likelihood_utils.emcee_sampler(calcC)
 guessC = likelihood_utils.emcee_initial_guess(calcC)
 
-state = samplerC.run_mcmc(guessC, 200*50)
+state = samplerC.run_mcmc(guessC, 200 * 50)
 chain = samplerC.get_chain(flat=True)
-with open("combined_chain_shape.txt", 'w') as f:
-    print_(chain.shape, file=f)
+with open("combined_chain_shape.txt", "w") as f:
+    print(chain.shape, file=f)
 
-with open("burn_combined_tau.txt", 'w') as f:
+with open("burn_combined_tau.txt", "w") as f:
     try:
         tau = samplerC.get_autocorr_time()
-        print_(tau, file=f)
+        print(tau, file=f)
     except emcee.autocorr.AutocorrError as e:
-        print_(e, file=f)
+        print(e, file=f)
 
 samplerC.reset()
-state = samplerC.run_mcmc(state, 100*50)
+state = samplerC.run_mcmc(state, 100 * 50)
 chain = samplerC.get_chain(flat=True)
-with open("combined_tau.txt", 'w') as f:
+with open("combined_tau.txt", "w") as f:
     try:
         tau = samplerC.get_autocorr_time()
-        print_(tau, file=f)
+        print(tau, file=f)
     except emcee.autocorr.AutocorrError as e:
-        print_(e, file=f)
+        print(e, file=f)
 
 fig, ax = plt.subplots()
-ax.hist2d(chain[:,0], chain[:,1])
+ax.hist2d(chain[:, 0], chain[:, 1])
 ax.set_xlabel("model A weight")
 ax.set_ylabel("model B weight")
 fig.savefig("combined.png")

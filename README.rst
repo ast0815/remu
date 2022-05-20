@@ -4,7 +4,7 @@ ReMU - Response Matrix Utilities
 
 A framework for likelihood calculations and hypothesis testing using binned events and response matrices.
 
-|Travis-CI| |Documentation| |Coverage| |MIT-Licence| |DOI|
+|Documentation| |Coverage| |MIT-Licence| |DOI|
 
 Setup
 =====
@@ -13,9 +13,14 @@ Installing development version from source
 ------------------------------------------
 
 It is recommended to run this software in a virtual Python environment
-(virtualenv). This ensures that all required packages are present in the
-tested version and do not interfere with other packages installed on the
-system. So after checking out the source code, run these commands::
+(virtualenv). This ensures that all required packages are present in the tested
+version and do not interfere with other packages installed on the system. The
+easiest way to do so, is to simply source ``setup.sh`` after checking out the
+source code::
+
+    $ . setup.sh
+
+This will automatically do something along these lines::
 
     $ # Create a new virtual environment
     $ virtualenv ENV
@@ -28,14 +33,12 @@ system. So after checking out the source code, run these commands::
     $ # Install actual package
     $ pip install -e .
 
-Or you can just source the provided ``setup.sh``. It will do these steps for
-you::
+It will only create a new virtual environment if one does not exist already.
+You can also specify which Python version to use by providing the respective
+``virtualenv`` argument to ``setup.sh``, e.g. ``. setup.sh -p python3``. You
+might need to install additional system libraries to compile all packages.
 
-    $ . setup.sh
-
-You might need to install additional system libraries to compile all packages.
-
-ReMU requires Python 2.7 or >=3.4.
+ReMU requires Python >=3.6.
 
 Installing official releases with ``pip``
 -----------------------------------------
@@ -83,10 +86,6 @@ Or just use the DOI and let your bibliography manager handle the rest for you.
 You can cite specific versions of the software too. Just follow the link
 behind the DOI badge and choose the DOI specific for the release.
 
-
-.. |Travis-CI| image:: https://travis-ci.org/ast0815/remu.svg?branch=master
-    :target: https://travis-ci.org/ast0815/remu
-    :alt: [Travis-CI]
 
 .. |Documentation| image:: https://readthedocs.org/projects/remu/badge/?version=latest
     :target: https://remu.readthedocs.io/en/latest/

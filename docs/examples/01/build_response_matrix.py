@@ -1,12 +1,10 @@
 import numpy as np
-from remu import binning
-from remu import migration
-from remu import plotting
-from remu import matrix_utils
 
-with open("reco-binning.yml", 'rt') as f:
+from remu import binning, matrix_utils, migration, plotting
+
+with open("reco-binning.yml") as f:
     reco_binning = binning.yaml.full_load(f)
-with open("coarse-truth-binning.yml", 'rt') as f:
+with open("coarse-truth-binning.yml") as f:
     truth_binning = binning.yaml.full_load(f)
 
 respA = migration.ResponseMatrix(reco_binning, truth_binning)
@@ -38,9 +36,9 @@ matrix_utils.plot_mean_response_matrix(respB, "response_matrix_B.png")
 matrix_utils.plot_mahalanobis_distance(respA, respB, "mahalanobis_distance.png")
 matrix_utils.plot_compatibility(respA, respB, "compatibility.png")
 
-with open("reco-binning.yml", 'rt') as f:
+with open("reco-binning.yml") as f:
     reco_binning = binning.yaml.full_load(f)
-with open("fine-truth-binning.yml", 'rt') as f:
+with open("fine-truth-binning.yml") as f:
     truth_binning = binning.yaml.full_load(f)
 
 respA = migration.ResponseMatrix(reco_binning, truth_binning)
@@ -110,10 +108,12 @@ respA.fill_from_csv_file("../00/modelA_data.txt")
 respA.fill_up_truth_from_csv_file("../00/modelA_truth.txt")
 respB.fill_from_csv_file(["../00/modelB_data.txt"])
 respB.fill_up_truth_from_csv_file(["../00/modelB_truth.txt"])
-matrix_utils.plot_mahalanobis_distance(respA, respB, "optimised_mahalanobis_distance.png")
+matrix_utils.plot_mahalanobis_distance(
+    respA, respB, "optimised_mahalanobis_distance.png"
+)
 matrix_utils.plot_compatibility(respA, respB, "optimised_compatibility.png")
 
-with open("optimised-truth-binning.yml", 'w') as f:
+with open("optimised-truth-binning.yml", "w") as f:
     binning.yaml.dump(optimised.truth_binning, f)
 
 optimised.export("response_matrix.npz")

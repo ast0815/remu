@@ -1,12 +1,12 @@
 """Utility functions for the work with response matrices."""
 
-from __future__ import division
+
 import numpy as np
-from scipy import stats
 from matplotlib import pyplot as plt
-from remu import binning
-from remu import migration
-from remu import plotting
+from scipy import stats
+
+from remu import binning, migration, plotting
+
 
 def _block_mahalanobis2(X, mu, inv_cov):
     """Efficiently calculate squared Mahalanobis distance for diagonal block matrix covariances.
@@ -42,10 +42,13 @@ def _block_mahalanobis2(X, mu, inv_cov):
 
     diff = np.asfarray(X) - np.asfarray(mu)
     inv_cov = np.asfarray(inv_cov)
-    D_M = np.einsum('...b,...bc,...c', diff, inv_cov, diff)
+    D_M = np.einsum("...b,...bc,...c", diff, inv_cov, diff)
     return D_M
 
-def mahalanobis_distance(first, second, shape=None, N=None, return_distances_from_mean=False, **kwargs):
+
+def mahalanobis_distance(
+    first, second, shape=None, N=None, return_distances_from_mean=False, **kwargs
+):
     """Calculate the squared Mahalanobis distance of the two matrices for each truth bin.
 
     Parameters
@@ -96,42 +99,75 @@ def mahalanobis_distance(first, second, shape=None, N=None, return_distances_fro
     """
 
     n_reco = first.reco_binning.data_size
-    if 'truth_indices' in kwargs:
-        n_truth = len(kwargs['truth_indices'])
-    else:
-        n_truth = first.truth_binning.data_size
-    n_bins = n_truth * n_reco
+    truth_indices = kwargs.pop(
+        "truth_indices", list(range(first.truth_binning.data_size))
+    )
+    # n_truth = len(truth_indices)
+    # n_bins = n_truth * n_reco
     if N is None:
         N = n_reco + 100
 
-    # Get the *transposed* set of matrices
-    self_matrices = first.generate_random_response_matrices(size=N, **kwargs).T
-
-    other_matrices = second.generate_random_response_matrices(size=N, **kwargs).T
-    differences = self_matrices - other_matrices
-
     # Since the detector response is handled completely independently for each truth index,
     # we can calculate the covariance matrices and distances for each one individually.
-    inv_cov_list = []
-    for i in range(n_truth):
-        cov = np.cov(differences[i])
-        inv_cov_list.append(np.linalg.inv(cov))
+    distance = []
+    distances_from_mean = []
+    for i in truth_indices:  # TODO: Chunk this when number of reco bins allows it
+        indices = [i]
 
-    null = np.zeros((n_truth, n_reco))
-    mean = (first.get_mean_response_matrix_as_ndarray(**kwargs)
-        - second.get_mean_response_matrix_as_ndarray(**kwargs)).T
+        # Get the *transposed* set of matrices
+        first_matrices = first.generate_random_response_matrices(
+            size=N, truth_indices=indices, **kwargs
+        ).T
 
-    distance = _block_mahalanobis2([null], mean, inv_cov_list)[0]
+        second_matrices = second.generate_random_response_matrices(
+            size=N, truth_indices=indices, **kwargs
+        ).T
 
+        differences = first_matrices - second_matrices
+
+        inv_cov_list = []
+        # Actually calculate the inverse covariances
+        for j in range(len(indices)):
+            cov = np.cov(differences[j])
+            inv_cov_list.append(np.linalg.inv(cov))
+
+        null = np.zeros((len(indices), n_reco))
+        mean = (
+            first.get_mean_response_matrix_as_ndarray(truth_indices=indices, **kwargs)
+            - second.get_mean_response_matrix_as_ndarray(
+                truth_indices=indices, **kwargs
+            )
+        ).T
+
+        # Append the distances of the current truth bins to the total
+        distance.extend(_block_mahalanobis2([null], mean, inv_cov_list)[0])
+
+        # Calculate distances of throws
+        if return_distances_from_mean:
+            differences = differences.transpose(
+                (2, 0, 1)
+            )  # (truth, reco, N) -> (N, truth, reco)
+            distances_from_mean_temp = _block_mahalanobis2(
+                differences, mean, inv_cov_list
+            )
+            distances_from_mean_temp = (
+                distances_from_mean_temp.transpose()
+            )  # (N, truth) -> (truth, N)
+            distances_from_mean.extend(distances_from_mean_temp)
+
+    # Reshape if asked for
+    distance = np.array(distance)
+    distances_from_mean = np.array(distances_from_mean).transpose()
     if shape is not None:
-        distance = distance.reshape(shape, order='C')
+        distance = distance.reshape(shape, order="C")
+        if return_distances_from_mean:
+            distances_from_mean = distances_from_mean.reshape(N + shape, order="C")
 
     if return_distances_from_mean:
-        differences = differences.transpose((2,0,1)) # (truth, reco, N) -> (N, truth, reco)
-        distances_from_mean = _block_mahalanobis2(differences, mean, inv_cov_list)
         return distance, distances_from_mean
     else:
         return distance
+
 
 def _expected_mahalanobis_distance(first, second):
     """Return the expected mahalanobis distance between two matrices.
@@ -170,19 +206,24 @@ def _expected_mahalanobis_distance(first, second):
     n_reco_vars = len(first.reco_binning.phasespace)
 
     n_reco_events_1 = first.get_response_entries_as_ndarray(shape=shape).sum(axis=0)
-    n_truth_events_1 = first.get_truth_entries_as_ndarray()
-    n_lost_events_1 = n_truth_events_1 - n_reco_events_1
+    # n_truth_events_1 = first.get_truth_entries_as_ndarray()
+    # n_lost_events_1 = n_truth_events_1 - n_reco_events_1
     n_reco_events_2 = second.get_response_entries_as_ndarray(shape=shape).sum(axis=0)
-    n_truth_events_2 = second.get_truth_entries_as_ndarray()
-    n_lost_events_2 = n_truth_events_2 - n_reco_events_2
+    # n_truth_events_2 = second.get_truth_entries_as_ndarray()
+    # n_lost_events_2 = n_truth_events_2 - n_reco_events_2
 
     prior_events = np.minimum(n_reco_bins, 3**n_reco_vars)
     n_reco_events = np.minimum(n_reco_events_1, n_reco_events_2)
-    expectation = n_reco_bins * np.minimum(1., np.asfarray(n_reco_events/(2*prior_events)))
+    expectation = n_reco_bins * np.minimum(
+        1.0, np.asfarray(n_reco_events / (2 * prior_events))
+    )
 
     return expectation
 
-def plot_mahalanobis_distance(first, second, filename=None, plot_expectation=True, **kwargs):
+
+def plot_mahalanobis_distance(
+    first, second, filename=None, plot_expectation=True, **kwargs
+):
     """Plot the squared Mahalanobis distance ``D_M^2`` between two matrices.
 
     Parameters
@@ -230,16 +271,16 @@ def plot_mahalanobis_distance(first, second, filename=None, plot_expectation=Tru
         plt = plotting.BinningPlotter(first.truth_binning)
 
     args = {
-        'hatch': None,
-        'density': False,
-        'margin_function': np.sum,
-        }
+        "hatch": None,
+        "density": False,
+        "margin_function": np.sum,
+    }
     args.update(kwargs)
 
     dist = mahalanobis_distance(first, second)
     if plot_expectation:
         exp = _expected_mahalanobis_distance(first, second)
-        plt.plot_array(exp, linestyle='dashed', label="expected", **args)
+        plt.plot_array(exp, linestyle="dashed", label="expected", **args)
 
     plt.plot_array(dist, label=r"$D_M^2$", **args)
 
@@ -251,8 +292,16 @@ def plot_mahalanobis_distance(first, second, filename=None, plot_expectation=Tru
 
     return plt.figax
 
-def compatibility(first, second, N=None, return_all=False,
-                  truth_indices=None, min_quality = 0.95, **kwargs):
+
+def compatibility(
+    first,
+    second,
+    N=None,
+    return_all=False,
+    truth_indices=None,
+    min_quality=0.95,
+    **kwargs,
+):
     """Calculate the compatibility between this and another response matrix.
 
     Basically, this checks whether the point of "the matrices are
@@ -375,7 +424,7 @@ def compatibility(first, second, N=None, return_all=False,
         # is close to the high stats limit.
 
         exp = _expected_mahalanobis_distance(first, second)
-        truth_indices = list(sorted(np.argwhere(exp >= min_quality*n_reco).flat))
+        truth_indices = list(sorted(np.argwhere(exp >= min_quality * n_reco).flat))
 
         if len(truth_indices) == 0:
             raise RuntimeError("No bins with required quality!")
@@ -384,8 +433,14 @@ def compatibility(first, second, N=None, return_all=False,
     n_bins = n_truth * n_reco
 
     # Get the distances for all truth bins
-    null_distance, distances = mahalanobis_distance(first, second, N=N,
-        truth_indices=truth_indices, return_distances_from_mean=True, **kwargs)
+    null_distance, distances = mahalanobis_distance(
+        first,
+        second,
+        N=N,
+        truth_indices=truth_indices,
+        return_distances_from_mean=True,
+        **kwargs,
+    )
 
     # Sum up truth bins to total distance
     null_distance = null_distance.sum(axis=-1)
@@ -400,6 +455,7 @@ def compatibility(first, second, N=None, return_all=False,
         return null_prob_count, null_prob_chi2, null_distance, distances, n_bins
     else:
         return null_prob_count, null_prob_chi2
+
 
 def plot_compatibility(first, second, filename=None, **kwargs):
     """Plot the compatibility of the two matrices.
@@ -429,20 +485,33 @@ def plot_compatibility(first, second, filename=None, **kwargs):
 
     """
 
-    prob_count, prob_chi2, dist, distances, df = compatibility(first, second, return_all=True, **kwargs)
+    prob_count, prob_chi2, dist, distances, df = compatibility(
+        first, second, return_all=True, **kwargs
+    )
 
     fig, ax = plt.subplots()
     ax.set_xlabel(r"$D_M^2$")
     nbins = max(min(distances.size // 100, 100), 5)
-    ax.hist(distances, nbins, density=True, histtype='stepfilled', label="actual distribution, C=%.3f"%(prob_count,))
-    x = np.linspace(df-3*np.sqrt(2*df), df+5*np.sqrt(2*df), 50)
-    ax.plot(x, stats.chi2.pdf(x, df), label="$\chi^2$ distribution, C=%.3f"%(prob_chi2,))
-    ax.axvline(dist, label="null distance", color='k', linestyle='dashed')
-    ax.legend(loc='best', framealpha=0.5)
+    ax.hist(
+        distances,
+        nbins,
+        density=True,
+        histtype="stepfilled",
+        label=f"actual distribution, C={prob_count:.3f}",
+    )
+    x = np.linspace(df - 3 * np.sqrt(2 * df), df + 5 * np.sqrt(2 * df), 50)
+    ax.plot(
+        x,
+        stats.chi2.pdf(x, df),
+        label=rf"$\chi^2$ distribution, C={prob_chi2:.3f}",
+    )
+    ax.axvline(dist, label="null distance", color="k", linestyle="dashed")
+    ax.legend(loc="best", framealpha=0.5)
     if filename is not None:
         fig.savefig(filename)
 
     return fig, ax
+
 
 def _merge_suggestions(binning, data_index):
     """Suggest possible bin mergers to improve binning statistics.
@@ -480,42 +549,60 @@ def _merge_suggestions(binning, data_index):
     elif len(binning.subbinnings) == 0:
         return _merge_suggestions_without_subbinnings(binning, i_bin_min)
     else:
-        raise RuntimeError("Lowest statistics entry is in bin %d of Binning with subbinnings: %r"%(i_bin_min, binning))
+        raise RuntimeError(
+            "Lowest statistics entry is in bin %d of Binning with subbinnings: %r"
+            % (i_bin_min, binning)
+        )
+
 
 def _merge_suggestions_from_subbinnings(binning, i_bin, i_data):
     subbinning = binning.subbinnings[i_bin]
     data_offset = binning.get_bin_data_index(i_bin)
     data_size = subbinning.data_size
-    subsuggestions = _merge_suggestions(subbinning, i_data-data_offset)
+    subsuggestions = _merge_suggestions(subbinning, i_data - data_offset)
     suggestions = []
     for sug in subsuggestions:
         # Fix bin numbers
-        first = [ data_offset + x for x in sug['first_indices'] ]
-        second = [ data_offset + x for x in sug['second_indices'] ]
-        new_subbinning = sug['binning']
+        first = [data_offset + x for x in sug["first_indices"]]
+        second = [data_offset + x for x in sug["second_indices"]]
+        new_subbinning = sug["binning"]
         # Create a new binning
         marginalized_binning = binning.marginalize_subbinnings([i_bin])
         if new_subbinning.data_size == 1:
             # No need to re-add the subbinning
             new_binning = marginalized_binning
         else:
-            new_binning = marginalized_binning.insert_subbinning(i_bin, new_subbinning.clone())
+            new_binning = marginalized_binning.insert_subbinning(
+                i_bin, new_subbinning.clone()
+            )
         # Wrap the merging function
-        fun0 = sug['function']
-        def fun(array, binning=binning.clone(dummy=True), marginalized_binning=marginalized_binning, fun0=fun0,
-                data_offset=data_offset, data_size=data_size):
-            new_array = binning.marginalize_subbinnings_on_ndarray(array)
-            ins = fun0(array[data_offset:data_offset+data_size])
-            return marginalized_binning.insert_subbinning_on_ndarray(new_array, i_bin, ins)
+        fun0 = sug["function"]
 
-        suggestions.append({
-            'first_indices': first,
-            'second_indices': second,
-            'binning': new_binning,
-            'function': fun,
-            })
+        def fun(
+            array,
+            binning=binning.clone(dummy=True),  # noqa: B008
+            marginalized_binning=marginalized_binning,
+            fun0=fun0,
+            data_offset=data_offset,
+            data_size=data_size,
+        ):
+            new_array = binning.marginalize_subbinnings_on_ndarray(array)
+            ins = fun0(array[data_offset : data_offset + data_size])
+            return marginalized_binning.insert_subbinning_on_ndarray(
+                new_array, i_bin, ins
+            )
+
+        suggestions.append(
+            {
+                "first_indices": first,
+                "second_indices": second,
+                "binning": new_binning,
+                "function": fun,
+            }
+        )
 
     return suggestions
+
 
 def _merge_suggestions_without_subbinnings(bng, i_bin):
     if isinstance(bng, binning.LinearBinning):
@@ -523,40 +610,59 @@ def _merge_suggestions_without_subbinnings(bng, i_bin):
     elif isinstance(bng, binning.RectilinearBinning):
         return _rectilinear_binning_merge_suggestions(bng, i_bin)
     else:
-        raise RuntimeError("Not able to suggest bin merging for Binning: %r"%(bng))
+        raise RuntimeError("Not able to suggest bin merging for Binning: %r" % (bng))
+
 
 def _linear_binning_merge_suggestions(binning, i_bin):
     # Suggest merging with the left or right neighbouring bins
     suggestions = []
     if i_bin > 0:
+
         def fun(array, i_bin=i_bin):
             arr = np.delete(array, [i_bin], axis=0)
-            arr[i_bin-1] += array[i_bin]
+            arr[i_bin - 1] += array[i_bin]
             return arr
-        suggestions.append({
-            'first_indices': [i_bin-1,],
-            'second_indices': [i_bin,],
-            'binning': binning.remove_bin_edges([i_bin]),
-            'function': fun,
-            })
-    if i_bin < binning.nbins-1:
+
+        suggestions.append(
+            {
+                "first_indices": [
+                    i_bin - 1,
+                ],
+                "second_indices": [
+                    i_bin,
+                ],
+                "binning": binning.remove_bin_edges([i_bin]),
+                "function": fun,
+            }
+        )
+    if i_bin < binning.nbins - 1:
+
         def fun(array, i_bin=i_bin):
             arr = np.delete(array, [i_bin], axis=0)
             arr[i_bin] += array[i_bin]
             return arr
-        suggestions.append({
-            'first_indices': [i_bin,],
-            'second_indices': [i_bin+1,],
-            'binning': binning.remove_bin_edges([i_bin+1]),
-            'function': fun,
-            })
+
+        suggestions.append(
+            {
+                "first_indices": [
+                    i_bin,
+                ],
+                "second_indices": [
+                    i_bin + 1,
+                ],
+                "binning": binning.remove_bin_edges([i_bin + 1]),
+                "function": fun,
+            }
+        )
     return suggestions
+
 
 def _all_bin_numbers(binning, i_var, i_bin):
     ret = np.arange(binning.nbins)
     ret.shape = binning.bins_shape
-    ret = ret[(slice(None),)*i_var + (i_bin, Ellipsis)]
+    ret = ret[(slice(None),) * i_var + (i_bin, Ellipsis)]
     return ret.flatten()
+
 
 def _rectilinear_binning_merge_suggestions(binning, i_bin):
     # Suggest merging with the neighbouring bins in all directions
@@ -568,31 +674,50 @@ def _rectilinear_binning_merge_suggestions(binning, i_bin):
         size = shape[i_var]
         if j_bin > 0:
             # Merge with lower bin
-            def fun(array, i_var=i_var,  j_bin=j_bin):
+            def fun(array, i_var=i_var, j_bin=j_bin):
                 array = np.reshape(array, shape + array.shape[1:])
                 arr = np.delete(array, [j_bin], axis=i_var)
-                arr[(slice(None),)*(i_var) + (j_bin-1, Ellipsis)] += array[(slice(None),)*(i_var) + (j_bin, Ellipsis)]
-                return arr.reshape((np.prod(arr.shape[:len(shape)]), ) + array.shape[len(shape):])
-            suggestions.append({
-                'first_indices': _all_bin_numbers(binning, i_var, j_bin-1),
-                'second_indices': _all_bin_numbers(binning, i_var, j_bin),
-                'binning': binning.remove_bin_edges({binning.variables[i_var]: [j_bin]}),
-                'function': fun,
-                })
-        if j_bin < size-1:
+                arr[(slice(None),) * (i_var) + (j_bin - 1, Ellipsis)] += array[
+                    (slice(None),) * (i_var) + (j_bin, Ellipsis)
+                ]
+                return arr.reshape(
+                    (np.prod(arr.shape[: len(shape)]),) + array.shape[len(shape) :]
+                )
+
+            suggestions.append(
+                {
+                    "first_indices": _all_bin_numbers(binning, i_var, j_bin - 1),
+                    "second_indices": _all_bin_numbers(binning, i_var, j_bin),
+                    "binning": binning.remove_bin_edges(
+                        {binning.variables[i_var]: [j_bin]}
+                    ),
+                    "function": fun,
+                }
+            )
+        if j_bin < size - 1:
             # Merge with higher bin
             def fun(array, i_var=i_var, j_bin=j_bin):
                 array = np.reshape(array, shape + array.shape[1:])
                 arr = np.delete(array, [j_bin], axis=i_var)
-                arr[(slice(None),)*(i_var) + (j_bin, Ellipsis)] += array[(slice(None),)*(i_var) + (j_bin, Ellipsis)]
-                return arr.reshape((np.prod(arr.shape[:len(shape)]), ) + array.shape[len(shape):])
-            suggestions.append({
-                'first_indices': _all_bin_numbers(binning, i_var, j_bin),
-                'second_indices': _all_bin_numbers(binning, i_var, j_bin+1),
-                'binning': binning.remove_bin_edges({binning.variables[i_var]: [j_bin+1]}),
-                'function': fun,
-                })
+                arr[(slice(None),) * (i_var) + (j_bin, Ellipsis)] += array[
+                    (slice(None),) * (i_var) + (j_bin, Ellipsis)
+                ]
+                return arr.reshape(
+                    (np.prod(arr.shape[: len(shape)]),) + array.shape[len(shape) :]
+                )
+
+            suggestions.append(
+                {
+                    "first_indices": _all_bin_numbers(binning, i_var, j_bin),
+                    "second_indices": _all_bin_numbers(binning, i_var, j_bin + 1),
+                    "binning": binning.remove_bin_edges(
+                        {binning.variables[i_var]: [j_bin + 1]}
+                    ),
+                    "function": fun,
+                }
+            )
     return suggestions
+
 
 def improve_stats(response_matrix, data_index=None):
     """Reduce the statistical uncertainty by merging some bins in the truth binning.
@@ -635,44 +760,106 @@ def improve_stats(response_matrix, data_index=None):
     # Judge merge suggestions by compatibility of merged bins
     comp = []
     for sug in suggestions:
-        first_indices = sug['first_indices']
-        second_indices = sug['second_indices']
+        first_indices = sug["first_indices"]
+        second_indices = sug["second_indices"]
 
         # Create temporary ResponseMatrix objects,
         # consisting only of the bins that are to be merged
 
         # Need a dummy truth binning for this
         n_bins = len(first_indices)
-        temp_truth_binning = binning.LinearBinning('__', np.arange(n_bins+1))
+        temp_truth_binning = binning.LinearBinning("__", np.arange(n_bins + 1))
 
         temp_reco_binning = response_matrix.reco_binning.clone()
         temp_reco_binning.reset()
 
-        response_matrix_1 = migration.ResponseMatrix(temp_reco_binning.clone(), temp_truth_binning.clone())
-        response_matrix_2 = migration.ResponseMatrix(temp_reco_binning, temp_truth_binning)
+        response_matrix_1 = migration.ResponseMatrix(
+            temp_reco_binning.clone(), temp_truth_binning.clone()
+        )
+        response_matrix_2 = migration.ResponseMatrix(
+            temp_reco_binning, temp_truth_binning
+        )
 
         # Set truth and response values to the bin values
         shape = response_matrix.response_binning.bins_shape
 
-        response_matrix_1.set_truth_values_from_ndarray(response_matrix.get_truth_values_as_ndarray()[first_indices])
-        response_matrix_1.set_truth_entries_from_ndarray(response_matrix.get_truth_entries_as_ndarray()[first_indices])
-        response_matrix_1.set_truth_sumw2_from_ndarray(response_matrix.get_truth_sumw2_as_ndarray()[first_indices])
-        response_matrix_1.set_response_values_from_ndarray(response_matrix.get_response_values_as_ndarray(shape=shape)[:,first_indices])
-        response_matrix_1.set_response_entries_from_ndarray(response_matrix.get_response_entries_as_ndarray(shape=shape)[:,first_indices])
-        response_matrix_1.set_response_sumw2_from_ndarray(response_matrix.get_response_sumw2_as_ndarray(shape=shape)[:,first_indices])
-        response_matrix_1.set_reco_values_from_ndarray(response_matrix.get_response_values_as_ndarray(shape=shape)[:,first_indices].sum(axis=-1))
-        response_matrix_1.set_reco_entries_from_ndarray(response_matrix.get_response_entries_as_ndarray(shape=shape)[:,first_indices].sum(axis=-1))
-        response_matrix_1.set_reco_sumw2_from_ndarray(response_matrix.get_response_sumw2_as_ndarray(shape=shape)[:,first_indices].sum(axis=-1))
+        response_matrix_1.set_truth_values_from_ndarray(
+            response_matrix.get_truth_values_as_ndarray()[first_indices]
+        )
+        response_matrix_1.set_truth_entries_from_ndarray(
+            response_matrix.get_truth_entries_as_ndarray()[first_indices]
+        )
+        response_matrix_1.set_truth_sumw2_from_ndarray(
+            response_matrix.get_truth_sumw2_as_ndarray()[first_indices]
+        )
+        response_matrix_1.set_response_values_from_ndarray(
+            response_matrix.get_response_values_as_ndarray(shape=shape)[
+                :, first_indices
+            ]
+        )
+        response_matrix_1.set_response_entries_from_ndarray(
+            response_matrix.get_response_entries_as_ndarray(shape=shape)[
+                :, first_indices
+            ]
+        )
+        response_matrix_1.set_response_sumw2_from_ndarray(
+            response_matrix.get_response_sumw2_as_ndarray(shape=shape)[:, first_indices]
+        )
+        response_matrix_1.set_reco_values_from_ndarray(
+            response_matrix.get_response_values_as_ndarray(shape=shape)[
+                :, first_indices
+            ].sum(axis=-1)
+        )
+        response_matrix_1.set_reco_entries_from_ndarray(
+            response_matrix.get_response_entries_as_ndarray(shape=shape)[
+                :, first_indices
+            ].sum(axis=-1)
+        )
+        response_matrix_1.set_reco_sumw2_from_ndarray(
+            response_matrix.get_response_sumw2_as_ndarray(shape=shape)[
+                :, first_indices
+            ].sum(axis=-1)
+        )
 
-        response_matrix_2.set_truth_values_from_ndarray(response_matrix.get_truth_values_as_ndarray()[second_indices])
-        response_matrix_2.set_truth_entries_from_ndarray(response_matrix.get_truth_entries_as_ndarray()[second_indices])
-        response_matrix_2.set_truth_sumw2_from_ndarray(response_matrix.get_truth_sumw2_as_ndarray()[second_indices])
-        response_matrix_2.set_response_values_from_ndarray(response_matrix.get_response_values_as_ndarray(shape=shape)[:,second_indices])
-        response_matrix_2.set_response_entries_from_ndarray(response_matrix.get_response_entries_as_ndarray(shape=shape)[:,second_indices])
-        response_matrix_2.set_response_sumw2_from_ndarray(response_matrix.get_response_sumw2_as_ndarray(shape=shape)[:,second_indices])
-        response_matrix_2.set_reco_values_from_ndarray(response_matrix.get_response_values_as_ndarray(shape=shape)[:,second_indices].sum(axis=-1))
-        response_matrix_2.set_reco_entries_from_ndarray(response_matrix.get_response_entries_as_ndarray(shape=shape)[:,second_indices].sum(axis=-1))
-        response_matrix_2.set_reco_sumw2_from_ndarray(response_matrix.get_response_sumw2_as_ndarray(shape=shape)[:,second_indices].sum(axis=-1))
+        response_matrix_2.set_truth_values_from_ndarray(
+            response_matrix.get_truth_values_as_ndarray()[second_indices]
+        )
+        response_matrix_2.set_truth_entries_from_ndarray(
+            response_matrix.get_truth_entries_as_ndarray()[second_indices]
+        )
+        response_matrix_2.set_truth_sumw2_from_ndarray(
+            response_matrix.get_truth_sumw2_as_ndarray()[second_indices]
+        )
+        response_matrix_2.set_response_values_from_ndarray(
+            response_matrix.get_response_values_as_ndarray(shape=shape)[
+                :, second_indices
+            ]
+        )
+        response_matrix_2.set_response_entries_from_ndarray(
+            response_matrix.get_response_entries_as_ndarray(shape=shape)[
+                :, second_indices
+            ]
+        )
+        response_matrix_2.set_response_sumw2_from_ndarray(
+            response_matrix.get_response_sumw2_as_ndarray(shape=shape)[
+                :, second_indices
+            ]
+        )
+        response_matrix_2.set_reco_values_from_ndarray(
+            response_matrix.get_response_values_as_ndarray(shape=shape)[
+                :, second_indices
+            ].sum(axis=-1)
+        )
+        response_matrix_2.set_reco_entries_from_ndarray(
+            response_matrix.get_response_entries_as_ndarray(shape=shape)[
+                :, second_indices
+            ].sum(axis=-1)
+        )
+        response_matrix_2.set_reco_sumw2_from_ndarray(
+            response_matrix.get_response_sumw2_as_ndarray(shape=shape)[
+                :, second_indices
+            ].sum(axis=-1)
+        )
 
         # Calculate the mahalanobis distance
         D = mahalanobis_distance(response_matrix_1, response_matrix_2).sum()
@@ -682,10 +869,12 @@ def improve_stats(response_matrix, data_index=None):
     choice = suggestions[np.argmin(comp)]
 
     # Create the new ResponseMatrix
-    new_response_matrix = migration.ResponseMatrix(response_matrix.reco_binning.clone(), choice['binning'])
+    new_response_matrix = migration.ResponseMatrix(
+        response_matrix.reco_binning.clone(), choice["binning"]
+    )
     # Reco and truth values are already set from the binnings
     # Now need to merge the right response values
-    fun = choice['function']
+    fun = choice["function"]
     arr = response_matrix.get_response_values_as_ndarray(shape=shape)
     arr = np.transpose(arr)
     arr = fun(arr)
@@ -700,6 +889,7 @@ def improve_stats(response_matrix, data_index=None):
     new_response_matrix.response_binning.set_sumw2_from_ndarray(arr.T)
 
     return new_response_matrix
+
 
 class _ResponsePlotter(plotting.CartesianProductBinningPlotter):
     """Thin wrapper class that defines better axis labels.
@@ -718,7 +908,8 @@ class _ResponsePlotter(plotting.CartesianProductBinningPlotter):
         elif j_binning == 1:
             return "Truth Bin #"
         else:
-            return "Binning %d Bin #"%(j_binning,)
+            return "Binning %d Bin #" % (j_binning,)
+
 
 def plot_mean_response_matrix(response_matrix, filename=None, **kwargs):
     """Plot the smearing and efficiency.
@@ -744,19 +935,21 @@ def plot_mean_response_matrix(response_matrix, filename=None, **kwargs):
     """
 
     resp = response_matrix.get_mean_response_matrix_as_ndarray().flatten()
-    plt = _ResponsePlotter(response_matrix.response_binning,
-                           x_axis_binnings=[1], y_axis_binnings=[0])
+    plt = _ResponsePlotter(
+        response_matrix.response_binning, x_axis_binnings=[1], y_axis_binnings=[0]
+    )
 
     args = {
-        'hatch': None,
-        'density': False,
-        'margin_function': np.sum,
-        }
+        "hatch": None,
+        "density": False,
+        "margin_function": np.sum,
+    }
     args.update(kwargs)
     plt.plot_array(resp, **args)
     if filename is not None:
         plt.savefig(filename)
     return plt.figax
+
 
 def plot_in_bin_variation(response_matrix, filename=None, **kwargs):
     """Plot the maximum in-bin variation vor each truth bin.
@@ -789,8 +982,13 @@ def plot_in_bin_variation(response_matrix, filename=None, **kwargs):
 
     """
 
-    shape = (response_matrix.reco_binning.data_size, response_matrix.truth_binning.data_size)
-    inbin = response_matrix.get_in_bin_variation_as_ndarray(normalize=False, shape=shape)
+    shape = (
+        response_matrix.reco_binning.data_size,
+        response_matrix.truth_binning.data_size,
+    )
+    inbin = response_matrix.get_in_bin_variation_as_ndarray(
+        normalize=False, shape=shape
+    )
     inbin = np.max(inbin, axis=0)
 
     if len(response_matrix.truth_binning.subbinnings) == 0:
@@ -801,21 +999,21 @@ def plot_in_bin_variation(response_matrix, filename=None, **kwargs):
             (np.min, "min"),
             (np.max, "max"),
             (np.median, "median"),
-            ]
+        ]
     else:
         # Otherwise plot bin by bin
         plt = plotting.BinningPlotter(response_matrix.truth_binning)
         funlabs = [
             (np.median, None),
-            ]
+        ]
 
     for fun, lab in funlabs:
         args = {
-            'hatch': None,
-            'density': False,
-            'margin_function': fun,
-            'label': lab,
-            }
+            "hatch": None,
+            "density": False,
+            "margin_function": fun,
+            "label": lab,
+        }
         args.update(kwargs)
         plt.plot_array(inbin, **args)
 
@@ -825,6 +1023,7 @@ def plot_in_bin_variation(response_matrix, filename=None, **kwargs):
         plt.savefig(filename)
 
     return plt.figax
+
 
 def plot_relative_in_bin_variation(response_matrix, filename=None, **kwargs):
     """Plot the maximum in-bin variation relative to statistical uncertainty.
@@ -857,7 +1056,10 @@ def plot_relative_in_bin_variation(response_matrix, filename=None, **kwargs):
 
     """
 
-    shape = (response_matrix.reco_binning.data_size, response_matrix.truth_binning.data_size)
+    shape = (
+        response_matrix.reco_binning.data_size,
+        response_matrix.truth_binning.data_size,
+    )
     inbin = response_matrix.get_in_bin_variation_as_ndarray(normalize=True, shape=shape)
     inbin = np.max(inbin, axis=0)
 
@@ -869,21 +1071,21 @@ def plot_relative_in_bin_variation(response_matrix, filename=None, **kwargs):
             (np.min, "min"),
             (np.max, "max"),
             (np.median, "median"),
-            ]
+        ]
     else:
         # Otherwise plot bin by bin
         plt = plotting.BinningPlotter(response_matrix.truth_binning)
         funlabs = [
             (np.median, None),
-            ]
+        ]
 
     for fun, lab in funlabs:
         args = {
-            'hatch': None,
-            'density': False,
-            'margin_function': fun,
-            'label': lab,
-            }
+            "hatch": None,
+            "density": False,
+            "margin_function": fun,
+            "label": lab,
+        }
         args.update(kwargs)
         plt.plot_array(inbin, **args)
 
@@ -893,6 +1095,7 @@ def plot_relative_in_bin_variation(response_matrix, filename=None, **kwargs):
         plt.savefig(filename)
 
     return plt.figax
+
 
 def plot_statistical_uncertainty(response_matrix, filename=None, **kwargs):
     """Plot the maximum sqrt(statistical variance) of each truth bin.
@@ -925,9 +1128,12 @@ def plot_statistical_uncertainty(response_matrix, filename=None, **kwargs):
 
     """
 
-    shape = (response_matrix.reco_binning.data_size, response_matrix.truth_binning.data_size)
+    shape = (
+        response_matrix.reco_binning.data_size,
+        response_matrix.truth_binning.data_size,
+    )
     stat = np.sqrt(response_matrix.get_statistical_variance_as_ndarray(shape=shape))
-    stat = np.max(stat, axis = 0)
+    stat = np.max(stat, axis=0)
 
     if len(response_matrix.truth_binning.subbinnings) == 0:
         # Do fancy plots only if there are no subbinnings
@@ -937,21 +1143,21 @@ def plot_statistical_uncertainty(response_matrix, filename=None, **kwargs):
             (np.min, "min"),
             (np.max, "max"),
             (np.median, "median"),
-            ]
+        ]
     else:
         # Otherwise plot bin by bin
         plt = plotting.BinningPlotter(response_matrix.truth_binning)
         funlabs = [
             (np.median, None),
-            ]
+        ]
 
     for fun, lab in funlabs:
         args = {
-            'hatch': None,
-            'density': False,
-            'margin_function': fun,
-            'label': lab,
-            }
+            "hatch": None,
+            "density": False,
+            "margin_function": fun,
+            "label": lab,
+        }
         args.update(kwargs)
         plt.plot_array(stat, **args)
 
@@ -961,6 +1167,7 @@ def plot_statistical_uncertainty(response_matrix, filename=None, **kwargs):
         plt.savefig(filename)
 
     return plt.figax
+
 
 def plot_mean_efficiency(response_matrix, filename=None, nuisance_value=0.0, **kwargs):
     """Plot mean efficiencies for all truth bins.
@@ -993,7 +1200,10 @@ def plot_mean_efficiency(response_matrix, filename=None, nuisance_value=0.0, **k
 
     nuisance_indices = response_matrix.nuisance_indices
 
-    shape = (response_matrix.reco_binning.data_size, response_matrix.truth_binning.data_size)
+    shape = (
+        response_matrix.reco_binning.data_size,
+        response_matrix.truth_binning.data_size,
+    )
     eff = response_matrix.get_mean_response_matrix_as_ndarray(shape=shape)
     eff = np.sum(eff, axis=0)
     eff[nuisance_indices] = nuisance_value
@@ -1006,21 +1216,21 @@ def plot_mean_efficiency(response_matrix, filename=None, nuisance_value=0.0, **k
             (np.min, "min"),
             (np.max, "max"),
             (np.median, "median"),
-            ]
+        ]
     else:
         # Otherwise plot bin by bin
         plt = plotting.BinningPlotter(response_matrix.truth_binning)
         funlabs = [
             (np.median, None),
-            ]
+        ]
 
     for fun, lab in funlabs:
         args = {
-            'hatch': None,
-            'density': False,
-            'margin_function': fun,
-            'label': lab,
-            }
+            "hatch": None,
+            "density": False,
+            "margin_function": fun,
+            "label": lab,
+        }
         args.update(kwargs)
         plt.plot_array(eff, **args)
 
