@@ -1446,7 +1446,7 @@ class TestLikelihoodCalculators(unittest.TestCase):
 
     def test_fix_parameters(self):
         test_reco = np.array([0.5, 0.5, 0.5, 0.5])
-        calc = self.calc.fix_parameters([None, None, None, 0.5])
+        calc = self.calc.fix_parameters([None, np.nan, None, 0.5])
         ret = calc([test_reco[:-1]] * 5)
         self.assertAlmostEqual(
             ret[0, 0], stats.poisson(test_reco).logpmf(self.data).sum()
