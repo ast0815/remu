@@ -32,7 +32,7 @@ classifiers=[
 dynamic = ["version", "description"]
 requires-python = ">=3.7,<4"
 dependencies = [
-    "numpy >= 1.22.0",
+    "numpy >= 1.21.0",
     "scipy >= 1.5.0",
     "pyyaml >= 5.4",
     "matplotlib >= 3.3.0",
