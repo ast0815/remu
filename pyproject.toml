@@ -23,15 +23,16 @@ classifiers=[
     # Specify the Python versions you support here. In particular, ensure
     # that you indicate whether you support Python 2, Python 3 or both.
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
 ]
 dynamic = ["version", "description"]
-requires-python = ">=3.6,<4"
+requires-python = ">=3.7,<4"
 dependencies = [
-    "numpy >= 1.19.0",
+    "numpy >= 1.22.0",
     "scipy >= 1.5.0",
     "pyyaml >= 5.4",
     "matplotlib >= 3.3.0",

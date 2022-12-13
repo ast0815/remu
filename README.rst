@@ -38,7 +38,7 @@ You can also specify which Python version to use by providing the respective
 ``virtualenv`` argument to ``setup.sh``, e.g. ``. setup.sh -p python3``. You
 might need to install additional system libraries to compile all packages.
 
-ReMU requires Python >=3.6.
+ReMU requires Python >=3.7.
 
 Installing official releases with ``pip``
 -----------------------------------------
