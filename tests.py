@@ -1,9 +1,9 @@
 import sys
+import unittest
 from tempfile import TemporaryFile
 
 import numpy as np
 import pandas as pd
-import unittest2 as unittest
 import yaml
 from scipy import stats
 
