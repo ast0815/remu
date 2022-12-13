@@ -11,6 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Relax requirements for exact Matplotlib version.
 
 ### Removed
-- Removed support for Python versions below 3.7.
+- Removed support for Python versions below 3.7, test up to 3.11 now.
 
 ## [0.6.0] - 2019-11-13
