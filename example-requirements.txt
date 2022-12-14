@@ -1,3 +1,3 @@
-awkward-pandas>=2022.11
+awkward-pandas
 multiprocess>=0.70
 uproot>=5.0
