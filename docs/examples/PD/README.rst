@@ -22,7 +22,6 @@ https://pandas.pydata.org/
 It provides a :class:`DataFrame` class, which is a useful tool to organise
 structured data::
 
-    from six import print_
     from remu import binning
     from remu import plotting
     import numpy as np
@@ -33,7 +32,7 @@ structured data::
     py = np.random.randn(1000)*20
     pz = np.random.randn(1000)*20
     df = pd.DataFrame({'px': px, 'py': py, 'pz': pz})
-    print_(df)
+    print(df)
 
 .. include:: df.txt
     :literal:
@@ -71,7 +70,7 @@ can convert a flat ROOT :class:`TTree` directly into a usable pandas
     import uproot
 
     flat_tree = uproot.open("Zmumu.root")['events']
-    print_(flat_tree.keys())
+    print(flat_tree.keys())
 
 .. include:: flat_keys.txt
     :literal:
@@ -79,7 +78,7 @@ can convert a flat ROOT :class:`TTree` directly into a usable pandas
 ::
 
     df = flat_tree.pandas.df()
-    print_(df)
+    print(df)
 
 .. include:: flat_df.txt
     :literal:
@@ -101,7 +100,7 @@ example, let us take a look at a file where each event has varying numbers of
 reconstructed particles::
 
     structured_tree = uproot.open("HZZ.root")['events']
-    print_(structured_tree.keys())
+    print(structured_tree.keys())
 
 .. include:: structured_keys.txt
     :literal:
@@ -109,7 +108,7 @@ reconstructed particles::
 ::
 
     df = structured_tree.pandas.df(flatten=False)
-    print_(df)
+    print(df)
 
 .. include:: structured_df.txt
     :literal:
@@ -119,7 +118,7 @@ handle. Uproot can flatten such a tree, when only variables with a single
 value or the same number of values are selected::
 
     df = structured_tree.pandas.df(['NMuon', 'Muon_Px', 'Muon_Py', 'Muon_Pz'])
-    print_(df)
+    print(df)
 
 .. include:: flattened_df.txt
     :literal:
@@ -129,7 +128,7 @@ can select only the first muon in each event, to get the required "one event
 per row" structure::
 
     df = df.loc[(slice(None),0), :]
-    print_(df)
+    print(df)
 
 .. include:: sliced_df.txt
     :literal:
