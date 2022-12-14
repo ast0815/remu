@@ -24,19 +24,37 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
-      run: python -m pip install -r requirements.txt -r test-requirements.txt -r documentation-requirements.txt -r example-requirements.txt
+      run: python -m pip install -r requirements.txt -r test-requirements.txt -r documentation-requirements.txt
     - name: Install package
       run: python -m pip install -e .
     - name: Run tests
       run: ./run_tests.sh
-    - name: Run examples
-      run: ./run_examples.sh
     - name: Build documentation
       run: cd docs; make html
     - name: Coveralls
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: coveralls --service=github
+
+  examples:
+
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: python -m pip install -r requirements.txt -r test-requirements.txt -r documentation-requirements.txt -r example-requirements.txt
+    - name: Install package
+      run: python -m pip install -e .
+    - name: Run examples
+      run: ./run_examples.sh
 
   pre-commit:
 
