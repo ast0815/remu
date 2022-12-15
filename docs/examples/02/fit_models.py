@@ -80,6 +80,7 @@ pltr.plot_array(
 )
 pltr.legend(loc="lower center")
 pltr.savefig("reco-comparison.png")
+del pltr
 
 mix_model = likelihood.TemplatePredictor([modelA, modelB])
 calc_mix = calc.compose(mix_model)
@@ -117,3 +118,7 @@ ax.axhline(0.32, color="k", linestyle="dashed")
 ax.axhline(0.05, color="k", linestyle="dashed")
 ax.legend(loc="best")
 fig.savefig("p-values.png")
+
+# Avoid thread cleanup messes
+likelihood.mapper = map
+del pool

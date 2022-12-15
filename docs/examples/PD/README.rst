@@ -56,7 +56,7 @@ e.g. CSV, JSON, HDF5, SQL, etc..
 
 Using the uproot library, pandas can also be used to load ROOT files:
 
-https://github.com/scikit-hep/uproot
+https://github.com/scikit-hep/uproot5
 
 The ROOT framework is the de-facto standard for data analysis in high energy
 particle physics:
@@ -77,7 +77,7 @@ can convert a flat ROOT :class:`TTree` directly into a usable pandas
 
 ::
 
-    df = flat_tree.pandas.df()
+    df = flat_tree.arrays(library="pd")
     print(df)
 
 .. include:: flat_df.txt
@@ -95,9 +95,9 @@ can convert a flat ROOT :class:`TTree` directly into a usable pandas
 .. image:: flat_muons.png
 
 ReMU expects exactly one row per event. If the root file is not flat, but has a
-more complicated structure, it must be converted to that structure first. For
-example, let us take a look at a file where each event has varying numbers of
-reconstructed particles::
+more complicated structure, it must be converted first. For example, let us
+take a look at a file where each event has varying numbers of reconstructed
+particles::
 
     structured_tree = uproot.open("HZZ.root")['events']
     print(structured_tree.keys())
@@ -107,17 +107,19 @@ reconstructed particles::
 
 ::
 
-    df = structured_tree.pandas.df(flatten=False)
+    df = structured_tree.arrays(["NMuon", "Muon_Px", "Muon_Py", "Muon_Pz"], library='pd')
     print(df)
 
 .. include:: structured_df.txt
     :literal:
 
-This kind of data frame with lists as cell elements can be inconvenient to
-handle. Uproot can flatten such a tree, when only variables with a single
-value or the same number of values are selected::
+This kind of data frame with "lists" as cell elements can be inconvenient to
+handle. But we can flatten it using the power of the `awkward`::
 
-    df = structured_tree.pandas.df(['NMuon', 'Muon_Px', 'Muon_Py', 'Muon_Pz'])
+    import awkward as ak
+
+    arr = structured_tree.arrays(["NMuon", "Muon_Px", "Muon_Py", "Muon_Pz"])
+    df = ak.to_dataframe(arr)
     print(df)
 
 .. include:: flattened_df.txt
@@ -127,7 +129,8 @@ This double-index structure is still not suitable as input for ReMU, though. We
 can select only the first muon in each event, to get the required "one event
 per row" structure::
 
-    df = df.loc[(slice(None),0), :]
+    idx = pd.IndexSlice
+    df = df.loc[idx[:,0], :]
     print(df)
 
 .. include:: sliced_df.txt

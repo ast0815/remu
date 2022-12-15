@@ -166,3 +166,7 @@ pltr.plot_array(
 )
 pltr.legend(loc="upper left")
 pltr.savefig("truth-comparison.png")
+
+del pltr
+likelihood.mapper = map
+del pool

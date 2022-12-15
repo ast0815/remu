@@ -158,7 +158,7 @@ of the matrices::
 
 The base binning is a :class:`.LinearBinning` with only three bins. The
 corresponding plotter does not know how to plot the subbinnings, so it just
-marginalizes them out. Do plot the content of all truth bins, we can use the
+marginalizes them out. To plot the content of all truth bins, we can use the
 basic :class:`.BinningPlotter`, which simply plots the content of each bin::
 
     pltr = plotting.BinningPlotter(truth_binning)
