@@ -158,7 +158,7 @@ of the matrices::
 
 The base binning is a :class:`.LinearBinning` with only three bins. The
 corresponding plotter does not know how to plot the subbinnings, so it just
-marginalizes them out. Do plot the content of all truth bins, we can use the
+marginalizes them out. To plot the content of all truth bins, we can use the
 basic :class:`.BinningPlotter`, which simply plots the content of each bin::
 
     pltr = plotting.BinningPlotter(truth_binning)
@@ -251,7 +251,7 @@ events::
     calcA_only = calc.compose(modelA_only)
 
     retA_only = maxi(calcA_only)
-    print_(retA_only)
+    print(retA_only)
 
 .. include:: modelA_only_fit.txt
     :literal:
@@ -259,7 +259,7 @@ events::
 To judge how well the result actually fit, we can consult the results p-value::
 
     testA_only = likelihood.HypothesisTester(calcA_only)
-    print_(testA_only.likelihood_p_value(retA_only.x))
+    print(testA_only.likelihood_p_value(retA_only.x))
 
 .. include:: modelA_only_gof.txt
     :literal:
@@ -267,7 +267,7 @@ To judge how well the result actually fit, we can consult the results p-value::
 It clearly is a very bad fit, which is reflected in the maximum likelihood
 p-value as well::
 
-    print_(testA_only.max_likelihood_p_value())
+    print(testA_only.max_likelihood_p_value())
 
 .. include:: modelA_only_p_value.txt
     :literal:
@@ -279,7 +279,7 @@ with background and noise templates added in::
     calcA_bg = calc.compose(modelA_bg)
 
     retA_bg = maxi(calcA_bg)
-    print_(retA_bg)
+    print(retA_bg)
 
 .. include:: modelA_bg_fit.txt
     :literal:
@@ -287,14 +287,14 @@ with background and noise templates added in::
 ::
 
     testA_bg = likelihood.HypothesisTester(calcA_bg)
-    print_(testA_bg.likelihood_p_value(retA_bg.x))
+    print(testA_bg.likelihood_p_value(retA_bg.x))
 
 .. include:: modelA_bg_gof.txt
     :literal:
 
 ::
 
-    print_(testA_bg.max_likelihood_p_value(), file=f)
+    print(testA_bg.max_likelihood_p_value(), file=f)
 
 .. include:: modelA_bg_p_value.txt
     :literal:
@@ -305,7 +305,7 @@ This fit is clearly much better. We can repeat the same with model B::
     calcB_only = calc.compose(modelB_only)
 
     retB_only = maxi(calcB_only)
-    print_(retB_only)
+    print(retB_only)
 
 .. include:: modelB_only_fit.txt
     :literal:
@@ -313,14 +313,14 @@ This fit is clearly much better. We can repeat the same with model B::
 ::
 
     testB_only = likelihood.HypothesisTester(calcB_only)
-    print_(testB_only.likelihood_p_value(retB_only.x))
+    print(testB_only.likelihood_p_value(retB_only.x))
 
 .. include:: modelB_only_gof.txt
     :literal:
 
 ::
 
-    print_(testB_only.max_likelihood_p_value())
+    print(testB_only.max_likelihood_p_value())
 
 .. include:: modelB_only_p_value.txt
     :literal:
@@ -331,7 +331,7 @@ This fit is clearly much better. We can repeat the same with model B::
     calcB_bg = calc.compose(modelB_bg)
 
     retB_bg = maxi(calcB_bg)
-    print_(retB_bg)
+    print(retB_bg)
 
 .. include:: modelB_bg_fit.txt
     :literal:
@@ -339,14 +339,14 @@ This fit is clearly much better. We can repeat the same with model B::
 ::
 
     testB_bg = likelihood.HypothesisTester(calcB_bg)
-    print_(testB_bg.likelihood_p_value(retB_bg.x))
+    print(testB_bg.likelihood_p_value(retB_bg.x))
 
 .. include:: modelB_bg_gof.txt
     :literal:
 
 ::
 
-    print_(testB_bg.max_likelihood_p_value())
+    print(testB_bg.max_likelihood_p_value())
 
 .. include:: modelB_bg_p_value.txt
     :literal:

@@ -849,13 +849,13 @@ class RectilinearBinningPlotter(CartesianProductBinningPlotter):
         if x_axis_binnings is None:
             x_axis_binnings = list(range(int(np.ceil(len(binning.binnings) / 2.0))))
         else:
-            x_axis_binnings = map(binning.get_variable_index, x_axis_binnings)
+            x_axis_binnings = list(map(binning.get_variable_index, x_axis_binnings))
         if y_axis_binnings is None:
             y_axis_binnings = list(
                 range(int(np.ceil(len(binning.binnings) / 2.0)), len(binning.binnings))
             )
         else:
-            y_axis_binnings = map(binning.get_variable_index, y_axis_binnings)
+            y_axis_binnings = list(map(binning.get_variable_index, y_axis_binnings))
         kwargs["x_axis_binnings"] = x_axis_binnings
         kwargs["y_axis_binnings"] = y_axis_binnings
         kwargs["marginalize_subbinnings"] = True

@@ -26,7 +26,6 @@ https://emcee.readthedocs.io/
 Before we can use the MCMC, we have to create the response matrix,
 :class:`.LikelihoodCalculator` objects, just like in the previous examples::
 
-    from six import print_
     import numpy as np
     from matplotlib import pyplot as plt
     from remu import binning
@@ -68,7 +67,7 @@ about how to use these objects::
 
     state = samplerA.run_mcmc(guessA, 100)
     chain = samplerA.get_chain(flat=True)
-    print_(chain.shape)
+    print(chain.shape)
 
 .. include:: chain_shape.txt
     :literal:
@@ -93,9 +92,9 @@ as a measure of whether a chain has converged::
 
     try:
         tau = samplerA.get_autocorr_time()
-        print_(tau)
+        print(tau)
     except emcee.autocorr.AutocorrError as e:
-        print_(e)
+        print(e)
 
 .. include:: burn_short_tau.txt
     :literal:
@@ -108,9 +107,9 @@ So let us try again with a longer chain::
 
     try:
         tau = samplerA.get_autocorr_time()
-        print_(tau)
+        print(tau)
     except emcee.autocorr.AutocorrError as e:
-        print_(e)
+        print(e)
 
 .. include:: burn_long_tau.txt
     :literal:
@@ -133,9 +132,9 @@ the sampler::
 
     try:
         tau = samplerA.get_autocorr_time()
-        print_(tau)
+        print(tau)
     except emcee.autocorr.AutocorrError as e:
-        print_(e)
+        print(e)
 
 .. include:: tauA.txt
     :literal:
@@ -189,7 +188,7 @@ All of this also works with more parameters, of course::
 
     state = samplerC.run_mcmc(guessC, 200*50)
     chain = samplerC.get_chain(flat=True)
-    print_(chain.shape)
+    print(chain.shape)
 
 .. include:: combined_chain_shape.txt
     :literal:
@@ -198,9 +197,9 @@ All of this also works with more parameters, of course::
 
     try:
         tau = samplerC.get_autocorr_time()
-        print_(tau)
+        print(tau)
     except emcee.autocorr.AutocorrError as e:
-        print_(e)
+        print(e)
 
 .. include:: burn_combined_tau.txt
     :literal:
@@ -212,9 +211,9 @@ All of this also works with more parameters, of course::
     chain = samplerC.get_chain(flat=True)
     try:
         tau = samplerC.get_autocorr_time()
-        print_(tau)
+        print(tau)
     except emcee.autocorr.AutocorrError as e:
-        print_(e)
+        print(e)
 
 .. include:: combined_tau.txt
     :literal:

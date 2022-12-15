@@ -82,6 +82,8 @@ pltr.plot_array(
 pltr.legend()
 pltr.savefig("reco-comparison.png")
 
+del pltr
+
 testA = likelihood.HypothesisTester(calcA)
 testB = likelihood.HypothesisTester(calcB)
 with open("fit_p-values.txt", "w") as f:
@@ -173,3 +175,6 @@ ax.axhline(0.32, color="k", linestyle="dashed")
 ax.axhline(0.05, color="k", linestyle="dashed")
 ax.legend(loc="best")
 fig.savefig("ratio-p-values.png")
+
+likelihood.mapper = map
+del pool

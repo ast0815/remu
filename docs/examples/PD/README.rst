@@ -22,7 +22,6 @@ https://pandas.pydata.org/
 It provides a :class:`DataFrame` class, which is a useful tool to organise
 structured data::
 
-    from six import print_
     from remu import binning
     from remu import plotting
     import numpy as np
@@ -33,7 +32,7 @@ structured data::
     py = np.random.randn(1000)*20
     pz = np.random.randn(1000)*20
     df = pd.DataFrame({'px': px, 'py': py, 'pz': pz})
-    print_(df)
+    print(df)
 
 .. include:: df.txt
     :literal:
@@ -57,7 +56,7 @@ e.g. CSV, JSON, HDF5, SQL, etc..
 
 Using the uproot library, pandas can also be used to load ROOT files:
 
-https://github.com/scikit-hep/uproot
+https://github.com/scikit-hep/uproot5
 
 The ROOT framework is the de-facto standard for data analysis in high energy
 particle physics:
@@ -71,15 +70,15 @@ can convert a flat ROOT :class:`TTree` directly into a usable pandas
     import uproot
 
     flat_tree = uproot.open("Zmumu.root")['events']
-    print_(flat_tree.keys())
+    print(flat_tree.keys())
 
 .. include:: flat_keys.txt
     :literal:
 
 ::
 
-    df = flat_tree.pandas.df()
-    print_(df)
+    df = flat_tree.arrays(library="pd")
+    print(df)
 
 .. include:: flat_df.txt
     :literal:
@@ -96,30 +95,32 @@ can convert a flat ROOT :class:`TTree` directly into a usable pandas
 .. image:: flat_muons.png
 
 ReMU expects exactly one row per event. If the root file is not flat, but has a
-more complicated structure, it must be converted to that structure first. For
-example, let us take a look at a file where each event has varying numbers of
-reconstructed particles::
+more complicated structure, it must be converted first. For example, let us
+take a look at a file where each event has varying numbers of reconstructed
+particles::
 
     structured_tree = uproot.open("HZZ.root")['events']
-    print_(structured_tree.keys())
+    print(structured_tree.keys())
 
 .. include:: structured_keys.txt
     :literal:
 
 ::
 
-    df = structured_tree.pandas.df(flatten=False)
-    print_(df)
+    df = structured_tree.arrays(["NMuon", "Muon_Px", "Muon_Py", "Muon_Pz"], library='pd')
+    print(df)
 
 .. include:: structured_df.txt
     :literal:
 
-This kind of data frame with lists as cell elements can be inconvenient to
-handle. Uproot can flatten such a tree, when only variables with a single
-value or the same number of values are selected::
+This kind of data frame with "lists" as cell elements can be inconvenient to
+handle. But we can flatten it using the power of the `awkward`::
 
-    df = structured_tree.pandas.df(['NMuon', 'Muon_Px', 'Muon_Py', 'Muon_Pz'])
-    print_(df)
+    import awkward as ak
+
+    arr = structured_tree.arrays(["NMuon", "Muon_Px", "Muon_Py", "Muon_Pz"])
+    df = ak.to_dataframe(arr)
+    print(df)
 
 .. include:: flattened_df.txt
     :literal:
@@ -128,8 +129,9 @@ This double-index structure is still not suitable as input for ReMU, though. We
 can select only the first muon in each event, to get the required "one event
 per row" structure::
 
-    df = df.loc[(slice(None),0), :]
-    print_(df)
+    idx = pd.IndexSlice
+    df = df.loc[idx[:,0], :]
+    print(df)
 
 .. include:: sliced_df.txt
     :literal:

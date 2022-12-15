@@ -20,7 +20,6 @@ Instructions
 The calculation of likelihoods and p-values is handled by the classes in the
 :mod:`.likelihood` module::
 
-    from six import print_
     import numpy as np
     from remu import binning
     from remu import plotting
@@ -86,10 +85,10 @@ Let us calculate some likelihoods and p-values with these templates, assuming
 total of 1000 expected events in the truth space (i.e. before efficiency
 effects)::
 
-    print_(calc(modelA*1000))
-    print_(test.likelihood_p_value(modelA*1000))
-    print_(calc(modelB*1000))
-    print_(test.likelihood_p_value(modelB*1000))
+    print(calc(modelA*1000))
+    print(test.likelihood_p_value(modelA*1000))
+    print(calc(modelB*1000))
+    print(test.likelihood_p_value(modelB*1000))
 
 .. include:: simple_hypotheses.txt
     :literal:
@@ -124,7 +123,7 @@ We can now do a maximum likelihood fit with the model, using a
 
     maxi = likelihood.BasinHoppingMaximizer()
     retA = maxi(calcA)
-    print_(retA)
+    print(retA)
 
 .. include:: modelA_fit.txt
     :literal:
@@ -141,7 +140,7 @@ with the likelihood calculator::
     modelB_shape = likelihood.TemplatePredictor([modelB])
     calcB = calc.compose(modelB_shape)
     retB = maxi(calcB)
-    print_(retB)
+    print(retB)
 
 .. include:: modelB_fit.txt
     :literal:
@@ -155,8 +154,8 @@ the p-values::
 
     testA = likelihood.HypothesisTester(calcA, maximizer=maxi)
     testB = likelihood.HypothesisTester(calcB, maximizer=maxi)
-    print_(testA.max_likelihood_p_value())
-    print_(testB.max_likelihood_p_value())
+    print(testA.max_likelihood_p_value())
+    print(testB.max_likelihood_p_value())
 
 .. include:: fit_p-values.txt
     :literal:
@@ -206,7 +205,7 @@ what happens if we allow combinations of model A and B::
     mix_model = likelihood.TemplatePredictor([modelA, modelB])
     calc_mix = calc.compose(mix_model)
     ret = maxi.maximize_log_likelihood(calc_mix)
-    print_(ret)
+    print(ret)
 
 .. include:: mix_model_fit.txt
     :literal:
@@ -214,7 +213,7 @@ what happens if we allow combinations of model A and B::
 ::
 
     test = likelihood.HypothesisTester(calc_mix)
-    print_(test.max_likelihood_p_value())
+    print(test.max_likelihood_p_value())
 
 .. include:: mix_model_p_value.txt
     :literal:
@@ -235,7 +234,7 @@ true yields p-values that can be used to construct the confidence interval::
     A_values = np.linspace(0, 1000, 11)
     for A in A_values:
         p = test.max_likelihood_ratio_p_value((A,None))
-        print_(A, p)
+        print(A, p)
         p_values.append(p)
 
 Calculating these might take a while. The method
@@ -260,7 +259,7 @@ the generation of fit to toy data sets::
     fine_A_values = np.linspace(0, 1000, 100)
     for A in fine_A_values:
         p = test.wilks_max_likelihood_ratio_p_value((A,None))
-        print_(A, p)
+        print(A, p)
         wilks_p_values.append(p)
 
 This can then be plotted with your usual plotting libraries::

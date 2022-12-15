@@ -142,7 +142,6 @@ likelihood fits::
 
 The :class:`.LikelihoodCalculator` is created just like in the previous example::
 
-    from six import print_
     import numpy as np
     from matplotlib import pyplot as plt
     from remu import binning
@@ -190,7 +189,7 @@ example::
     modelA_shape = likelihood.TemplatePredictor([modelA])
     calcA = calc.compose(modelA_shape)
     retA = maxi(calcA)
-    print_(retA)
+    print(retA)
 
 .. include:: modelA_fit.txt
     :literal:
@@ -199,7 +198,7 @@ example::
 
     calcA_syst = calc_syst.compose(modelA_shape)
     retA_syst = maxi(calcA_syst)
-    print_(retA_syst)
+    print(retA_syst)
 
 .. include:: modelA_fit_syst.txt
     :literal:
@@ -209,7 +208,7 @@ example::
     modelB_shape = likelihood.TemplatePredictor([modelB])
     calcB = calc.compose(modelB_shape)
     retB = maxi(calcB)
-    print_(retB)
+    print(retB)
 
 .. include:: modelB_fit.txt
     :literal:
@@ -218,7 +217,7 @@ example::
 
     calcB_syst = calc_syst.compose(modelB_shape)
     retB_syst = maxi(calcB_syst)
-    print_(retB_syst)
+    print(retB_syst)
 
 .. include:: modelB_fit_syst.txt
     :literal:
@@ -255,8 +254,8 @@ nominal detector response::
 
     testA = likelihood.HypothesisTester(calcA)
     testB = likelihood.HypothesisTester(calcB)
-    print_(testA.max_likelihood_p_value())
-    print_(testB.max_likelihood_p_value())
+    print(testA.max_likelihood_p_value())
+    print(testB.max_likelihood_p_value())
 
 .. include:: fit_p-values.txt
     :literal:
@@ -265,8 +264,8 @@ As well as the p-values yielded when taking the systematic uncertainties into ac
 
     testA_syst = likelihood.HypothesisTester(calcA_syst)
     testB_syst = likelihood.HypothesisTester(calcB_syst)
-    print_(testA_syst.max_likelihood_p_value())
-    print_(testB_syst.max_likelihood_p_value())
+    print(testA_syst.max_likelihood_p_value())
+    print(testB_syst.max_likelihood_p_value())
 
 .. include:: fit_p-values_syst.txt
     :literal:
@@ -284,7 +283,7 @@ using the maximum likelihood p-value just like before::
         A_syst = testA_syst.max_likelihood_p_value([v])
         B = testB.max_likelihood_p_value([v])
         B_syst = testB_syst.max_likelihood_p_value([v])
-        print_(v, A, A_syst, B, B_syst)
+        print(v, A, A_syst, B, B_syst)
         p_values_A.append(A)
         p_values_B.append(B)
         p_values_A_syst.append(A_syst)
@@ -328,7 +327,7 @@ Finally, let us construct confidence intervals of the template weights,
         A_syst = testA_syst.max_likelihood_ratio_p_value([v])
         B = testB.max_likelihood_ratio_p_value([v])
         B_syst = testB_syst.max_likelihood_ratio_p_value([v])
-        print_(v, A, A_syst, B, B_syst)
+        print(v, A, A_syst, B, B_syst)
         p_values_A.append(A)
         p_values_B.append(B)
         p_values_A_syst.append(A_syst)
@@ -340,7 +339,7 @@ Finally, let us construct confidence intervals of the template weights,
     for v in fine_values:
         A = testA_syst.wilks_max_likelihood_ratio_p_value([v])
         B = testB_syst.wilks_max_likelihood_ratio_p_value([v])
-        print_(v, A, B)
+        print(v, A, B)
         p_values_A_wilks.append(A)
         p_values_B_wilks.append(B)
 

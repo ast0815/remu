@@ -1611,6 +1611,12 @@ class TestPlotting(unittest.TestCase):
         plt.plot_entries(label="Y", scatter=100)
         plt.plot_values(label="X", scatter=100)
         plt.legend()
+        # Test specifiying variables for axes.
+        plt = plotting.get_plotter(b0, ["x"], ["y"])
+        plt.plot_sumw2(label="Z", scatter=100)
+        plt.plot_entries(label="Y", scatter=100)
+        plt.plot_values(label="X", scatter=100)
+        plt.legend()
 
 
 class TestMatrixUtils(unittest.TestCase):

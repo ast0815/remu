@@ -93,6 +93,8 @@ pltr.plot_array(data, label="Data", hatch=None, linewidth=2)
 pltr.legend()
 pltr.savefig("recoA.png")
 
+del pltr
+
 truth_binning.reset()
 truth_binning.fill_from_csv_file("../00/modelB_truth.txt")
 modelB = truth_binning.get_values_as_ndarray()

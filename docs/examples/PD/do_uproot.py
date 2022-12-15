@@ -27,7 +27,7 @@ flat_tree = uproot.open("Zmumu.root")["events"]
 with open("flat_keys.txt", "w") as f:
     print(flat_tree.keys(), file=f)
 
-df = flat_tree.pandas.df()
+df = flat_tree.arrays(library="pd")
 with open("flat_df.txt", "w") as f:
     print(df, file=f)
 
@@ -42,15 +42,19 @@ structured_tree = uproot.open("HZZ.root")["events"]
 with open("structured_keys.txt", "w") as f:
     print(structured_tree.keys(), file=f)
 
-df = structured_tree.pandas.df(flatten=False)
+df = structured_tree.arrays(["NMuon", "Muon_Px", "Muon_Py", "Muon_Pz"], library="pd")
 with open("structured_df.txt", "w") as f:
     print(df, file=f)
 
-df = structured_tree.pandas.df(["NMuon", "Muon_Px", "Muon_Py", "Muon_Pz"])
+import awkward as ak
+
+arr = structured_tree.arrays(["NMuon", "Muon_Px", "Muon_Py", "Muon_Pz"])
+df = ak.to_dataframe(arr)
 with open("flattened_df.txt", "w") as f:
     print(df, file=f)
 
-df = df.loc[(slice(None), 0), :]
+idx = pd.IndexSlice
+df = df.loc[idx[:, 0], :]
 with open("sliced_df.txt", "w") as f:
     print(df, file=f)
 
