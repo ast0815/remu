@@ -632,7 +632,7 @@ class ComposedPredictor(Predictor):
         return parameters, weights
 
 
-class SumPredictor(Predictor):
+class SummedPredictor(Predictor):
     """Wrapper class that sums predictions of multiple Predictors.
 
     Parameters

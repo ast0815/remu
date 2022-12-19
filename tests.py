@@ -1405,7 +1405,7 @@ class TestResponseMatrixPredictors(unittest.TestCase):
         self.assertEqual(y[0, 0], 0.0)
 
 
-class TestSumPredictors(unittest.TestCase):
+class TestSummedPredictors(unittest.TestCase):
     def setUp(self):
         self.w0 = np.array([1, 2])
         self.pred0 = likelihood.LinearPredictor(
@@ -1417,7 +1417,7 @@ class TestSumPredictors(unittest.TestCase):
         self.pred2 = likelihood.LinearPredictor(
             [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w2
         )
-        self.pred = likelihood.SumPredictor([self.pred0, self.pred1, self.pred2])
+        self.pred = likelihood.SummedPredictor([self.pred0, self.pred1, self.pred2])
 
     def test_prediction(self):
         pred, weights = self.pred([2, 2, 2, 3, 4, 4, 4])
