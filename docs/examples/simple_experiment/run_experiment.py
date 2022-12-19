@@ -48,7 +48,7 @@ else:
     reco_events = reco_sig_events
 
 csvfields = reco_events.dtype.names
-with open(args.filename, "wt") as f:
+with open(args.filename, "w") as f:
     writer = csv.DictWriter(f, csvfields, delimiter=",")
     writer.writerow({fn: fn for fn in csvfields})  # Write the field names
     for event in reco_events:
