@@ -589,7 +589,7 @@ class ComposedPredictor(Predictor):
 
         The optional argument `systematics_index` will be applied to the final
         output of the composed predictions, i.e. the flattened Cartesian
-        product of the intermediate systeamtics.
+        product of the intermediate systematics.
 
         """
 
@@ -630,6 +630,98 @@ class ComposedPredictor(Predictor):
         )
 
         return parameters, weights
+
+
+class SumPredictor(Predictor):
+    """Wrapper class that sums predictions of multiple Predictors.
+
+    Parameters
+    ----------
+
+    predictors : list of Predictor
+        The Predictors whos output will be added. The resulting Predictor will
+        accept the concatenated list of the separate original input parameters
+        in the same order as they appear in the list.
+
+    Notes
+    -----
+
+    Systematics will be handled in a Cartesian product. There will be one
+    output prediction for each possible combination of intermediate
+    systeamtics.
+
+    """
+
+    def __init__(self, predictors):
+        self.predictors = predictors
+
+        self.bounds = np.concatenate([p.bounds for p in predictors], axis=0)
+        self.defaults = np.concatenate([p.defaults for p in predictors], axis=0)
+
+    def prediction(self, parameters, systematics_index=_SLICE):
+        """Turn a set of parameters into an ndarray of predictions.
+
+        Parameters
+        ----------
+
+        parameters : ndarray
+        systematics_index : int, optional
+
+        Returns
+        -------
+
+        prediction, weights : ndarray
+
+        Notes
+        -----
+
+        The optional argument `systematics_index` will be applied to the final
+        output of the summed predictions, i.e. the flattened Cartesian
+        product of the original systematics.
+
+        """
+
+        parameters = np.asarray(parameters)
+        orig_shape = parameters.shape
+        orig_len = len(orig_shape)
+        weights = np.ones(parameters.shape[:-1])
+
+        prediction = np.array([0.0])
+        i_par = 0
+
+        for pred in self.predictors:
+            # Consume the given parameters in order.
+            j_par = i_par + len(pred.defaults)
+            par = parameters[..., i_par:j_par]
+            i_par = j_par
+            p, w = pred.prediction(par)
+
+            # Sum up predictions and create new axis for systematics
+            # p.shape = ([c,d,...,]syst_n+1,n_reco)
+            # prediction.shape = ([c,d,...,]syst_0,...,syst_n-1,n_reco)
+            # new.shape = ([c,d,...,]syst_0,...,syst_n-1,syst_n,n_reco)
+            ndim_diff = prediction.ndim - p.ndim
+            slices = (Ellipsis,) + (np.newaxis,) * (ndim_diff + 1) + (slice(None),) * 2
+            p = p[slices]
+            prediction = prediction[..., np.newaxis, :] + p
+
+            slices = (Ellipsis,) + (np.newaxis,) * (ndim_diff + 1) + (slice(None),)
+            w = w[slices]
+            weights = weights[..., np.newaxis] * w
+
+        # Flatten output
+        # original_parameters.shape = ([c,d,...,]n_parameters)
+        # summed_output.shape = ([c,d,...,]syst0,...,systn,n_reco)
+        # desired_output.shape = ([c,d,...,]syst,n_reco)
+        shape = prediction.shape
+        prediction = prediction.reshape(
+            orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),) + shape[-1:]
+        )
+        weights = weights.reshape(
+            orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),)
+        )
+
+        return prediction, weights
 
 
 class FixedParameterPredictor(Predictor):
