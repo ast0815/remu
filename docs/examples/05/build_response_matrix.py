@@ -36,7 +36,7 @@ truth_binning = binning.LinearBinning(
     },
 )
 
-with open("truth-binning.yml", "wt") as f:
+with open("truth-binning.yml", "w") as f:
     binning.yaml.dump(truth_binning, f)
 
 resp = migration.ResponseMatrix(reco_binning, truth_binning, nuisance_indices=[0])

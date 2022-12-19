@@ -39,7 +39,7 @@ elif args.model == "noise":
 true_events = gen.generate_exposed(args.years)
 
 csvfields = true_events.dtype.names
-with open(args.truthfilename, "wt") as f:
+with open(args.truthfilename, "w") as f:
     writer = csv.DictWriter(f, csvfields, delimiter=",")
     writer.writerow({fn: fn for fn in csvfields})  # Write the field names
     for event in true_events:
@@ -58,7 +58,7 @@ else:
     reco_events = detector.reconstruct(true_events, keep_truth=True)
 
 csvfields = reco_events.dtype.names
-with open(args.datafilename, "wt") as f:
+with open(args.datafilename, "w") as f:
     writer = csv.DictWriter(f, csvfields, delimiter=",")
     writer.writerow({fn: fn for fn in csvfields})  # Write the field names
     for event in reco_events:
