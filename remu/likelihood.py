@@ -1058,6 +1058,12 @@ class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
     If no `evaluation_point` or `evaluation_steps` is provided, they will be
     generated from the last predictor's defaults and bounds.
 
+    See also
+    --------
+
+    LinearPredictor
+    ComposedPredictor
+
     """
 
     def __init__(self, predictors, evaluation_point=None, evaluation_steps=None):
@@ -1070,12 +1076,12 @@ class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
         if evaluation_steps is None:
             evaluation_steps = (self.bounds[:, 1] - self.bounds[:, 0]) / 100.0
 
-        # Use step size 1 if bounds are infinite
-        evaluation_steps[~np.isfinite(evaluation_steps)] = 1.0
+            # Use step size 1 if bounds are infinite
+            evaluation_steps[~np.isfinite(evaluation_steps)] = 1.0
 
-        # Flip steps that would go out of upper bound
-        i = evaluation_point + evaluation_steps > self.bounds[:, 1]
-        evaluation_steps[i] *= -1.0
+            # Flip steps that would go out of upper bound
+            i = evaluation_point + evaluation_steps > self.bounds[:, 1]
+            evaluation_steps[i] *= -1.0
 
         # Use methods of regular ComposedPredictor to calculate everything
         y0, weights = ComposedPredictor.prediction(self, evaluation_point)
@@ -1098,6 +1104,43 @@ class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
             defaults=self.defaults,
             sparse_indices=None,
         )
+
+
+def LinearizedPredictor(predictor, evaluation_point=None, evaluation_steps=None):
+    """Thin wrapper to create a linearized predictor.
+
+    Parameters
+    ----------
+
+    predictor : Predictor
+        The predictor that should be linearized.
+    evaluation_point : array_like float, optional
+        Shape: ``(n_parameters,)``
+        Anchor point for the linearisation.
+    evaluation_steps : array_like float, optional
+        Shape: ``(n_parameters,)``
+        Step away from the anchor point for the linearisation.
+
+    Notes
+    -----
+
+    This is just a thin wrapper around :class:`ComposedLinearPredictor`.
+    Instead of multiple :class:`Predictor`s, it only accepts a single one.
+
+    See also
+    --------
+
+    ComposedLinearPredictor
+
+    """
+
+    return ComposedLinearPredictor(
+        [
+            predictor,
+        ],
+        evaluation_point=evaluation_point,
+        evaluation_steps=evaluation_steps,
+    )
 
 
 class FixedParameterLinearPredictor(LinearPredictor, FixedParameterPredictor):

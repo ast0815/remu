@@ -1370,6 +1370,29 @@ class TestComposedLinearPredictors(unittest.TestCase):
         self.assertEqual(weights.shape, (2, 24))
 
 
+class TestLinearizedPredictors(unittest.TestCase):
+    def setUp(self):
+        self.pred = likelihood.Predictor(defaults=[1.0], bounds=[[-np.inf, np.inf]])
+        self.pred.prediction = lambda x: (
+            np.array(x**2)[:, np.newaxis],
+            np.array([1.0]),
+        )
+        self.lin_pred1 = likelihood.LinearizedPredictor(
+            self.pred, evaluation_steps=[1.0]
+        )
+        self.lin_pred0 = likelihood.LinearizedPredictor(
+            self.pred, evaluation_point=[0.0], evaluation_steps=[1.0]
+        )
+
+    def test_prediction(self):
+        pred, weights = self.pred(np.array([[0.0], [0.5], [1.0]]))
+        pred1, weights = self.lin_pred1([[0.0], [0.5], [1.0]])
+        pred0, weights = self.lin_pred0([[0.0], [0.5], [1.0]])
+        np.testing.assert_almost_equal(pred, [[[0.0]], [[0.25]], [[1.0]]])
+        np.testing.assert_almost_equal(pred1, [[[-2.0]], [[-0.5]], [[1.0]]])
+        np.testing.assert_almost_equal(pred0, [[[0.0]], [[0.5]], [[1.0]]])
+
+
 class TestResponseMatrixPredictors(unittest.TestCase):
     def setUp(self):
         with open("testdata/test-truth-binning.yml") as f:
