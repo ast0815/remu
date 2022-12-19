@@ -553,6 +553,13 @@ class ComposedPredictor(Predictor):
         Predictor defines what parameters will be accepted by the resulting
         Predictor.
 
+    Notes
+    -----
+
+    Systematics will be handled in a Cartesian product. There will be one
+    output prediction for each possible combination of intermediate
+    systeamtics.
+
     """
 
     def __init__(self, predictors):
@@ -581,7 +588,8 @@ class ComposedPredictor(Predictor):
         -----
 
         The optional argument `systematics_index` will be applied to the final
-        output of the composed predictions.
+        output of the composed predictions, i.e. the flattened Cartesian
+        product of the intermediate systeamtics.
 
         """
 
