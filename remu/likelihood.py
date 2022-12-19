@@ -1035,29 +1035,59 @@ class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
         parameters for the first, the third for the second, etc. The last
         Predictor defines what parameters will be accepted by the resulting
         Predictor.
+    evaluation_point : array_like float, optional
+        Shape: ``(n_parameters,)``
+        Anchor point for the linearisation.
+    evaluation_steps : array_like float, optional
+        Shape: ``(n_parameters,)``
+        Step away from the anchor point for the linearisation.
+
+    Notes
+    -----
+
+    This :class:`LinearPredictor` will calculate a linear coefficients and
+    offsets by evaluating the composed provided predictors at
+    `evaluation_point`. The gradient at that point will be calculated by adding
+    the `evaluation_steps` for each parameter separately.
+
+    For a composition of :class:`LinearPredictor`s, this will still lead to an
+    exact representation (modulo variations from numerical accuracy). For
+    non-linear, generic :class:`Predictor`s, this means we are generating a
+    linear approximation at `evaluation_point`.
+
+    If no `evaluation_point` or `evaluation_steps` is provided, they will be
+    generated from the last predictor's defaults and bounds.
 
     """
 
-    def __init__(self, predictors):
-        self.predictors = predictors
+    def __init__(self, predictors, evaluation_point=None, evaluation_steps=None):
+        # Init like ComposedPredictor
+        ComposedPredictor.__init__(self, predictors)
 
-        # TODO: taking the bounds from the last predictor
-        # This might still run into the bounds of intermediate predictors
-        self.bounds = predictors[-1].bounds
-        self.defaults = predictors[-1].defaults
+        if evaluation_point is None:
+            evaluation_point = self.defaults
+
+        if evaluation_steps is None:
+            evaluation_steps = (self.bounds[:, 1] - self.bounds[:, 0]) / 100.0
+
+        # Use step size 1 if bounds are infinite
+        evaluation_steps[~np.isfinite(evaluation_steps)] = 1.0
+
+        # Flip steps that would go out of upper bound
+        i = evaluation_point + evaluation_steps > self.bounds[:, 1]
+        evaluation_steps[i] *= -1.0
 
         # Use methods of regular ComposedPredictor to calculate everything
-        constants, weights = ComposedPredictor.prediction(
-            self, np.zeros_like(self.defaults)
-        )
+        y0, weights = ComposedPredictor.prediction(self, evaluation_point)
         columns = []
-        for i in range(len(self.defaults)):
-            par = np.zeros_like(self.defaults)
-            par[i] = 1.0
-            col, _ = ComposedPredictor.prediction(self, par)
-            col -= constants
-            columns.append(col[..., np.newaxis])
+        for i, dx in enumerate(evaluation_steps):
+            par = np.array(evaluation_point)
+            par[i] += dx
+            y1, _ = ComposedPredictor.prediction(self, par)
+            columns.append(((y1 - y0) / dx)[..., np.newaxis])
+
         matrices = np.concatenate(columns, axis=-1)
+        constants = y0 - (matrices @ evaluation_point)
 
         LinearPredictor.__init__(
             self,
