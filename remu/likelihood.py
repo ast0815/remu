@@ -724,6 +724,122 @@ class SummedPredictor(Predictor):
         return prediction, weights
 
 
+class ConcatenatedPredictor(Predictor):
+    """Wrapper class that concatenates predictions of multiple Predictors.
+
+    Parameters
+    ----------
+
+    predictors : list of Predictor
+        The Predictors whos output will be concateanted. The resulting
+        Predictor will accept the concatenated list of the separate original
+        input parameters in the same order as they appear in the list.
+
+    Notes
+    -----
+
+    Systematics will be handled in a Cartesian product. There will be one
+    output prediction for each possible combination of intermediate
+    systeamtics.
+
+    """
+
+    def __init__(self, predictors):
+        self.predictors = predictors
+
+        self.bounds = np.concatenate([p.bounds for p in predictors], axis=0)
+        self.defaults = np.concatenate([p.defaults for p in predictors], axis=0)
+
+    def prediction(self, parameters, systematics_index=_SLICE):
+        """Turn a set of parameters into an ndarray of predictions.
+
+        Parameters
+        ----------
+
+        parameters : ndarray
+        systematics_index : int, optional
+
+        Returns
+        -------
+
+        prediction, weights : ndarray
+
+        Notes
+        -----
+
+        The optional argument `systematics_index` will be applied to the final
+        output of the summed predictions, i.e. the flattened Cartesian
+        product of the original systematics.
+
+        """
+
+        parameters = np.asarray(parameters)
+        orig_shape = parameters.shape
+        orig_len = len(orig_shape)
+        weights = np.ones(parameters.shape[:-1])
+
+        predictions = []
+        i_par = 0
+
+        for pred in self.predictors:
+            # Consume the given parameters in order.
+            j_par = i_par + len(pred.defaults)
+            par = parameters[..., i_par:j_par]
+            i_par = j_par
+            p, w = pred.prediction(par)
+            predictions.append(p)
+
+            # Bring weights in right shape
+            # w.shape = ([c,d,...,]syst_n+1)
+            # weights.shape = ([c,d,...,]syst_0,...,syst_n-1)
+            # new.shape = ([c,d,...,]syst_0,...,syst_n-1,syst_n)
+            ndim_diff = weights.ndim - w.ndim
+            slices = (Ellipsis,) + (np.newaxis,) * (ndim_diff + 1) + (slice(None),)
+            w = w[slices]
+            weights = weights[..., np.newaxis] * w
+
+        # Concatenate predictions with right systamtic axes
+        # pred shapes = ([c,d,...,]syst_i,n_reco_i)
+        # desired output shape = ([c,d,...,]syst0,...,systn,n_reco)
+        input_dimensions = predictions[0].ndim - 2
+        slices = []
+        shapes = []
+        for i in range(len(predictions)):
+            slices.append(
+                (Ellipsis,)
+                + (np.newaxis,) * i
+                + (slice(None),)
+                + (np.newaxis,) * (len(predictions) - i - 1)
+                + (slice(None),)
+            )
+            shapes.append(
+                predictions[0].shape[:input_dimensions]
+                + tuple(p.shape[-2] for p in predictions)
+                + (predictions[i].shape[-1],)
+            )
+
+        for i in range(len(predictions)):
+            p = predictions[i]
+            predictions[i] = np.broadcast_to(p[slices[i]], shapes[i])
+
+        # Now actually concatenate everything
+        prediction = np.concatenate(predictions, axis=-1)
+
+        # Flatten output
+        # original_parameters.shape = ([c,d,...,]n_parameters)
+        # concatenated_output.shape = ([c,d,...,]syst0,...,systn,n_reco)
+        # desired_output.shape = ([c,d,...,]syst,n_reco)
+        shape = prediction.shape
+        prediction = prediction.reshape(
+            orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),) + shape[-1:]
+        )
+        weights = weights.reshape(
+            orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),)
+        )
+
+        return prediction, weights
+
+
 class FixedParameterPredictor(Predictor):
     """Wrapper class that fixes parameters of another predictor.
 

@@ -1452,9 +1452,9 @@ class TestConcatenatedPredictors(unittest.TestCase):
     def test_prediction(self):
         pred, weights = self.pred([2, 2, 2, 3, 4, 4, 4])
         self.assertEqual(pred.tolist(), [[2, 4, 6, 1, 1, 1, 4.1, 4.2, 4.3]] * 24)
-        w = self.w0[np.newaxis, np.newaxis, :]
+        w = self.w2[np.newaxis, np.newaxis, :]
         w = w * self.w1[np.newaxis, :, np.newaxis]
-        w = w * self.w2[:, np.newaxis, np.newaxis]
+        w = w * self.w0[:, np.newaxis, np.newaxis]
         self.assertEqual(weights.tolist(), w.flatten().tolist())
 
     def test_output_shape(self):
