@@ -65,7 +65,7 @@ events = rfn.drop_fields(events, ["reco_x"])
 events = rfn.merge_arrays([events, weights, reco_x], flatten=True, usemask=False)
 
 csvfields = events.dtype.names
-with open(args.datafilename, "wt") as f:
+with open(args.datafilename, "w") as f:
     writer = csv.DictWriter(f, csvfields, delimiter=",")
     writer.writerow({fn: fn for fn in csvfields})  # Write the field names
     for event in events:
