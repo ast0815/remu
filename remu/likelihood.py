@@ -461,8 +461,8 @@ class Predictor:
         self.defaults = np.asarray(defaults)
 
     def check_bounds(self, parameters):
-        parameters = np.asfarray(parameters)
         """Check that all parameters are within bounds."""
+        parameters = np.asfarray(parameters)
         check = (parameters >= self.bounds[:, 0]) & (parameters <= self.bounds[:, 1])
         return np.all(check, axis=-1)
 
@@ -538,6 +538,7 @@ class Predictor:
         return ComposedPredictor([self, other])
 
     def __call__(self, *args, **kwargs):
+        """See :meth:`prediction`."""
         return self.prediction(*args, **kwargs)
 
 
@@ -1050,13 +1051,17 @@ class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
     `evaluation_point`. The gradient at that point will be calculated by adding
     the `evaluation_steps` for each parameter separately.
 
-    For a composition of :class:`LinearPredictor`s, this will still lead to an
-    exact representation (modulo variations from numerical accuracy). For
-    non-linear, generic :class:`Predictor`s, this means we are generating a
-    linear approximation at `evaluation_point`.
+    For a composition of multiple :class:`LinearPredictor`, this will still
+    lead to an exact representation (modulo variations from numerical
+    accuracy). For non-linear, generic :class:`Predictor`, this means we are
+    generating a linear approximation at `evaluation_point`.
 
     If no `evaluation_point` or `evaluation_steps` is provided, they will be
     generated from the last predictor's defaults and bounds.
+
+    .. warning:: The auto-generated steps should work for linear functions,
+                 but might be completely unsuitable, i.e. too large, for linear
+                 approximations of general functions.
 
     See also
     --------
@@ -1121,11 +1126,17 @@ def LinearizedPredictor(predictor, evaluation_point=None, evaluation_steps=None)
         Shape: ``(n_parameters,)``
         Step away from the anchor point for the linearisation.
 
+    Returns
+    -------
+
+    predictor : ComposedLinearPredictor
+
     Notes
     -----
 
-    This is just a thin wrapper around :class:`ComposedLinearPredictor`.
-    Instead of multiple :class:`Predictor`s, it only accepts a single one.
+    This is just a thin wrapper function to create a
+    :class:`ComposedLinearPredictor`. Instead of multiple :class:`Predictor`,
+    it only accepts a single one.
 
     See also
     --------
