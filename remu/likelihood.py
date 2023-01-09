@@ -559,7 +559,7 @@ class ComposedPredictor(Predictor):
 
     Systematics will be handled in a Cartesian product. There will be one
     output prediction for each possible combination of intermediate
-    systeamtics.
+    systematics.
 
     """
 
@@ -649,7 +649,7 @@ class SummedPredictor(Predictor):
 
     Systematics will be handled in a Cartesian product. There will be one
     output prediction for each possible combination of intermediate
-    systeamtics.
+    systematics.
 
     """
 
@@ -741,7 +741,7 @@ class ConcatenatedPredictor(Predictor):
 
     Systematics will be handled in a Cartesian product. There will be one
     output prediction for each possible combination of intermediate
-    systeamtics.
+    systematics.
 
     """
 
