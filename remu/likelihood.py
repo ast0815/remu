@@ -643,6 +643,9 @@ class SummedPredictor(Predictor):
         The Predictors whos output will be added. The resulting Predictor will
         accept the concatenated list of the separate original input parameters
         in the same order as they appear in the list.
+    scale_factors : iterable of float : optional
+        Provide a scaling factor for each predictor. The output will be
+        multiplied with the factor before summing up the predictions.
     combine_systematics : string, optional
         The strategy how to combine the systematics of the Predictors.
         Default: "cartesian"
@@ -670,11 +673,12 @@ class SummedPredictor(Predictor):
 
     """
 
-    def __init__(self, predictors, combine_systematics="cartesian"):
+    def __init__(self, predictors, scale_factors=None, combine_systematics="cartesian"):
         self.predictors = predictors
 
         self.bounds = np.concatenate([p.bounds for p in predictors], axis=0)
         self.defaults = np.concatenate([p.defaults for p in predictors], axis=0)
+        self.scale_factors = scale_factors
         self.combine_systematics = combine_systematics
 
     def prediction(self, parameters, systematics_index=_SLICE):
@@ -708,12 +712,23 @@ class SummedPredictor(Predictor):
         prediction = np.array([0.0])
         i_par = 0
 
-        for pred in self.predictors:
+        # Get the scale factors or generate ones
+        scale_factors = self.scale_factors
+        if scale_factors is None:
+            scale_factors = np.ones_like(self.predictors)
+
+        if len(scale_factors) != len(self.predictors):
+            raise ValueError(
+                "Must provide same number of predictors and scale factors!"
+            )
+
+        for pred, factor in zip(self.predictors, scale_factors):
             # Consume the given parameters in order.
             j_par = i_par + len(pred.defaults)
             par = parameters[..., i_par:j_par]
             i_par = j_par
             p, w = pred.prediction(par)
+            p *= factor
 
             if self.combine_systematics == "cartesian":
                 # Sum up predictions and create new axis for systematics

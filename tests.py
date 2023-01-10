@@ -1440,11 +1440,13 @@ class TestSummedPredictors(unittest.TestCase):
         self.pred2 = likelihood.LinearPredictor(
             [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w2
         )
-        self.pred = likelihood.SummedPredictor([self.pred0, self.pred1, self.pred2])
+        self.pred = likelihood.SummedPredictor(
+            [self.pred0, self.pred1, self.pred2], scale_factors=[2.0, 0.5, 1.0]
+        )
 
     def test_prediction(self):
-        pred, weights = self.pred([2, 2, 2, 3, 4, 4, 4])
-        self.assertEqual(pred.tolist(), [[7.1, 9.2, 11.3]] * 24)
+        pred, weights = self.pred([2, 2, 2, 6, 4, 4, 4])
+        self.assertEqual(pred.tolist(), [[9.1, 13.2, 17.3]] * 24)
         w = self.w2[np.newaxis, np.newaxis, :]
         w = w * self.w1[np.newaxis, :, np.newaxis]
         w = w * self.w0[:, np.newaxis, np.newaxis]
