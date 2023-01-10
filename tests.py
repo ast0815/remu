@@ -1441,7 +1441,8 @@ class TestSummedPredictors(unittest.TestCase):
             [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w2
         )
         self.pred = likelihood.SummedPredictor(
-            [self.pred0, self.pred1, self.pred2], scale_factors=[2.0, 0.5, 1.0]
+            [self.pred0, self.pred1, self.pred2],
+            scale_factors=[[[2.0]] * 2, [[0.5]] * 3, [[1.0]] * 4],
         )
 
     def test_prediction(self):

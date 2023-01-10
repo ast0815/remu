@@ -643,9 +643,13 @@ class SummedPredictor(Predictor):
         The Predictors whos output will be added. The resulting Predictor will
         accept the concatenated list of the separate original input parameters
         in the same order as they appear in the list.
-    scale_factors : iterable of float : optional
+    scale_factors : iterable of float or arrays: optional
         Provide a scaling factor for each predictor. The output will be
         multiplied with the factor before summing up the predictions.
+        Each factor can also be an array of factors so that each systematic
+        variation gets a different scaling factor. But it needs to be applicable
+        by multiplication, i.e. ``scaled_out = factor * out``. This can be achieved
+        by giving each matrix the shape ``(n_systematics, 1)``.
     combine_systematics : string, optional
         The strategy how to combine the systematics of the Predictors.
         Default: "cartesian"
@@ -728,7 +732,7 @@ class SummedPredictor(Predictor):
             par = parameters[..., i_par:j_par]
             i_par = j_par
             p, w = pred.prediction(par)
-            p *= factor
+            p = np.asarray(factor) * p
 
             if self.combine_systematics == "cartesian":
                 # Sum up predictions and create new axis for systematics
