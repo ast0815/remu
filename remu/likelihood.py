@@ -643,21 +643,39 @@ class SummedPredictor(Predictor):
         The Predictors whos output will be added. The resulting Predictor will
         accept the concatenated list of the separate original input parameters
         in the same order as they appear in the list.
+    combine_systematics : string, optional
+        The strategy how to combine the systematics of the Predictors.
+        Default: "cartesian"
 
     Notes
     -----
 
-    Systematics will be handled in a Cartesian product. There will be one
-    output prediction for each possible combination of intermediate
-    systematics.
+    Systematics will be handled according to the `combine_systematics`
+    parameter. Possible values are:
+
+    ``"cartesian"``
+        Combine systeamtics in a Cartesian product. There will be one
+        output prediction for each possible combination of intermediate
+        systematics.
+
+    ``"same"``
+        Assume that the systamtics are the same and no combination is done.
+        The dimensions and weights for the systeamtics _must_ be identical
+        for all provided Predictors.
+
+    See also
+    --------
+
+    ConcatenatedPredictor
 
     """
 
-    def __init__(self, predictors):
+    def __init__(self, predictors, combine_systematics="cartesian"):
         self.predictors = predictors
 
         self.bounds = np.concatenate([p.bounds for p in predictors], axis=0)
         self.defaults = np.concatenate([p.defaults for p in predictors], axis=0)
+        self.combine_systematics = combine_systematics
 
     def prediction(self, parameters, systematics_index=_SLICE):
         """Turn a set of parameters into an ndarray of predictions.
@@ -677,8 +695,8 @@ class SummedPredictor(Predictor):
         -----
 
         The optional argument `systematics_index` will be applied to the final
-        output of the summed predictions, i.e. the flattened Cartesian
-        product of the original systematics.
+        output of the summed predictions, i.e. the flattened combination of the
+        original systematics.
 
         """
 
@@ -697,18 +715,31 @@ class SummedPredictor(Predictor):
             i_par = j_par
             p, w = pred.prediction(par)
 
-            # Sum up predictions and create new axis for systematics
-            # p.shape = ([c,d,...,]syst_n+1,n_reco)
-            # prediction.shape = ([c,d,...,]syst_0,...,syst_n-1,n_reco)
-            # new.shape = ([c,d,...,]syst_0,...,syst_n-1,syst_n,n_reco)
-            ndim_diff = prediction.ndim - p.ndim
-            slices = (Ellipsis,) + (np.newaxis,) * (ndim_diff + 1) + (slice(None),) * 2
-            p = p[slices]
-            prediction = prediction[..., np.newaxis, :] + p
+            if self.combine_systematics == "cartesian":
+                # Sum up predictions and create new axis for systematics
+                # p.shape = ([c,d,...,]syst_n+1,n_reco)
+                # prediction.shape = ([c,d,...,]syst_0,...,syst_n-1,n_reco)
+                # new.shape = ([c,d,...,]syst_0,...,syst_n-1,syst_n,n_reco)
+                ndim_diff = prediction.ndim - p.ndim
+                slices = (
+                    (Ellipsis,) + (np.newaxis,) * (ndim_diff + 1) + (slice(None),) * 2
+                )
+                p = p[slices]
+                prediction = prediction[..., np.newaxis, :] + p
 
-            slices = (Ellipsis,) + (np.newaxis,) * (ndim_diff + 1) + (slice(None),)
-            w = w[slices]
-            weights = weights[..., np.newaxis] * w
+                slices = (Ellipsis,) + (np.newaxis,) * (ndim_diff + 1) + (slice(None),)
+                w = w[slices]
+                weights = weights[..., np.newaxis] * w
+            elif self.combine_systematics == "same":
+                # All weights and predictions have the same shape
+                # Weights have the same values
+                prediction = prediction + p
+                weights = w
+            else:
+                raise ValueError(
+                    "%s is not a valid systematics combination strategy."
+                    % (self.combine_systematics)
+                )
 
         # Flatten output
         # original_parameters.shape = ([c,d,...,]n_parameters)
@@ -735,50 +766,44 @@ class ConcatenatedPredictor(Predictor):
         The Predictors whos output will be concateanted. The resulting
         Predictor will accept the concatenated list of the separate original
         input parameters in the same order as they appear in the list.
+    combine_systematics : string, optional
+        The strategy how to combine the systematics of the Predictors.
+        Default: "cartesian"
 
     Notes
     -----
 
-    Systematics will be handled in a Cartesian product. There will be one
-    output prediction for each possible combination of intermediate
-    systematics.
+    Systematics will be handled according to the `combine_systematics`
+    parameter. Possible values are:
+
+    ``"cartesian"``
+        Combine systeamtics in a Cartesian product. There will be one
+        output prediction for each possible combination of intermediate
+        systematics.
+
+    ``"same"``
+        Assume that the systamtics are the same and no combination is done.
+        The dimensions and weights for the systeamtics _must_ be identical
+        for all provided Predictors.
+
+    See also
+    --------
+
+    SummedPredictor
 
     """
 
-    def __init__(self, predictors):
+    def __init__(self, predictors, combine_systematics="cartesian"):
         self.predictors = predictors
 
         self.bounds = np.concatenate([p.bounds for p in predictors], axis=0)
         self.defaults = np.concatenate([p.defaults for p in predictors], axis=0)
+        self.combine_systematics = combine_systematics
 
-    def prediction(self, parameters, systematics_index=_SLICE):
-        """Turn a set of parameters into an ndarray of predictions.
+    def _concatenate_cartesian(self, parameters):
+        """Calculate predictions using the "cartesian" systematics strategy."""
 
-        Parameters
-        ----------
-
-        parameters : ndarray
-        systematics_index : int, optional
-
-        Returns
-        -------
-
-        prediction, weights : ndarray
-
-        Notes
-        -----
-
-        The optional argument `systematics_index` will be applied to the final
-        output of the summed predictions, i.e. the flattened Cartesian
-        product of the original systematics.
-
-        """
-
-        parameters = np.asarray(parameters)
-        orig_shape = parameters.shape
-        orig_len = len(orig_shape)
         weights = np.ones(parameters.shape[:-1])
-
         predictions = []
         i_par = 0
 
@@ -825,6 +850,65 @@ class ConcatenatedPredictor(Predictor):
 
         # Now actually concatenate everything
         prediction = np.concatenate(predictions, axis=-1)
+
+        return prediction, weights
+
+    def _concatenate_same(self, parameters):
+        """Calculate predictions using the "same" systematics strategy."""
+
+        weights = np.ones(parameters.shape[:-1])
+        predictions = []
+        i_par = 0
+
+        for pred in self.predictors:
+            # Consume the given parameters in order.
+            j_par = i_par + len(pred.defaults)
+            par = parameters[..., i_par:j_par]
+            i_par = j_par
+            p, w = pred.prediction(par)
+            predictions.append(p)
+            weights = w
+
+        prediction = np.concatenate(predictions, axis=-1)
+
+        return prediction, weights
+
+    def prediction(self, parameters, systematics_index=_SLICE):
+        """Turn a set of parameters into an ndarray of predictions.
+
+        Parameters
+        ----------
+
+        parameters : ndarray
+        systematics_index : int, optional
+
+        Returns
+        -------
+
+        prediction, weights : ndarray
+
+        Notes
+        -----
+
+        The optional argument `systematics_index` will be applied to the final
+        output of the summed predictions, i.e. the flattened combination of the
+        original systematics.
+
+        """
+
+        parameters = np.asarray(parameters)
+        orig_shape = parameters.shape
+        orig_len = len(orig_shape)
+
+        if self.combine_systematics == "cartesian":
+            prediction, weights = self._concatenate_cartesian(parameters)
+        elif self.combine_systematics == "same":
+            prediction, weights = self._concatenate_same(parameters)
+        else:
+            raise ValueError(
+                "%s is not a valid systematics combination strategy."
+                % (self.combine_systematics)
+            )
 
         # Flatten output
         # original_parameters.shape = ([c,d,...,]n_parameters)
