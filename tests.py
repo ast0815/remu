@@ -1515,6 +1515,33 @@ class TestConcatenatedPredictors(unittest.TestCase):
         self.assertEqual(weights.shape, (2, 24))
 
 
+class TestConcatenatedPredictorsWithSameParameters(unittest.TestCase):
+    def setUp(self):
+        self.w0 = np.array([1, 2])
+        self.pred0 = likelihood.LinearPredictor(
+            [np.diag([1, 2, 3])] * 2, weights=self.w0
+        )
+        self.w1 = np.array([1, 2, 3, 4])
+        self.pred1 = likelihood.LinearPredictor(
+            [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w1
+        )
+        self.pred = likelihood.ConcatenatedPredictor(
+            [self.pred0, self.pred1], share_parameters=True
+        )
+
+    def test_prediction(self):
+        pred, weights = self.pred([1, 2, 3])
+        self.assertEqual(pred.tolist(), [[1.0, 4.0, 9.0, 1.1, 2.2, 3.3]] * 8)
+        w = self.w1[np.newaxis, np.newaxis, :]
+        w = w * self.w0[:, np.newaxis, np.newaxis]
+        self.assertEqual(weights.tolist(), w.flatten().tolist())
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[1, 2, 3]] * 2)
+        self.assertEqual(pred.shape, (2, 8, 6))
+        self.assertEqual(weights.shape, (2, 8))
+
+
 class TestConcatenatedPredictorsWithSameSystematics(unittest.TestCase):
     def setUp(self):
         self.w0 = np.array([1, 2])

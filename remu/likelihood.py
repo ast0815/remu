@@ -778,9 +778,13 @@ class ConcatenatedPredictor(Predictor):
     ----------
 
     predictors : list of Predictor
-        The Predictors whos output will be concateanted. The resulting
-        Predictor will accept the concatenated list of the separate original
-        input parameters in the same order as they appear in the list.
+        The Predictors whos output will be concateanted.
+    share_parameters : bool, default=False
+        If ``True``, the `predictors` must accept the same number of
+        parameters. The resulting predictor will then accept the same number
+        and apply them to all. Otherwise the resulting Predictor will accept
+        the concatenated list of the separate original input parameters in the
+        same order as they appear in `predictors`.
     combine_systematics : string, optional
         The strategy how to combine the systematics of the Predictors.
         Default: "cartesian"
@@ -808,11 +812,14 @@ class ConcatenatedPredictor(Predictor):
 
     """
 
-    def __init__(self, predictors, combine_systematics="cartesian"):
+    def __init__(
+        self, predictors, share_parameters=False, combine_systematics="cartesian"
+    ):
         self.predictors = predictors
 
         self.bounds = np.concatenate([p.bounds for p in predictors], axis=0)
         self.defaults = np.concatenate([p.defaults for p in predictors], axis=0)
+        self.share_parameters = share_parameters
         self.combine_systematics = combine_systematics
 
     def _concatenate_cartesian(self, parameters):
@@ -823,10 +830,14 @@ class ConcatenatedPredictor(Predictor):
         i_par = 0
 
         for pred in self.predictors:
-            # Consume the given parameters in order.
-            j_par = i_par + len(pred.defaults)
-            par = parameters[..., i_par:j_par]
-            i_par = j_par
+            if not self.share_parameters:
+                # Consume the given parameters in order.
+                j_par = i_par + len(pred.defaults)
+                par = parameters[..., i_par:j_par]
+                i_par = j_par
+            else:
+                par = parameters
+
             p, w = pred.prediction(par)
             predictions.append(p)
 
