@@ -1358,7 +1358,7 @@ class TestComposedLinearPredictors(unittest.TestCase):
 
     def test_prediction(self):
         pred, weights = self.pred([1, 2, 3])
-        self.assertEqual(pred.tolist(), [[2.1, 2.2, 2.3]] * 24)
+        np.testing.assert_almost_equal(pred, [[2.1, 2.2, 2.3]] * 24)
         w = self.w0[np.newaxis, np.newaxis, :]
         w = w * self.w1[np.newaxis, :, np.newaxis]
         w = w * self.w2[:, np.newaxis, np.newaxis]
@@ -1368,6 +1368,29 @@ class TestComposedLinearPredictors(unittest.TestCase):
         pred, weights = self.pred([[1, 2, 3]] * 2)
         self.assertEqual(pred.shape, (2, 24, 3))
         self.assertEqual(weights.shape, (2, 24))
+
+
+class TestLinearizedPredictors(unittest.TestCase):
+    def setUp(self):
+        self.pred = likelihood.Predictor(defaults=[1.0], bounds=[[-np.inf, np.inf]])
+        self.pred.prediction = lambda x: (
+            np.array(x**2)[:, np.newaxis],
+            np.array([1.0]),
+        )
+        self.lin_pred1 = likelihood.LinearizedPredictor(
+            self.pred, evaluation_steps=[1.0]
+        )
+        self.lin_pred0 = likelihood.LinearizedPredictor(
+            self.pred, evaluation_point=[0.0], evaluation_steps=[1.0]
+        )
+
+    def test_prediction(self):
+        pred, weights = self.pred(np.array([[0.0], [0.5], [1.0]]))
+        pred1, weights = self.lin_pred1([[0.0], [0.5], [1.0]])
+        pred0, weights = self.lin_pred0([[0.0], [0.5], [1.0]])
+        np.testing.assert_almost_equal(pred, [[[0.0]], [[0.25]], [[1.0]]])
+        np.testing.assert_almost_equal(pred1, [[[-2.0]], [[-0.5]], [[1.0]]])
+        np.testing.assert_almost_equal(pred0, [[[0.0]], [[0.5]], [[1.0]]])
 
 
 class TestResponseMatrixPredictors(unittest.TestCase):
@@ -1403,6 +1426,149 @@ class TestResponseMatrixPredictors(unittest.TestCase):
         y, w = pred([1, 0, 0, 0])
         self.assertEqual(y.shape, (1, 4))
         self.assertEqual(y[0, 0], 0.0)
+
+
+class TestSummedPredictors(unittest.TestCase):
+    def setUp(self):
+        self.w0 = np.array([1, 2])
+        self.pred0 = likelihood.LinearPredictor(
+            [np.diag([1, 2, 3])] * 2, weights=self.w0
+        )
+        self.w1 = np.array([1, 2, 3])
+        self.pred1 = likelihood.LinearPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
+        self.w2 = np.array([1, 2, 3, 4])
+        self.pred2 = likelihood.LinearPredictor(
+            [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w2
+        )
+        self.pred = likelihood.SummedPredictor(
+            [self.pred0, self.pred1, self.pred2],
+            scale_factors=[[[2.0]] * 2, [[0.5]] * 3, [[1.0]] * 4],
+        )
+
+    def test_prediction(self):
+        pred, weights = self.pred([2, 2, 2, 6, 4, 4, 4])
+        self.assertEqual(pred.tolist(), [[9.1, 13.2, 17.3]] * 24)
+        w = self.w2[np.newaxis, np.newaxis, :]
+        w = w * self.w1[np.newaxis, :, np.newaxis]
+        w = w * self.w0[:, np.newaxis, np.newaxis]
+        self.assertEqual(weights.tolist(), w.flatten().tolist())
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2)
+        self.assertEqual(pred.shape, (2, 24, 3))
+        self.assertEqual(weights.shape, (2, 24))
+
+
+class TestSummedPredictorsWithSameSystematics(unittest.TestCase):
+    def setUp(self):
+        self.w0 = np.array([1, 2])
+        self.pred0 = likelihood.LinearPredictor(
+            [np.diag([1, 2, 3])] * 2, weights=self.w0
+        )
+        self.w1 = np.array([1, 2])
+        self.pred1 = likelihood.LinearPredictor([[[1 / 3]] * 3] * 2, weights=self.w1)
+        self.w2 = np.array([1, 2])
+        self.pred2 = likelihood.LinearPredictor(
+            [np.eye(3)] * 2, [0.1, 0.2, 0.3], weights=self.w2
+        )
+        self.pred = likelihood.SummedPredictor(
+            [self.pred0, self.pred1, self.pred2], combine_systematics="same"
+        )
+
+    def test_prediction(self):
+        pred, weights = self.pred([2, 2, 2, 3, 4, 4, 4])
+        self.assertEqual(pred.tolist(), [[7.1, 9.2, 11.3]] * 2)
+        self.assertEqual(weights.tolist(), self.w0.tolist())
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2)
+        self.assertEqual(pred.shape, (2, 2, 3))
+        self.assertEqual(weights.shape, (2, 2))
+
+
+class TestConcatenatedPredictors(unittest.TestCase):
+    def setUp(self):
+        self.w0 = np.array([1, 2])
+        self.pred0 = likelihood.LinearPredictor(
+            [np.diag([1, 2, 3])] * 2, weights=self.w0
+        )
+        self.w1 = np.array([1, 2, 3])
+        self.pred1 = likelihood.LinearPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
+        self.w2 = np.array([1, 2, 3, 4])
+        self.pred2 = likelihood.LinearPredictor(
+            [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w2
+        )
+        self.pred = likelihood.ConcatenatedPredictor(
+            [self.pred0, self.pred1, self.pred2]
+        )
+
+    def test_prediction(self):
+        pred, weights = self.pred([2, 2, 2, 3, 4, 4, 4])
+        self.assertEqual(pred.tolist(), [[2, 4, 6, 1, 1, 1, 4.1, 4.2, 4.3]] * 24)
+        w = self.w2[np.newaxis, np.newaxis, :]
+        w = w * self.w1[np.newaxis, :, np.newaxis]
+        w = w * self.w0[:, np.newaxis, np.newaxis]
+        self.assertEqual(weights.tolist(), w.flatten().tolist())
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2)
+        self.assertEqual(pred.shape, (2, 24, 9))
+        self.assertEqual(weights.shape, (2, 24))
+
+
+class TestConcatenatedPredictorsWithSameParameters(unittest.TestCase):
+    def setUp(self):
+        self.w0 = np.array([1, 2])
+        self.pred0 = likelihood.LinearPredictor(
+            [np.diag([1, 2, 3])] * 2, weights=self.w0
+        )
+        self.w1 = np.array([1, 2, 3, 4])
+        self.pred1 = likelihood.LinearPredictor(
+            [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w1
+        )
+        self.pred = likelihood.ConcatenatedPredictor(
+            [self.pred0, self.pred1], share_parameters=True
+        )
+
+    def test_prediction(self):
+        pred, weights = self.pred([1, 2, 3])
+        self.assertEqual(pred.tolist(), [[1.0, 4.0, 9.0, 1.1, 2.2, 3.3]] * 8)
+        w = self.w1[np.newaxis, np.newaxis, :]
+        w = w * self.w0[:, np.newaxis, np.newaxis]
+        self.assertEqual(weights.tolist(), w.flatten().tolist())
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[1, 2, 3]] * 2)
+        self.assertEqual(pred.shape, (2, 8, 6))
+        self.assertEqual(weights.shape, (2, 8))
+
+
+class TestConcatenatedPredictorsWithSameSystematics(unittest.TestCase):
+    def setUp(self):
+        self.w0 = np.array([1, 2])
+        self.pred0 = likelihood.LinearPredictor(
+            [np.diag([1, 2, 3])] * 2, weights=self.w0
+        )
+        self.w1 = np.array([1, 2])
+        self.pred1 = likelihood.LinearPredictor([[[1 / 3]] * 3] * 2, weights=self.w1)
+        self.w2 = np.array([1, 2])
+        self.pred2 = likelihood.LinearPredictor(
+            [np.eye(3)] * 2, [0.1, 0.2, 0.3], weights=self.w2
+        )
+        self.pred = likelihood.ConcatenatedPredictor(
+            [self.pred0, self.pred1, self.pred2],
+            combine_systematics="same",
+        )
+
+    def test_prediction(self):
+        pred, weights = self.pred([2, 2, 2, 3, 4, 4, 4])
+        self.assertEqual(pred.tolist(), [[2, 4, 6, 1, 1, 1, 4.1, 4.2, 4.3]] * 2)
+        self.assertEqual(weights.tolist(), self.w0.tolist())
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2)
+        self.assertEqual(pred.shape, (2, 2, 9))
+        self.assertEqual(weights.shape, (2, 2))
 
 
 class TestSystematics(unittest.TestCase):
