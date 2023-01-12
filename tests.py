@@ -1202,10 +1202,19 @@ class TestLinearPredictors(unittest.TestCase):
             [0.1, 0.2, 0.3],
             weights=[1.0, 0.5],
         )
+        self.reshape_pred = likelihood.LinearPredictor(
+            [[[1.0, 0.0], [0.5, 1.0], [0.0, 1.0]]] * 2,
+            [0.1, 0.1, 0.2, 0.2, 0.3, 0.3],
+            weights=[1.0, 0.5],
+            reshape_parameters=(2, 2),
+        )
 
     def test_prediction(self):
         pred, weights = self.pred([1, 10])
         self.assertEqual(pred.tolist(), [[1.1, 10.7, 10.3]] * 2)
+        self.assertEqual(weights.tolist(), [1.0, 0.5])
+        pred, weights = self.reshape_pred([1, 2, 10, 20])
+        self.assertEqual(pred.tolist(), [[1.1, 2.1, 10.7, 21.2, 10.3, 20.3]] * 2)
         self.assertEqual(weights.tolist(), [1.0, 0.5])
 
     def test_output_shape(self):
@@ -1214,6 +1223,9 @@ class TestLinearPredictors(unittest.TestCase):
         self.assertEqual(weights.shape, (2, 2))
         pred, weights = self.pred([[1, 10]] * 5)
         self.assertEqual(pred.shape, (5, 2, 3))
+        self.assertEqual(weights.shape, (5, 2))
+        pred, weights = self.reshape_pred([[1, 2, 10, 20]] * 5)
+        self.assertEqual(pred.shape, (5, 2, 6))
         self.assertEqual(weights.shape, (5, 2))
 
     def test_parameter_fixing(self):

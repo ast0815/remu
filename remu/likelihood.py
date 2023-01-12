@@ -1022,7 +1022,7 @@ class LinearPredictor(Predictor):
     ----------
 
     matrices : ndarray
-        Shape: ``([n_systematics,]n_reco_bins,n_parameters)``
+        Shape: ``([n_systematics,]n_reco_bins/k,n_parameters/l)``
     constants : ndarray, optional
         Shape: ``([n_systematics,]n_reco_bins)``
     weights : ndarray, optional
@@ -1030,11 +1030,15 @@ class LinearPredictor(Predictor):
     bounds : ndarray, optional
         Lower and upper bounds for all parameters. Can be ``+/- np.inf``.
     defaults : ndarray, optional
-        "Reasonable" default values for the parameters. Used optimisation.
+        "Reasonable" default values for the parameters. Used in optimisation.
     sparse_indices : list or array of int, optional
         Used with sparse matrices that provide only the specified columns.
         All other columns are assumed to be 0, i.e. the parameters corresponding
         to these have no effect.
+    reshape_parameters : (n_parameters/l, l) or None, optional
+        Reshape the last axis of the parameters to the given shape before
+        the matrix multiplication. The output will be flattened again.
+        Constants are applied _after_ flattening.
 
     See also
     --------
@@ -1063,6 +1067,7 @@ class LinearPredictor(Predictor):
         bounds=None,
         defaults=None,
         sparse_indices=None,
+        reshape_parameters=None,
     ):
         self.matrices = np.asfarray(matrices)
         while self.matrices.ndim < 3:
@@ -1081,6 +1086,7 @@ class LinearPredictor(Predictor):
             self.sparse_indices = _SLICE
         else:
             self.sparse_indices = sparse_indices
+        self.reshape_parameters = reshape_parameters
         Predictor.__init__(self, bounds, defaults)
 
     def prediction(self, parameters, systematics_index=_SLICE):
@@ -1097,9 +1103,24 @@ class LinearPredictor(Predictor):
         weights = self.weights[systematics_index]
         constants = self.constants[systematics_index]
 
-        parameters = np.asarray(parameters)[..., self.sparse_indices]
-        prediction = np.tensordot(parameters, matrix, axes=((-1,), (-1,)))
-        prediction += constants
+        # Get parameters as vector
+        parameters = np.asarray(parameters)
+        # Reshape parameters into matrix
+        if self.reshape_parameters is not None:
+            shape = parameters.shape
+            parameters = parameters.reshape(shape[:-1] + self.reshape_parameters)
+        else:
+            parameters = parameters[..., np.newaxis]
+        # Account for spare matrices
+        parameters = parameters[..., self.sparse_indices, :]
+        # Calculate matrix product
+        prediction = np.einsum("ijk,...kl->...ijl", matrix, parameters)
+        # Flatten output
+        shape = prediction.shape
+        prediction = prediction.reshape(shape[:-2] + (shape[-2] * shape[-1],))
+        # Apply constants
+        prediction = prediction + constants
+        # Reshape weights
         weights = np.broadcast_to(weights, prediction.shape[:-1])
         return prediction, weights
 
