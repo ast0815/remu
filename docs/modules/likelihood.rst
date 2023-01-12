@@ -17,9 +17,9 @@ Classes
     likelihood/ComposedPredictor
     likelihood/SummedPredictor
     likelihood/ConcatenatedPredictor
-    likelihood/LinearPredictor
-    likelihood/FixedParameterLinearPredictor
-    likelihood/ComposedLinearPredictor
+    likelihood/MatrixPredictor
+    likelihood/FixedParameterMatrixPredictor
+    likelihood/ComposedMatrixPredictor
     likelihood/LinearizedPredictor
     likelihood/TemplatePredictor
     likelihood/ResponseMatrixPredictor
