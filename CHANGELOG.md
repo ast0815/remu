@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- SummedPredictor
+- ConcatenatedPredictor
+
 ### Changed
 - Calculate M. distance truth-bin by bin to avoid memory issues.
 - Relax requirements for exact Matplotlib version.

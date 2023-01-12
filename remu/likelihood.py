@@ -1011,7 +1011,7 @@ class FixedParameterPredictor(Predictor):
         return self.predictor(parameters, systematics_index)
 
 
-class LinearPredictor(Predictor):
+class MatrixPredictor(Predictor):
     """Predictor that uses a matrix to fold parameters into reco space.
 
     ::
@@ -1133,8 +1133,8 @@ class LinearPredictor(Predictor):
 
         """
 
-        if isinstance(other, LinearPredictor):
-            return ComposedLinearPredictor([self, other])
+        if isinstance(other, MatrixPredictor):
+            return ComposedMatrixPredictor([self, other])
         else:
             return Predictor.compose(self, other)
 
@@ -1153,15 +1153,15 @@ class LinearPredictor(Predictor):
         See also
         --------
 
-        FixedParameterLinearPredictor
+        FixedParameterMatrixPredictor
 
         """
 
-        return FixedParameterLinearPredictor(self, fix_values)
+        return FixedParameterMatrixPredictor(self, fix_values)
 
 
-class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
-    """Composition of LinearPredictors.
+class ComposedMatrixPredictor(MatrixPredictor, ComposedPredictor):
+    """Composition of MatrixPredictors.
 
     Parameters
     ----------
@@ -1181,12 +1181,12 @@ class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
     Notes
     -----
 
-    This :class:`LinearPredictor` will calculate a linear coefficients and
+    This :class:`MatrixPredictor` will calculate a linear coefficients and
     offsets by evaluating the composed provided predictors at
     `evaluation_point`. The gradient at that point will be calculated by adding
     the `evaluation_steps` for each parameter separately.
 
-    For a composition of multiple :class:`LinearPredictor`, this will still
+    For a composition of multiple :class:`MatrixPredictor`, this will still
     lead to an exact representation (modulo variations from numerical
     accuracy). For non-linear, generic :class:`Predictor`, this means we are
     generating a linear approximation at `evaluation_point`.
@@ -1201,7 +1201,7 @@ class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
     See also
     --------
 
-    LinearPredictor
+    MatrixPredictor
     ComposedPredictor
 
     """
@@ -1235,7 +1235,7 @@ class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
         matrices = np.concatenate(columns, axis=-1)
         constants = y0 - (matrices @ evaluation_point)
 
-        LinearPredictor.__init__(
+        MatrixPredictor.__init__(
             self,
             matrices,
             constants=constants,
@@ -1264,23 +1264,23 @@ def LinearizedPredictor(predictor, evaluation_point=None, evaluation_steps=None)
     Returns
     -------
 
-    predictor : ComposedLinearPredictor
+    predictor : ComposedMatrixPredictor
 
     Notes
     -----
 
     This is just a thin wrapper function to create a
-    :class:`ComposedLinearPredictor`. Instead of multiple :class:`Predictor`,
+    :class:`ComposedMatrixPredictor`. Instead of multiple :class:`Predictor`,
     it only accepts a single one.
 
     See also
     --------
 
-    ComposedLinearPredictor
+    ComposedMatrixPredictor
 
     """
 
-    return ComposedLinearPredictor(
+    return ComposedMatrixPredictor(
         [
             predictor,
         ],
@@ -1289,16 +1289,16 @@ def LinearizedPredictor(predictor, evaluation_point=None, evaluation_steps=None)
     )
 
 
-class FixedParameterLinearPredictor(LinearPredictor, FixedParameterPredictor):
+class FixedParameterMatrixPredictor(MatrixPredictor, FixedParameterPredictor):
     """Wrapper class that fixes parameters of a linear predictor.
 
     Speeds things up considerably compared to the universal `FixedParameterPredictor`,
-    but only works with `LinearPredictor`.
+    but only works with `MatrixPredictor`.
 
     Paramters
     ---------
 
-    predictor : LinearPredictor
+    predictor : MatrixPredictor
         The original predictor which will have some of its parameters fixed.
     fix_values : iterable
         List of the parameter values that the parameters should be fixed at.
@@ -1310,7 +1310,7 @@ class FixedParameterLinearPredictor(LinearPredictor, FixedParameterPredictor):
     --------
 
     FixedParameterPredictor
-    LinearPredictor
+    MatrixPredictor
 
     """
 
@@ -1323,7 +1323,7 @@ class FixedParameterLinearPredictor(LinearPredictor, FixedParameterPredictor):
         const_par[np.isnan(self.fix_values)] = 0.0
         constants, weights = self.predictor(const_par)
 
-        LinearPredictor.__init__(
+        MatrixPredictor.__init__(
             self,
             matrices,
             constants=constants,
@@ -1334,7 +1334,7 @@ class FixedParameterLinearPredictor(LinearPredictor, FixedParameterPredictor):
         )
 
 
-class ResponseMatrixPredictor(LinearPredictor):
+class ResponseMatrixPredictor(MatrixPredictor):
     """Event rate predictor from ResponseMatrix objects.
 
     Parameters
@@ -1360,7 +1360,7 @@ class ResponseMatrixPredictor(LinearPredictor):
         ).eps  # Add epsilon so there is a very small allowed range for empty bins
         bounds = [(0.0, x + eps) for x in data["truth_entries"]]
         defaults = data["truth_entries"] / 2.0
-        LinearPredictor.__init__(
+        MatrixPredictor.__init__(
             self,
             matrices,
             constants=constants,
@@ -1371,8 +1371,8 @@ class ResponseMatrixPredictor(LinearPredictor):
         )
 
 
-class TemplatePredictor(LinearPredictor):
-    """LinearPredictor from templates.
+class TemplatePredictor(MatrixPredictor):
+    """MatrixPredictor from templates.
 
     Parameters
     ----------
@@ -1384,7 +1384,7 @@ class TemplatePredictor(LinearPredictor):
     constants : ndarray, optional
         Shape: ``([n_systematics,]n_reco_bins)``
     **kwargs : optional
-        Additional keyword arguments are passed to the LinearPredictor.
+        Additional keyword arguments are passed to the MatrixPredictor.
 
     """
 
@@ -1393,7 +1393,7 @@ class TemplatePredictor(LinearPredictor):
         matrices = np.array(np.swapaxes(matrices, -1, -2))
         bounds = kwargs.pop("bounds", [(0.0, np.inf)] * matrices.shape[-1])
         defaults = kwargs.pop("defaults", [1.0] * matrices.shape[-1])
-        LinearPredictor.__init__(
+        MatrixPredictor.__init__(
             self,
             matrices,
             constants=constants,
