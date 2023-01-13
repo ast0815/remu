@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - LinearizedPredictor
 - SummedPredictor
 - ConcatenatedPredictor
+- LinearEinsumPredictor
 
 ### Changed
 - Calculate M. distance truth-bin by bin to avoid memory issues.

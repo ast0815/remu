@@ -1011,6 +1011,148 @@ class FixedParameterPredictor(Predictor):
         return self.predictor(parameters, systematics_index)
 
 
+class LinearEinsumPredictor(Predictor):
+    """Predictor calcuating a linear combination of the paramters using `np.einsum`.
+
+    Paramters
+    ---------
+
+    subscripts : str
+        The subscripts string provided to `np.einsum`.
+    coefficients : ndarray
+        The first operand to be supplies to `np.einsum`.
+        Shape: ``(n_systeamtics, [I, J, ...,] K)``
+    constants : ndarray, optional
+        Constants to be added to the result of `np.einsum` after flattening it.
+        Shape: ``(n_systeamtics, n_output)``
+    weights : ndarray, optional
+        Shape: ``(n_systematics)``
+    bounds : ndarray, optional
+        Lower and upper bounds for all parameters. Can be ``+/- np.inf``.
+    defaults : ndarray, optional
+        "Reasonable" default values for the parameters. Used in optimisation.
+    reshape_parameters : tuple of int, optional
+        Reshape the last axis of the parameters to the given shape before
+        the einsum contraction.
+
+    Notes
+    -----
+
+    At least one of `bounds`, `defaults`, or `reshape_parameters` must be
+    provided in order to calculate the expected number of parameters.
+
+    The prediction will be calculated using `np.einsum` using the provided
+    `subscripts` string. The two operands will be the provided `coefficients`
+    as well as the parameters of the prediction function call.
+
+    The parameters will have the shape ``[(A,B,...,)+]reshape_parameters``, if
+    `reshape_parameters` is set, or ``([A,B,...,]n_parameters)`` otherwise.
+
+    The output of the `np.einsum` _must_ have the shape
+    ``([A,B,...,]n_systematics,[X,Y,...,]Z)``, no matter whethre the dimensions
+    ``A, B, ...`` actually exist.
+
+    Examples
+    --------
+
+    This predictor will calculate the product of the parameters with the
+    systematically varied matrices:
+
+    >>> M = [ [[1,0], [0,1]], [[0.9, 0], [0, 0.8]] ]
+    >>> p = LinearEinsumPredictor("ijk,...k->...ij", M, defaults=[1,1])
+    >>> p([1.0, 2.0])
+    (array([[1. , 2. ],
+        [0.9, 1.6]]),
+     array([1., 1.]))
+
+
+    Interpret parameters as matrix and do a matrix multiplication:
+
+    >>> M = [ [[1,0], [0,1]], [[0.9, 0], [0, 0.8]] ]
+    >>> p = LinearEinsumPredictor("ijk,...kl->...ijl", M, reshape_parameters=(2,2))
+    >>> p([1.0, 2.0, 3.0, 4.0])
+    (array([[1. , 2. , 3. , 4. ],
+        [0.9, 1.8, 2.4, 3.2]]),
+     array([1., 1.]))
+
+    Do an element-wise multiplication:
+
+    >>> M = [ [1, 2, 3, 4] ]
+    >>> p = LinearEinsumPredictor("ij,...j->...ij", M, reshape_parameters=(4,))
+    >>> p([1.0, 1.0, 1.0, 1.0])
+    (array([[1., 2., 3., 4.]]), array([1.]))
+
+    """
+
+    def __init__(
+        self,
+        subscripts,
+        coefficients,
+        constants=0.0,
+        weights=1.0,
+        bounds=None,
+        defaults=None,
+        reshape_parameters=None,
+    ):
+        self.subscripts = subscripts
+        self.coefficients = np.asfarray(coefficients)
+        self.constants = np.asfarray(constants)
+        while self.constants.ndim < 2:
+            self.constants = self.constants[np.newaxis, ...]
+        self.weights = np.asfarray(weights)
+        while self.weights.ndim < 1:
+            self.weights = self.weights[np.newaxis, ...]
+
+        if bounds is not None:
+            n_parameters = len(bounds)
+        elif defaults is not None:
+            n_parameters = len(defaults)
+        elif reshape_parameters is not None:
+            n_parameters = np.prod(reshape_parameters)
+        else:
+            raise RuntimeError(
+                "At least on of `bounds`, `defaults`, or `reshape_parameters` must be provided!"
+            )
+
+        if bounds is None:
+            bounds = np.array([(-np.inf, np.inf)] * n_parameters)
+        if defaults is None:
+            defaults = np.array([1.0] * n_parameters)
+        self.reshape_parameters = reshape_parameters
+        Predictor.__init__(self, bounds, defaults)
+
+    def prediction(self, parameters, systematics_index=_SLICE):
+        """Turn a set of parameters into a reco prediction.
+
+        Returns
+        -------
+
+        prediction : ndarray
+        weights : ndarray
+
+        """
+        coefficients = self.coefficients[systematics_index]
+        weights = self.weights[systematics_index]
+        constants = self.constants[systematics_index]
+
+        # Get parameters as vector
+        parameters = np.asarray(parameters)
+        orig_shape = parameters.shape
+        # Reshape parameters if requested
+        if self.reshape_parameters is not None:
+            parameters = parameters.reshape(orig_shape[:-1] + self.reshape_parameters)
+        # Calculate einsum
+        prediction = np.einsum(self.subscripts, coefficients, parameters)
+        # Flatten output
+        shape = prediction.shape[: len(orig_shape)] + (-1,)
+        prediction = prediction.reshape(shape)
+        # Apply constants
+        prediction = prediction + constants
+        # Reshape weights
+        weights = np.broadcast_to(weights, prediction.shape[:-1])
+        return prediction, weights
+
+
 class MatrixPredictor(Predictor):
     """Predictor that uses a matrix to fold parameters into reco space.
 

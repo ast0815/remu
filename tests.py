@@ -1195,6 +1195,32 @@ class TestPoissonData(unittest.TestCase):
         self.assertEqual(ret.shape, (3, 5, 4))
 
 
+class TestLinearEinsumPredictor(unittest.TestCase):
+    def setUp(self):
+        M = [[[1, 0], [0, 1]], [[0.9, 0], [0, 0.8]]]
+        self.pred = likelihood.LinearEinsumPredictor(
+            "ijk,...kl->...ijl",
+            M,
+            constants=[0.01, 0.02, 0.03, 0.04],
+            reshape_parameters=(2, 2),
+        )
+
+    def test_prediction(self):
+        pred, weights = self.pred([1, 2, 3, 4])
+        self.assertEqual(
+            pred.tolist(), [[1.01, 2.02, 3.03, 4.04], [0.91, 1.82, 2.43, 3.24]]
+        )
+        self.assertEqual(weights.tolist(), [1.0, 1.0])
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[1, 2, 3, 4]] * 2)
+        self.assertEqual(pred.shape, (2, 2, 4))
+        self.assertEqual(weights.shape, (2, 2))
+        pred, weights = self.pred([[1, 2, 3, 4]] * 5)
+        self.assertEqual(pred.shape, (5, 2, 4))
+        self.assertEqual(weights.shape, (5, 2))
+
+
 class TestMatrixPredictors(unittest.TestCase):
     def setUp(self):
         self.pred = likelihood.MatrixPredictor(
