@@ -610,11 +610,10 @@ class ComposedPredictor(Predictor):
         # desired_output.shape = ([c,d,...,]syst,n_reco)
         shape = parameters.shape
         shape_len = len(shape)
-        #           c,d,...                    syst0,syst1,...                             n_reco
         new_order = (
-            tuple(range(orig_len - 1))
-            + tuple(range(shape_len - 2, orig_len - 2, -1))
-            + (shape_len - 1,)
+            tuple(range(orig_len - 1))  # c,d,...
+            + tuple(range(shape_len - 2, orig_len - 2, -1))  # syst0,syst1,...
+            + (shape_len - 1,)  # n_reco
         )
         parameters = np.transpose(parameters, new_order)
         parameters = parameters.reshape(
@@ -1153,18 +1152,18 @@ class LinearEinsumPredictor(Predictor):
         return prediction, weights
 
 
-class MatrixPredictor(Predictor):
+class MatrixPredictor(LinearEinsumPredictor):
     """Predictor that uses a matrix to fold parameters into reco space.
 
     ::
 
-        output = matrix X parameters [+ constant]
+        output = matrix X parameters [+ constants]
 
     Parameters
     ----------
 
     matrices : ndarray
-        Shape: ``([n_systematics,]n_reco_bins/k,n_parameters/l)``
+        Shape: ``([n_systematics,]n_reco_bins,n_parameters)``
     constants : ndarray, optional
         Shape: ``([n_systematics,]n_reco_bins)``
     weights : ndarray, optional
@@ -1177,10 +1176,6 @@ class MatrixPredictor(Predictor):
         Used with sparse matrices that provide only the specified columns.
         All other columns are assumed to be 0, i.e. the parameters corresponding
         to these have no effect.
-    reshape_parameters : (n_parameters/l, l) or None, optional
-        Reshape the last axis of the parameters to the given shape before
-        the matrix multiplication. The output will be flattened again.
-        Constants are applied _after_ flattening.
 
     See also
     --------
@@ -1201,37 +1196,21 @@ class MatrixPredictor(Predictor):
 
     """
 
-    def __init__(
-        self,
-        matrices,
-        constants=0.0,
-        weights=1.0,
-        bounds=None,
-        defaults=None,
-        sparse_indices=None,
-        reshape_parameters=None,
-    ):
+    def __init__(self, matrices, constants=0.0, *, sparse_indices=_SLICE, **kwargs):
         self.matrices = np.asfarray(matrices)
         while self.matrices.ndim < 3:
             self.matrices = self.matrices[np.newaxis, ...]
-        self.constants = np.asfarray(constants)
-        while self.constants.ndim < 2:
-            self.constants = self.constants[np.newaxis, ...]
-        self.weights = np.asfarray(weights)
-        while self.weights.ndim < 1:
-            self.weights = self.weights[np.newaxis, ...]
-        if bounds is None:
-            bounds = np.array([(-np.inf, np.inf)] * self.matrices.shape[-1])
-        if defaults is None:
-            defaults = np.array([1.0] * self.matrices.shape[-1])
-        if sparse_indices is None:
-            self.sparse_indices = _SLICE
-        else:
-            self.sparse_indices = sparse_indices
-        self.reshape_parameters = reshape_parameters
-        Predictor.__init__(self, bounds, defaults)
+        self.sparse_indices = sparse_indices
+        LinearEinsumPredictor.__init__(
+            self,
+            "ijk,...k->...ij",
+            self.matrices,
+            constants=constants,
+            reshape_parameters=self.matrices.shape[-1:],
+            **kwargs
+        )
 
-    def prediction(self, parameters, systematics_index=_SLICE):
+    def prediction(self, parameters, *args, **kwargs):
         """Turn a set of parameters into a reco prediction.
 
         Returns
@@ -1241,32 +1220,16 @@ class MatrixPredictor(Predictor):
         weights : ndarray
 
         """
-        matrix = self.matrices[systematics_index]
-        weights = self.weights[systematics_index]
-        constants = self.constants[systematics_index]
-
         # Get parameters as vector
         parameters = np.asarray(parameters)
-        # Reshape parameters into matrix
-        if self.reshape_parameters is not None:
-            shape = parameters.shape
-            parameters = parameters.reshape(shape[:-1] + self.reshape_parameters)
-        else:
-            parameters = parameters[..., np.newaxis]
         # Account for spare matrices
-        parameters = parameters[..., self.sparse_indices, :]
-        # Calculate matrix product
-        prediction = np.einsum("ijk,...kl->...ijl", matrix, parameters)
-        # Flatten output
-        shape = prediction.shape
-        prediction = prediction.reshape(shape[:-2] + (shape[-2] * shape[-1],))
-        # Apply constants
-        prediction = prediction + constants
-        # Reshape weights
-        weights = np.broadcast_to(weights, prediction.shape[:-1])
-        return prediction, weights
+        sparse_parameters = parameters[..., self.sparse_indices]
+        pred, weight = LinearEinsumPredictor.prediction(
+            self, sparse_parameters, *args, **kwargs
+        )
+        return pred, weight
 
-    def compose(self, other):
+    def _compose(self, other):
         """Return a new Predictor that is a composition with `other`.
 
         ::
@@ -1280,7 +1243,7 @@ class MatrixPredictor(Predictor):
         else:
             return Predictor.compose(self, other)
 
-    def fix_parameters(self, fix_values):
+    def _fix_parameters(self, fix_values):
         """Return a new Predictor with fewer free parameters.
 
         Parameters
@@ -1384,7 +1347,7 @@ class ComposedMatrixPredictor(MatrixPredictor, ComposedPredictor):
             weights=weights,
             bounds=self.bounds,
             defaults=self.defaults,
-            sparse_indices=None,
+            sparse_indices=_SLICE,
         )
 
 
@@ -1472,7 +1435,7 @@ class FixedParameterMatrixPredictor(MatrixPredictor, FixedParameterPredictor):
             weights=weights,
             bounds=self.bounds,
             defaults=self.defaults,
-            sparse_indices=None,
+            sparse_indices=_SLICE,
         )
 
 
