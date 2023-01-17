@@ -1219,6 +1219,9 @@ class TestLinearEinsumPredictor(unittest.TestCase):
         pred, weights = self.pred([[1, 2, 3, 4]] * 5)
         self.assertEqual(pred.shape, (5, 2, 4))
         self.assertEqual(weights.shape, (5, 2))
+        pred, weights = self.pred([[1, 2, 3, 4]] * 5, systematics_index=0)
+        self.assertEqual(pred.shape, (5, 4))
+        self.assertEqual(weights.shape, (5,))
 
 
 class TestMatrixPredictors(unittest.TestCase):
@@ -1241,6 +1244,9 @@ class TestMatrixPredictors(unittest.TestCase):
         pred, weights = self.pred([[1, 10]] * 5)
         self.assertEqual(pred.shape, (5, 2, 3))
         self.assertEqual(weights.shape, (5, 2))
+        pred, weights = self.pred([[1, 2]] * 5, systematics_index=0)
+        self.assertEqual(pred.shape, (5, 3))
+        self.assertEqual(weights.shape, (5,))
 
     def test_parameter_fixing(self):
         fixed = self.pred.fix_parameters([None, 10])
@@ -1274,6 +1280,9 @@ class TestTemplatePredictors(unittest.TestCase):
         pred, weights = self.pred([[1, 10]] * 5)
         self.assertEqual(pred.shape, (5, 2, 3))
         self.assertEqual(weights.shape, (5, 2))
+        pred, weights = self.pred([[1, 2]] * 5, systematics_index=0)
+        self.assertEqual(pred.shape, (5, 3))
+        self.assertEqual(weights.shape, (5,))
 
 
 class TestFixedParameterPredictors(unittest.TestCase):
@@ -1305,6 +1314,9 @@ class TestFixedParameterPredictors(unittest.TestCase):
         pred, weights = self.pred0([[10]] * 5)
         self.assertEqual(pred.shape, (5, 2, 3))
         self.assertEqual(weights.shape, (5, 2))
+        pred, weights = self.pred0([[10]] * 5, systematics_index=0)
+        self.assertEqual(pred.shape, (5, 3))
+        self.assertEqual(weights.shape, (5,))
 
     def test_bounds(self):
         self.assertEqual(len(self.pred.bounds), 2)
@@ -1348,6 +1360,9 @@ class TestFixedParameterMatrixPredictors(unittest.TestCase):
         pred, weights = self.pred0([[10]] * 5)
         self.assertEqual(pred.shape, (5, 2, 3))
         self.assertEqual(weights.shape, (5, 2))
+        pred, weights = self.pred0([[10]] * 5, systematics_index=0)
+        self.assertEqual(pred.shape, (5, 3))
+        self.assertEqual(weights.shape, (5,))
 
     def test_bounds(self):
         self.assertEqual(len(self.pred.bounds), 2)
@@ -1388,6 +1403,9 @@ class TestComposedPredictors(unittest.TestCase):
         pred, weights = self.pred([[1, 2, 3]] * 2)
         self.assertEqual(pred.shape, (2, 24, 3))
         self.assertEqual(weights.shape, (2, 24))
+        pred, weights = self.pred([[1, 2, 3]] * 2, systematics_index=0)
+        self.assertEqual(pred.shape, (2, 3))
+        self.assertEqual(weights.shape, (2,))
 
 
 class TestComposedMatrixPredictors(unittest.TestCase):
@@ -1418,6 +1436,9 @@ class TestComposedMatrixPredictors(unittest.TestCase):
         pred, weights = self.pred([[1, 2, 3]] * 2)
         self.assertEqual(pred.shape, (2, 24, 3))
         self.assertEqual(weights.shape, (2, 24))
+        pred, weights = self.pred([[1, 2, 3]] * 2, systematics_index=0)
+        self.assertEqual(pred.shape, (2, 3))
+        self.assertEqual(weights.shape, (2,))
 
 
 class TestLinearizedPredictors(unittest.TestCase):
@@ -1507,6 +1528,9 @@ class TestSummedPredictors(unittest.TestCase):
         pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2)
         self.assertEqual(pred.shape, (2, 24, 3))
         self.assertEqual(weights.shape, (2, 24))
+        pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2, systematics_index=0)
+        self.assertEqual(pred.shape, (2, 3))
+        self.assertEqual(weights.shape, (2,))
 
 
 class TestSummedPredictorsWithSameSystematics(unittest.TestCase):
@@ -1534,6 +1558,9 @@ class TestSummedPredictorsWithSameSystematics(unittest.TestCase):
         pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2)
         self.assertEqual(pred.shape, (2, 2, 3))
         self.assertEqual(weights.shape, (2, 2))
+        pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2, systematics_index=0)
+        self.assertEqual(pred.shape, (2, 3))
+        self.assertEqual(weights.shape, (2,))
 
 
 class TestConcatenatedPredictors(unittest.TestCase):
@@ -1564,6 +1591,9 @@ class TestConcatenatedPredictors(unittest.TestCase):
         pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2)
         self.assertEqual(pred.shape, (2, 24, 9))
         self.assertEqual(weights.shape, (2, 24))
+        pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2, systematics_index=0)
+        self.assertEqual(pred.shape, (2, 9))
+        self.assertEqual(weights.shape, (2,))
 
 
 class TestConcatenatedPredictorsWithSameParameters(unittest.TestCase):
@@ -1591,6 +1621,9 @@ class TestConcatenatedPredictorsWithSameParameters(unittest.TestCase):
         pred, weights = self.pred([[1, 2, 3]] * 2)
         self.assertEqual(pred.shape, (2, 8, 6))
         self.assertEqual(weights.shape, (2, 8))
+        pred, weights = self.pred([[1, 2, 3]] * 2, systematics_index=0)
+        self.assertEqual(pred.shape, (2, 6))
+        self.assertEqual(weights.shape, (2,))
 
 
 class TestConcatenatedPredictorsWithSameSystematics(unittest.TestCase):
@@ -1619,6 +1652,9 @@ class TestConcatenatedPredictorsWithSameSystematics(unittest.TestCase):
         pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2)
         self.assertEqual(pred.shape, (2, 2, 9))
         self.assertEqual(weights.shape, (2, 2))
+        pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2, systematics_index=0)
+        self.assertEqual(pred.shape, (2, 9))
+        self.assertEqual(weights.shape, (2,))
 
 
 class TestSystematics(unittest.TestCase):

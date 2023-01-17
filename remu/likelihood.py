@@ -629,7 +629,7 @@ class ComposedPredictor(Predictor):
             orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),)
         )
 
-        return parameters, weights
+        return parameters[..., systematics_index, :], weights[..., systematics_index]
 
 
 class SummedPredictor(Predictor):
@@ -771,7 +771,7 @@ class SummedPredictor(Predictor):
             orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),)
         )
 
-        return prediction, weights
+        return prediction[..., systematics_index, :], weights[..., systematics_index]
 
 
 class ConcatenatedPredictor(Predictor):
@@ -951,7 +951,7 @@ class ConcatenatedPredictor(Predictor):
             orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),)
         )
 
-        return prediction, weights
+        return prediction[..., systematics_index, :], weights[..., systematics_index]
 
 
 class FixedParameterPredictor(Predictor):
@@ -1130,6 +1130,13 @@ class LinearEinsumPredictor(Predictor):
         weights : ndarray
 
         """
+
+        if isinstance(systematics_index, int):
+            systematics_index = slice(systematics_index, systematics_index + 1)
+            remove_systematics = True
+        else:
+            remove_systematics = False
+
         coefficients = self.coefficients[systematics_index]
         weights = self.weights[systematics_index]
         constants = self.constants[systematics_index]
@@ -1149,6 +1156,9 @@ class LinearEinsumPredictor(Predictor):
         prediction = prediction + constants
         # Reshape weights
         weights = np.broadcast_to(weights, prediction.shape[:-1])
+        if remove_systematics:
+            prediction.shape = prediction.shape[:-2] + prediction.shape[-1:]
+            weights.shape = weights.shape[:-1]
         return prediction, weights
 
 
