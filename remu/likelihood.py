@@ -553,46 +553,40 @@ class ComposedPredictor(Predictor):
         parameters for the first, the third for the second, etc. The last
         Predictor defines what parameters will be accepted by the resulting
         Predictor.
+    combine_systematics : string, optional
+        The strategy how to combine the systematics of the Predictors.
+        Default: "cartesian"
 
     Notes
     -----
 
-    Systematics will be handled in a Cartesian product. There will be one
-    output prediction for each possible combination of intermediate
-    systematics.
+    Systematics will be handled according to the `combine_systematics`
+    parameter. Possible values are:
+
+    ``"cartesian"``
+        Combine systematics in a Cartesian product. There will be one
+        output prediction for each possible combination of intermediate
+        systematics.
+
+    ``"same"``
+        Assume that the systamtics are the same and no combination is done.
+        The dimensions and weights for the systematics _must_ be identical
+        for all provided Predictors.
 
     """
 
-    def __init__(self, predictors):
+    def __init__(self, predictors, combine_systematics="cartesian"):
         self.predictors = predictors
 
-        # TODO: taking the bounds from the last predictor
+        # TODO: Currently taking the bounds from the last predictor
         # This might still run into the bounds of intermediate predictors
         self.bounds = predictors[-1].bounds
         self.defaults = predictors[-1].defaults
 
-    def prediction(self, parameters, systematics_index=_SLICE):
-        """Turn a set of parameters into an ndarray of predictions.
+        self.combine_systematics = combine_systematics
 
-        Parameters
-        ----------
-
-        parameters : ndarray
-        systematics_index : int, optional
-
-        Returns
-        -------
-
-        prediction, weights : ndarray
-
-        Notes
-        -----
-
-        The optional argument `systematics_index` will be applied to the final
-        output of the composed predictions, i.e. the flattened Cartesian
-        product of the intermediate systematics.
-
-        """
+    def _compose_cartesian(self, parameters, systematics_index):
+        """Apply cartesian combination of systematics."""
 
         parameters = np.asarray(parameters)
         orig_shape = parameters.shape
@@ -631,6 +625,73 @@ class ComposedPredictor(Predictor):
 
         return parameters[..., systematics_index, :], weights[..., systematics_index]
 
+    def _compose_same(self, parameters, systematics_index):
+        """Apply 'same' combination of systematics."""
+
+        parameters = np.asarray(parameters)
+
+        for i, pred in enumerate(reversed(self.predictors)):
+            if isinstance(systematics_index, int):
+                # Just use a single systematic index
+                parameters, w = pred.prediction(
+                    parameters, systematics_index=systematics_index
+                )
+                continue
+
+            # Need to handle all systematics
+            if i == 0:
+                # First predictor
+                # Just do the regular thing
+                parameters, w = pred.prediction(
+                    parameters, systematics_index=systematics_index
+                )
+            else:
+                # Second and on, need to make sure to apply the right systematics
+                # to the right parameters
+                temp_pars = []
+                for s in range(parameters.shape[-2]):
+                    # Loop over all systematic indices
+                    p, _ = pred.prediction(parameters[..., s, :], systematics_index=s)
+                    temp_pars.append(p[..., np.newaxis, :])  # Insert systematics axis
+                parameters = np.concatenate(temp_pars, axis=-2)
+
+        weights = w
+        return parameters, weights
+
+    def prediction(self, parameters, systematics_index=_SLICE):
+        """Turn a set of parameters into an ndarray of predictions.
+
+        Parameters
+        ----------
+
+        parameters : ndarray
+        systematics_index : int, optional
+
+        Returns
+        -------
+
+        prediction, weights : ndarray
+
+        Notes
+        -----
+
+        The optional argument `systematics_index` will be applied to the final
+        output of the composed predictions, e.g. the flattened Cartesian
+        product of the intermediate systematics if the combination strategy is
+        "cartesian".
+
+        """
+
+        if self.combine_systematics == "cartesian":
+            return self._compose_cartesian(parameters, systematics_index)
+        elif self.combine_systematics == "same":
+            return self._compose_same(parameters, systematics_index)
+        else:
+            raise ValueError(
+                "%s is not a valid systematics combination strategy."
+                % (self.combine_systematics)
+            )
+
 
 class SummedPredictor(Predictor):
     """Wrapper class that sums predictions of multiple Predictors.
@@ -660,13 +721,13 @@ class SummedPredictor(Predictor):
     parameter. Possible values are:
 
     ``"cartesian"``
-        Combine systeamtics in a Cartesian product. There will be one
+        Combine systematics in a Cartesian product. There will be one
         output prediction for each possible combination of intermediate
         systematics.
 
     ``"same"``
         Assume that the systamtics are the same and no combination is done.
-        The dimensions and weights for the systeamtics _must_ be identical
+        The dimensions and weights for the systematics _must_ be identical
         for all provided Predictors.
 
     See also
@@ -799,13 +860,13 @@ class ConcatenatedPredictor(Predictor):
     parameter. Possible values are:
 
     ``"cartesian"``
-        Combine systeamtics in a Cartesian product. There will be one
+        Combine systematics in a Cartesian product. There will be one
         output prediction for each possible combination of intermediate
         systematics.
 
     ``"same"``
         Assume that the systamtics are the same and no combination is done.
-        The dimensions and weights for the systeamtics _must_ be identical
+        The dimensions and weights for the systematics _must_ be identical
         for all provided Predictors.
 
     See also
@@ -1018,14 +1079,14 @@ class LinearEinsumPredictor(Predictor):
 
     subscripts : str
         The subscripts string provided to `np.einsum`.
-    coefficients : ndarray
+    coefficients : ndarray or tuple of
         The first operand to be supplies to `np.einsum`.
-        Shape: ``(n_systeamtics, [I, J, ...,] K)``
+        Shape: ``(n_systematics, [I, J, ...,] K)``
     constants : ndarray, optional
         Constants to be added to the result of `np.einsum` after flattening it.
-        Shape: ``(n_systeamtics, n_output)``
+        Shape: ``([n_systematics,] n_output)``
     weights : ndarray, optional
-        Shape: ``(n_systematics)``
+        Shape: ``([n_systematics,])``
     bounds : ndarray, optional
         Lower and upper bounds for all parameters. Can be ``+/- np.inf``.
     defaults : ndarray, optional
@@ -1132,14 +1193,24 @@ class LinearEinsumPredictor(Predictor):
         """
 
         if isinstance(systematics_index, int):
+            if systematics_index >= len(self.coefficients):
+                raise IndexError("Systematic index is out of bounds.")
             systematics_index = slice(systematics_index, systematics_index + 1)
             remove_systematics = True
         else:
             remove_systematics = False
 
         coefficients = self.coefficients[systematics_index]
-        weights = self.weights[systematics_index]
-        constants = self.constants[systematics_index]
+
+        weights = self.weights
+        if len(weights) > 1:
+            # If there is only one, it applies to all systematics
+            weights = weights[systematics_index]
+
+        constants = self.constants
+        if len(constants) > 1:
+            # If there is only one, it applies to all systematics
+            constants = constants[systematics_index]
 
         # Get parameters as vector
         parameters = np.asarray(parameters)
@@ -1292,6 +1363,9 @@ class ComposedMatrixPredictor(MatrixPredictor, ComposedPredictor):
     evaluation_steps : array_like float, optional
         Shape: ``(n_parameters,)``
         Step away from the anchor point for the linearisation.
+    combine_systematics : string, optional
+        The strategy how to combine the systematics of the Predictors.
+        Default: "cartesian"
 
     Notes
     -----
@@ -1313,6 +1387,19 @@ class ComposedMatrixPredictor(MatrixPredictor, ComposedPredictor):
                  but might be completely unsuitable, i.e. too large, for linear
                  approximations of general functions.
 
+    Systematics will be handled according to the `combine_systematics`
+    parameter. Possible values are:
+
+    ``"cartesian"``
+        Combine systematics in a Cartesian product. There will be one
+        output prediction for each possible combination of intermediate
+        systematics.
+
+    ``"same"``
+        Assume that the systamtics are the same and no combination is done.
+        The dimensions and weights for the systematics _must_ be identical
+        for all provided Predictors.
+
     See also
     --------
 
@@ -1321,9 +1408,11 @@ class ComposedMatrixPredictor(MatrixPredictor, ComposedPredictor):
 
     """
 
-    def __init__(self, predictors, evaluation_point=None, evaluation_steps=None):
+    def __init__(
+        self, predictors, evaluation_point=None, evaluation_steps=None, **kwargs
+    ):
         # Init like ComposedPredictor
-        ComposedPredictor.__init__(self, predictors)
+        ComposedPredictor.__init__(self, predictors, **kwargs)
 
         if evaluation_point is None:
             evaluation_point = self.defaults

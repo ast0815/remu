@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SummedPredictor
 - ConcatenatedPredictor
 - LinearEinsumPredictor
+- Support for "same" systematics in ComposedPredictors
 
 ### Changed
 - Calculate M. distance truth-bin by bin to avoid memory issues.
