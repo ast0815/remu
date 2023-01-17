@@ -1229,7 +1229,7 @@ class MatrixPredictor(LinearEinsumPredictor):
         )
         return pred, weight
 
-    def _compose(self, other):
+    def compose(self, other):
         """Return a new Predictor that is a composition with `other`.
 
         ::
@@ -1243,7 +1243,7 @@ class MatrixPredictor(LinearEinsumPredictor):
         else:
             return Predictor.compose(self, other)
 
-    def _fix_parameters(self, fix_values):
+    def fix_parameters(self, fix_values):
         """Return a new Predictor with fewer free parameters.
 
         Parameters
