@@ -1,8 +1,8 @@
 =======================
-ComposedLinearPredictor
+ComposedMatrixPredictor
 =======================
 
-.. autoclass:: remu.likelihood.ComposedLinearPredictor
+.. autoclass:: remu.likelihood.ComposedMatrixPredictor
     :members:
     :inherited-members:
     :show-inheritance:

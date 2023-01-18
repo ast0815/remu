@@ -1,8 +1,8 @@
 ===============
-LinearPredictor
+MatrixPredictor
 ===============
 
-.. autoclass:: remu.likelihood.LinearPredictor
+.. autoclass:: remu.likelihood.MatrixPredictor
     :members:
     :inherited-members:
     :show-inheritance:

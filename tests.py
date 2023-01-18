@@ -1195,9 +1195,38 @@ class TestPoissonData(unittest.TestCase):
         self.assertEqual(ret.shape, (3, 5, 4))
 
 
-class TestLinearPredictors(unittest.TestCase):
+class TestLinearEinsumPredictor(unittest.TestCase):
     def setUp(self):
-        self.pred = likelihood.LinearPredictor(
+        M = [[[1, 0], [0, 1]], [[0.9, 0], [0, 0.8]]]
+        self.pred = likelihood.LinearEinsumPredictor(
+            "ijk,...kl->...ijl",
+            M,
+            constants=[0.01, 0.02, 0.03, 0.04],
+            reshape_parameters=(2, 2),
+        )
+
+    def test_prediction(self):
+        pred, weights = self.pred([1, 2, 3, 4])
+        self.assertEqual(
+            pred.tolist(), [[1.01, 2.02, 3.03, 4.04], [0.91, 1.82, 2.43, 3.24]]
+        )
+        self.assertEqual(weights.tolist(), [1.0, 1.0])
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[1, 2, 3, 4]] * 2)
+        self.assertEqual(pred.shape, (2, 2, 4))
+        self.assertEqual(weights.shape, (2, 2))
+        pred, weights = self.pred([[1, 2, 3, 4]] * 5)
+        self.assertEqual(pred.shape, (5, 2, 4))
+        self.assertEqual(weights.shape, (5, 2))
+        pred, weights = self.pred([[1, 2, 3, 4]] * 5, systematics_index=1)
+        self.assertEqual(pred.shape, (5, 4))
+        self.assertEqual(weights.shape, (5,))
+
+
+class TestMatrixPredictors(unittest.TestCase):
+    def setUp(self):
+        self.pred = likelihood.MatrixPredictor(
             [[[1.0, 0.0], [0.5, 1.0], [0.0, 1.0]]] * 2,
             [0.1, 0.2, 0.3],
             weights=[1.0, 0.5],
@@ -1215,6 +1244,9 @@ class TestLinearPredictors(unittest.TestCase):
         pred, weights = self.pred([[1, 10]] * 5)
         self.assertEqual(pred.shape, (5, 2, 3))
         self.assertEqual(weights.shape, (5, 2))
+        pred, weights = self.pred([[1, 2]] * 5, systematics_index=1)
+        self.assertEqual(pred.shape, (5, 3))
+        self.assertEqual(weights.shape, (5,))
 
     def test_parameter_fixing(self):
         fixed = self.pred.fix_parameters([None, 10])
@@ -1248,11 +1280,14 @@ class TestTemplatePredictors(unittest.TestCase):
         pred, weights = self.pred([[1, 10]] * 5)
         self.assertEqual(pred.shape, (5, 2, 3))
         self.assertEqual(weights.shape, (5, 2))
+        pred, weights = self.pred([[1, 2]] * 5, systematics_index=1)
+        self.assertEqual(pred.shape, (5, 3))
+        self.assertEqual(weights.shape, (5,))
 
 
 class TestFixedParameterPredictors(unittest.TestCase):
     def setUp(self):
-        self.pred = likelihood.LinearPredictor(
+        self.pred = likelihood.MatrixPredictor(
             [[[1.0, 0.0], [0.5, 1.0], [0.0, 1.0]]] * 2,
             [0.1, 0.2, 0.3],
             weights=[1.0, 0.5],
@@ -1279,18 +1314,33 @@ class TestFixedParameterPredictors(unittest.TestCase):
         pred, weights = self.pred0([[10]] * 5)
         self.assertEqual(pred.shape, (5, 2, 3))
         self.assertEqual(weights.shape, (5, 2))
+        pred, weights = self.pred0([[10]] * 5, systematics_index=1)
+        self.assertEqual(pred.shape, (5, 3))
+        self.assertEqual(weights.shape, (5,))
+
+    def test_bounds(self):
+        self.assertEqual(len(self.pred.bounds), 2)
+        self.assertEqual(len(self.pred0.bounds), 1)
+        self.assertEqual(len(self.pred1.bounds), 1)
+        self.assertEqual(len(self.pred2.bounds), 0)
+
+    def test_defaults(self):
+        self.assertEqual(len(self.pred.defaults), 2)
+        self.assertEqual(len(self.pred0.defaults), 1)
+        self.assertEqual(len(self.pred1.defaults), 1)
+        self.assertEqual(len(self.pred2.defaults), 0)
 
 
-class TestFixedParameterLinearPredictors(unittest.TestCase):
+class TestFixedParameterMatrixPredictors(unittest.TestCase):
     def setUp(self):
-        self.pred = likelihood.LinearPredictor(
+        self.pred = likelihood.MatrixPredictor(
             [[[1.0, 0.0], [0.5, 1.0], [0.0, 1.0]]] * 2,
             [0.1, 0.2, 0.3],
             weights=[1.0, 0.5],
         )
-        self.pred0 = likelihood.FixedParameterLinearPredictor(self.pred, [1, None])
-        self.pred1 = likelihood.FixedParameterLinearPredictor(self.pred, [None, 10])
-        self.pred2 = likelihood.FixedParameterLinearPredictor(self.pred, [1, 10])
+        self.pred0 = likelihood.FixedParameterMatrixPredictor(self.pred, [1, None])
+        self.pred1 = likelihood.FixedParameterMatrixPredictor(self.pred, [None, 10])
+        self.pred2 = likelihood.FixedParameterMatrixPredictor(self.pred, [1, 10])
 
     def test_prediction(self):
         pred, weights = self.pred0([10])
@@ -1310,18 +1360,33 @@ class TestFixedParameterLinearPredictors(unittest.TestCase):
         pred, weights = self.pred0([[10]] * 5)
         self.assertEqual(pred.shape, (5, 2, 3))
         self.assertEqual(weights.shape, (5, 2))
+        pred, weights = self.pred0([[10]] * 5, systematics_index=1)
+        self.assertEqual(pred.shape, (5, 3))
+        self.assertEqual(weights.shape, (5,))
+
+    def test_bounds(self):
+        self.assertEqual(len(self.pred.bounds), 2)
+        self.assertEqual(len(self.pred0.bounds), 1)
+        self.assertEqual(len(self.pred1.bounds), 1)
+        self.assertEqual(len(self.pred2.bounds), 0)
+
+    def test_defaults(self):
+        self.assertEqual(len(self.pred.defaults), 2)
+        self.assertEqual(len(self.pred0.defaults), 1)
+        self.assertEqual(len(self.pred1.defaults), 1)
+        self.assertEqual(len(self.pred2.defaults), 0)
 
 
 class TestComposedPredictors(unittest.TestCase):
     def setUp(self):
         self.w0 = np.array([1, 2])
-        self.pred0 = likelihood.LinearPredictor(
+        self.pred0 = likelihood.MatrixPredictor(
             [[[1.0, 1.0, 1.0]]] * 2, weights=self.w0
         )
         self.w1 = np.array([1, 2, 3])
-        self.pred1 = likelihood.LinearPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
+        self.pred1 = likelihood.MatrixPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
         self.w2 = np.array([1, 2, 3, 4])
-        self.pred2 = likelihood.LinearPredictor(
+        self.pred2 = likelihood.MatrixPredictor(
             [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w2
         )
         self.pred = likelihood.ComposedPredictor([self.pred2, self.pred1, self.pred0])
@@ -1338,21 +1403,54 @@ class TestComposedPredictors(unittest.TestCase):
         pred, weights = self.pred([[1, 2, 3]] * 2)
         self.assertEqual(pred.shape, (2, 24, 3))
         self.assertEqual(weights.shape, (2, 24))
+        pred, weights = self.pred([[1, 2, 3]] * 2, systematics_index=1)
+        self.assertEqual(pred.shape, (2, 3))
+        self.assertEqual(weights.shape, (2,))
 
 
-class TestComposedLinearPredictors(unittest.TestCase):
+class TestComposedPredictorsWithSameSystematics(unittest.TestCase):
     def setUp(self):
         self.w0 = np.array([1, 2])
-        self.pred0 = likelihood.LinearPredictor(
+        self.pred0 = likelihood.MatrixPredictor(
+            [[[1.0, 1.0, 1.0]]] * 2, weights=self.w0
+        )
+        self.w1 = np.array([1, 2])
+        self.pred1 = likelihood.MatrixPredictor([[[1 / 3]] * 3] * 2, weights=self.w1)
+        self.w2 = np.array([1, 2])
+        self.pred2 = likelihood.MatrixPredictor(
+            [np.eye(3)] * 2, [0.1, 0.2, 0.3], weights=self.w2
+        )
+        self.pred = likelihood.ComposedPredictor(
+            [self.pred2, self.pred1, self.pred0], combine_systematics="same"
+        )
+
+    def test_prediction(self):
+        pred, weights = self.pred([1, 2, 3])
+        self.assertEqual(pred.tolist(), [[2.1, 2.2, 2.3]] * 2)
+        self.assertEqual(weights.tolist(), self.w0.flatten().tolist())
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[1, 2, 3]] * 2)
+        self.assertEqual(pred.shape, (2, 2, 3))
+        self.assertEqual(weights.shape, (2, 2))
+        pred, weights = self.pred([[1, 2, 3]] * 2, systematics_index=1)
+        self.assertEqual(pred.shape, (2, 3))
+        self.assertEqual(weights.shape, (2,))
+
+
+class TestComposedMatrixPredictors(unittest.TestCase):
+    def setUp(self):
+        self.w0 = np.array([1, 2])
+        self.pred0 = likelihood.MatrixPredictor(
             [[[1.0, 1.0, 1.0]]] * 2, weights=self.w0
         )
         self.w1 = np.array([1, 2, 3])
-        self.pred1 = likelihood.LinearPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
+        self.pred1 = likelihood.MatrixPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
         self.w2 = np.array([1, 2, 3, 4])
-        self.pred2 = likelihood.LinearPredictor(
+        self.pred2 = likelihood.MatrixPredictor(
             [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w2
         )
-        self.pred = likelihood.ComposedLinearPredictor(
+        self.pred = likelihood.ComposedMatrixPredictor(
             [self.pred2, self.pred1, self.pred0]
         )
 
@@ -1368,6 +1466,40 @@ class TestComposedLinearPredictors(unittest.TestCase):
         pred, weights = self.pred([[1, 2, 3]] * 2)
         self.assertEqual(pred.shape, (2, 24, 3))
         self.assertEqual(weights.shape, (2, 24))
+        pred, weights = self.pred([[1, 2, 3]] * 2, systematics_index=1)
+        self.assertEqual(pred.shape, (2, 3))
+        self.assertEqual(weights.shape, (2,))
+
+
+class TestComposedMatrixPredictorsWithSameSystematics(unittest.TestCase):
+    def setUp(self):
+        self.w0 = np.array([1, 2])
+        self.pred0 = likelihood.MatrixPredictor(
+            [[[1.0, 1.0, 1.0]]] * 2, weights=self.w0
+        )
+        self.w1 = np.array([1, 2])
+        self.pred1 = likelihood.MatrixPredictor([[[1 / 3]] * 3] * 2, weights=self.w1)
+        self.w2 = np.array([1, 2])
+        self.pred2 = likelihood.MatrixPredictor(
+            [np.eye(3)] * 2, [0.1, 0.2, 0.3], weights=self.w2
+        )
+        self.pred = likelihood.ComposedMatrixPredictor(
+            [self.pred2, self.pred1, self.pred0], combine_systematics="same"
+        )
+
+    def test_prediction(self):
+        pred, weights = self.pred([1, 2, 3])
+        np.testing.assert_almost_equal(pred, [[2.1, 2.2, 2.3]] * 2)
+        w = self.w0
+        self.assertEqual(weights.tolist(), w.flatten().tolist())
+
+    def test_output_shape(self):
+        pred, weights = self.pred([[1, 2, 3]] * 2)
+        self.assertEqual(pred.shape, (2, 2, 3))
+        self.assertEqual(weights.shape, (2, 2))
+        pred, weights = self.pred([[1, 2, 3]] * 2, systematics_index=1)
+        self.assertEqual(pred.shape, (2, 3))
+        self.assertEqual(weights.shape, (2,))
 
 
 class TestLinearizedPredictors(unittest.TestCase):
@@ -1431,13 +1563,13 @@ class TestResponseMatrixPredictors(unittest.TestCase):
 class TestSummedPredictors(unittest.TestCase):
     def setUp(self):
         self.w0 = np.array([1, 2])
-        self.pred0 = likelihood.LinearPredictor(
+        self.pred0 = likelihood.MatrixPredictor(
             [np.diag([1, 2, 3])] * 2, weights=self.w0
         )
         self.w1 = np.array([1, 2, 3])
-        self.pred1 = likelihood.LinearPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
+        self.pred1 = likelihood.MatrixPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
         self.w2 = np.array([1, 2, 3, 4])
-        self.pred2 = likelihood.LinearPredictor(
+        self.pred2 = likelihood.MatrixPredictor(
             [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w2
         )
         self.pred = likelihood.SummedPredictor(
@@ -1457,18 +1589,21 @@ class TestSummedPredictors(unittest.TestCase):
         pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2)
         self.assertEqual(pred.shape, (2, 24, 3))
         self.assertEqual(weights.shape, (2, 24))
+        pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2, systematics_index=1)
+        self.assertEqual(pred.shape, (2, 3))
+        self.assertEqual(weights.shape, (2,))
 
 
 class TestSummedPredictorsWithSameSystematics(unittest.TestCase):
     def setUp(self):
         self.w0 = np.array([1, 2])
-        self.pred0 = likelihood.LinearPredictor(
+        self.pred0 = likelihood.MatrixPredictor(
             [np.diag([1, 2, 3])] * 2, weights=self.w0
         )
         self.w1 = np.array([1, 2])
-        self.pred1 = likelihood.LinearPredictor([[[1 / 3]] * 3] * 2, weights=self.w1)
+        self.pred1 = likelihood.MatrixPredictor([[[1 / 3]] * 3] * 2, weights=self.w1)
         self.w2 = np.array([1, 2])
-        self.pred2 = likelihood.LinearPredictor(
+        self.pred2 = likelihood.MatrixPredictor(
             [np.eye(3)] * 2, [0.1, 0.2, 0.3], weights=self.w2
         )
         self.pred = likelihood.SummedPredictor(
@@ -1484,18 +1619,21 @@ class TestSummedPredictorsWithSameSystematics(unittest.TestCase):
         pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2)
         self.assertEqual(pred.shape, (2, 2, 3))
         self.assertEqual(weights.shape, (2, 2))
+        pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2, systematics_index=1)
+        self.assertEqual(pred.shape, (2, 3))
+        self.assertEqual(weights.shape, (2,))
 
 
 class TestConcatenatedPredictors(unittest.TestCase):
     def setUp(self):
         self.w0 = np.array([1, 2])
-        self.pred0 = likelihood.LinearPredictor(
+        self.pred0 = likelihood.MatrixPredictor(
             [np.diag([1, 2, 3])] * 2, weights=self.w0
         )
         self.w1 = np.array([1, 2, 3])
-        self.pred1 = likelihood.LinearPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
+        self.pred1 = likelihood.MatrixPredictor([[[1 / 3]] * 3] * 3, weights=self.w1)
         self.w2 = np.array([1, 2, 3, 4])
-        self.pred2 = likelihood.LinearPredictor(
+        self.pred2 = likelihood.MatrixPredictor(
             [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w2
         )
         self.pred = likelihood.ConcatenatedPredictor(
@@ -1514,16 +1652,19 @@ class TestConcatenatedPredictors(unittest.TestCase):
         pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2)
         self.assertEqual(pred.shape, (2, 24, 9))
         self.assertEqual(weights.shape, (2, 24))
+        pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2, systematics_index=1)
+        self.assertEqual(pred.shape, (2, 9))
+        self.assertEqual(weights.shape, (2,))
 
 
 class TestConcatenatedPredictorsWithSameParameters(unittest.TestCase):
     def setUp(self):
         self.w0 = np.array([1, 2])
-        self.pred0 = likelihood.LinearPredictor(
+        self.pred0 = likelihood.MatrixPredictor(
             [np.diag([1, 2, 3])] * 2, weights=self.w0
         )
         self.w1 = np.array([1, 2, 3, 4])
-        self.pred1 = likelihood.LinearPredictor(
+        self.pred1 = likelihood.MatrixPredictor(
             [np.eye(3)] * 4, [0.1, 0.2, 0.3], weights=self.w1
         )
         self.pred = likelihood.ConcatenatedPredictor(
@@ -1541,18 +1682,21 @@ class TestConcatenatedPredictorsWithSameParameters(unittest.TestCase):
         pred, weights = self.pred([[1, 2, 3]] * 2)
         self.assertEqual(pred.shape, (2, 8, 6))
         self.assertEqual(weights.shape, (2, 8))
+        pred, weights = self.pred([[1, 2, 3]] * 2, systematics_index=1)
+        self.assertEqual(pred.shape, (2, 6))
+        self.assertEqual(weights.shape, (2,))
 
 
 class TestConcatenatedPredictorsWithSameSystematics(unittest.TestCase):
     def setUp(self):
         self.w0 = np.array([1, 2])
-        self.pred0 = likelihood.LinearPredictor(
+        self.pred0 = likelihood.MatrixPredictor(
             [np.diag([1, 2, 3])] * 2, weights=self.w0
         )
         self.w1 = np.array([1, 2])
-        self.pred1 = likelihood.LinearPredictor([[[1 / 3]] * 3] * 2, weights=self.w1)
+        self.pred1 = likelihood.MatrixPredictor([[[1 / 3]] * 3] * 2, weights=self.w1)
         self.w2 = np.array([1, 2])
-        self.pred2 = likelihood.LinearPredictor(
+        self.pred2 = likelihood.MatrixPredictor(
             [np.eye(3)] * 2, [0.1, 0.2, 0.3], weights=self.w2
         )
         self.pred = likelihood.ConcatenatedPredictor(
@@ -1569,6 +1713,9 @@ class TestConcatenatedPredictorsWithSameSystematics(unittest.TestCase):
         pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2)
         self.assertEqual(pred.shape, (2, 2, 9))
         self.assertEqual(weights.shape, (2, 2))
+        pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2, systematics_index=1)
+        self.assertEqual(pred.shape, (2, 9))
+        self.assertEqual(weights.shape, (2,))
 
 
 class TestSystematics(unittest.TestCase):
@@ -1634,7 +1781,7 @@ class TestLikelihoodMaximizers(unittest.TestCase):
     def setUp(self):
         self.data = np.arange(4, dtype=int)
         self.data_model = likelihood.PoissonData(self.data)
-        self.predictor = likelihood.LinearPredictor(np.eye(4), bounds=[(0, np.inf)] * 4)
+        self.predictor = likelihood.MatrixPredictor(np.eye(4), bounds=[(0, np.inf)] * 4)
         self.calc = likelihood.LikelihoodCalculator(self.data_model, self.predictor)
 
     def test_basinhopping(self):
@@ -1648,7 +1795,7 @@ class TestHypothesisTesters(unittest.TestCase):
     def setUp(self):
         self.data = np.arange(4, dtype=int)
         self.data_model = likelihood.PoissonData(self.data)
-        self.predictor = likelihood.LinearPredictor(np.eye(4), bounds=[(0, np.inf)] * 4)
+        self.predictor = likelihood.MatrixPredictor(np.eye(4), bounds=[(0, np.inf)] * 4)
         self.calc = likelihood.LikelihoodCalculator(self.data_model, self.predictor)
         self.test = likelihood.HypothesisTester(self.calc)
 

@@ -1,8 +1,8 @@
 =============================
-FixedParameterLinearPredictor
+FixedParameterMatrixPredictor
 =============================
 
-.. autoclass:: remu.likelihood.FixedParameterLinearPredictor
+.. autoclass:: remu.likelihood.FixedParameterMatrixPredictor
     :members:
     :inherited-members:
     :show-inheritance:

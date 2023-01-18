@@ -553,23 +553,110 @@ class ComposedPredictor(Predictor):
         parameters for the first, the third for the second, etc. The last
         Predictor defines what parameters will be accepted by the resulting
         Predictor.
+    combine_systematics : string, optional
+        The strategy how to combine the systematics of the Predictors.
+        Default: "cartesian"
 
     Notes
     -----
 
-    Systematics will be handled in a Cartesian product. There will be one
-    output prediction for each possible combination of intermediate
-    systematics.
+    Systematics will be handled according to the `combine_systematics`
+    parameter. Possible values are:
+
+    ``"cartesian"``
+        Combine systematics in a Cartesian product. There will be one
+        output prediction for each possible combination of intermediate
+        systematics.
+
+    ``"same"``
+        Assume that the systamtics are the same and no combination is done.
+        The dimensions and weights for the systematics _must_ be identical
+        for all provided Predictors.
 
     """
 
-    def __init__(self, predictors):
+    def __init__(self, predictors, combine_systematics="cartesian"):
         self.predictors = predictors
 
-        # TODO: taking the bounds from the last predictor
+        # TODO: Currently taking the bounds from the last predictor
         # This might still run into the bounds of intermediate predictors
         self.bounds = predictors[-1].bounds
         self.defaults = predictors[-1].defaults
+
+        self.combine_systematics = combine_systematics
+
+    def _compose_cartesian(self, parameters, systematics_index):
+        """Apply cartesian combination of systematics."""
+
+        parameters = np.asarray(parameters)
+        orig_shape = parameters.shape
+        orig_len = len(orig_shape)
+        weights = np.ones(parameters.shape[:-1])
+
+        for pred in reversed(self.predictors):
+            parameters, w = pred.prediction(parameters)
+            weights = weights[..., np.newaxis] * w
+
+        # Flatten systematics
+        # original_parameters.shape = ([c,d,...,]n_parameters)
+        # chained_output.shape = ([c,d,...,]systn,...,syst0,n_reco)
+        # reordered_output.shape = ([c,d,...,]syst0,...,systn,n_reco)
+        # desired_output.shape = ([c,d,...,]syst,n_reco)
+        shape = parameters.shape
+        shape_len = len(shape)
+        new_order = (
+            tuple(range(orig_len - 1))  # c,d,...
+            + tuple(range(shape_len - 2, orig_len - 2, -1))  # syst0,syst1,...
+            + (shape_len - 1,)  # n_reco
+        )
+        parameters = np.transpose(parameters, new_order)
+        parameters = parameters.reshape(
+            orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),) + shape[-1:]
+        )
+
+        #           c,d,...                    syst0,syst1,...
+        new_order = tuple(range(orig_len - 1)) + tuple(
+            range(shape_len - 2, orig_len - 2, -1)
+        )
+        weights = np.transpose(weights, new_order)
+        weights = weights.reshape(
+            orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),)
+        )
+
+        return parameters[..., systematics_index, :], weights[..., systematics_index]
+
+    def _compose_same(self, parameters, systematics_index):
+        """Apply 'same' combination of systematics."""
+
+        parameters = np.asarray(parameters)
+
+        for i, pred in enumerate(reversed(self.predictors)):
+            if isinstance(systematics_index, int):
+                # Just use a single systematic index
+                parameters, w = pred.prediction(
+                    parameters, systematics_index=systematics_index
+                )
+                continue
+
+            # Need to handle all systematics
+            if i == 0:
+                # First predictor
+                # Just do the regular thing
+                parameters, w = pred.prediction(
+                    parameters, systematics_index=systematics_index
+                )
+            else:
+                # Second and on, need to make sure to apply the right systematics
+                # to the right parameters
+                temp_pars = []
+                for s in range(parameters.shape[-2]):
+                    # Loop over all systematic indices
+                    p, _ = pred.prediction(parameters[..., s, :], systematics_index=s)
+                    temp_pars.append(p[..., np.newaxis, :])  # Insert systematics axis
+                parameters = np.concatenate(temp_pars, axis=-2)
+
+        weights = w
+        return parameters, weights
 
     def prediction(self, parameters, systematics_index=_SLICE):
         """Turn a set of parameters into an ndarray of predictions.
@@ -589,48 +676,21 @@ class ComposedPredictor(Predictor):
         -----
 
         The optional argument `systematics_index` will be applied to the final
-        output of the composed predictions, i.e. the flattened Cartesian
-        product of the intermediate systematics.
+        output of the composed predictions, e.g. the flattened Cartesian
+        product of the intermediate systematics if the combination strategy is
+        "cartesian".
 
         """
 
-        parameters = np.asarray(parameters)
-        orig_shape = parameters.shape
-        orig_len = len(orig_shape)
-        weights = np.ones(parameters.shape[:-1])
-
-        for pred in reversed(self.predictors):
-            parameters, w = pred.prediction(parameters)
-            weights = weights[..., np.newaxis] * w
-
-        # Flatten systematics
-        # original_parameters.shape = ([c,d,...,]n_parameters)
-        # chained_output.shape = ([c,d,...,]systn,...,syst0,n_reco)
-        # reordered_output.shape = ([c,d,...,]syst0,...,systn,n_reco)
-        # desired_output.shape = ([c,d,...,]syst,n_reco)
-        shape = parameters.shape
-        shape_len = len(shape)
-        #           c,d,...                    syst0,syst1,...                             n_reco
-        new_order = (
-            tuple(range(orig_len - 1))
-            + tuple(range(shape_len - 2, orig_len - 2, -1))
-            + (shape_len - 1,)
-        )
-        parameters = np.transpose(parameters, new_order)
-        parameters = parameters.reshape(
-            orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),) + shape[-1:]
-        )
-
-        #           c,d,...                    syst0,syst1,...
-        new_order = tuple(range(orig_len - 1)) + tuple(
-            range(shape_len - 2, orig_len - 2, -1)
-        )
-        weights = np.transpose(weights, new_order)
-        weights = weights.reshape(
-            orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),)
-        )
-
-        return parameters, weights
+        if self.combine_systematics == "cartesian":
+            return self._compose_cartesian(parameters, systematics_index)
+        elif self.combine_systematics == "same":
+            return self._compose_same(parameters, systematics_index)
+        else:
+            raise ValueError(
+                "%s is not a valid systematics combination strategy."
+                % (self.combine_systematics)
+            )
 
 
 class SummedPredictor(Predictor):
@@ -661,13 +721,13 @@ class SummedPredictor(Predictor):
     parameter. Possible values are:
 
     ``"cartesian"``
-        Combine systeamtics in a Cartesian product. There will be one
+        Combine systematics in a Cartesian product. There will be one
         output prediction for each possible combination of intermediate
         systematics.
 
     ``"same"``
         Assume that the systamtics are the same and no combination is done.
-        The dimensions and weights for the systeamtics _must_ be identical
+        The dimensions and weights for the systematics _must_ be identical
         for all provided Predictors.
 
     See also
@@ -772,7 +832,7 @@ class SummedPredictor(Predictor):
             orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),)
         )
 
-        return prediction, weights
+        return prediction[..., systematics_index, :], weights[..., systematics_index]
 
 
 class ConcatenatedPredictor(Predictor):
@@ -800,13 +860,13 @@ class ConcatenatedPredictor(Predictor):
     parameter. Possible values are:
 
     ``"cartesian"``
-        Combine systeamtics in a Cartesian product. There will be one
+        Combine systematics in a Cartesian product. There will be one
         output prediction for each possible combination of intermediate
         systematics.
 
     ``"same"``
         Assume that the systamtics are the same and no combination is done.
-        The dimensions and weights for the systeamtics _must_ be identical
+        The dimensions and weights for the systematics _must_ be identical
         for all provided Predictors.
 
     See also
@@ -952,7 +1012,7 @@ class ConcatenatedPredictor(Predictor):
             orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),)
         )
 
-        return prediction, weights
+        return prediction[..., systematics_index, :], weights[..., systematics_index]
 
 
 class FixedParameterPredictor(Predictor):
@@ -1011,12 +1071,174 @@ class FixedParameterPredictor(Predictor):
         return self.predictor(parameters, systematics_index)
 
 
-class LinearPredictor(Predictor):
+class LinearEinsumPredictor(Predictor):
+    """Predictor calcuating a linear combination of the paramters using `np.einsum`.
+
+    Paramters
+    ---------
+
+    subscripts : str
+        The subscripts string provided to `np.einsum`.
+    coefficients : ndarray or tuple of
+        The first operand to be supplies to `np.einsum`.
+        Shape: ``(n_systematics, [I, J, ...,] K)``
+    constants : ndarray, optional
+        Constants to be added to the result of `np.einsum` after flattening it.
+        Shape: ``([n_systematics,] n_output)``
+    weights : ndarray, optional
+        Shape: ``([n_systematics,])``
+    bounds : ndarray, optional
+        Lower and upper bounds for all parameters. Can be ``+/- np.inf``.
+    defaults : ndarray, optional
+        "Reasonable" default values for the parameters. Used in optimisation.
+    reshape_parameters : tuple of int, optional
+        Reshape the last axis of the parameters to the given shape before
+        the einsum contraction.
+
+    Notes
+    -----
+
+    At least one of `bounds`, `defaults`, or `reshape_parameters` must be
+    provided in order to calculate the expected number of parameters.
+
+    The prediction will be calculated using `np.einsum` using the provided
+    `subscripts` string. The two operands will be the provided `coefficients`
+    as well as the parameters of the prediction function call.
+
+    The parameters will have the shape ``[(A,B,...,)+]reshape_parameters``, if
+    `reshape_parameters` is set, or ``([A,B,...,]n_parameters)`` otherwise.
+
+    The output of the `np.einsum` _must_ have the shape
+    ``([A,B,...,]n_systematics,[X,Y,...,]Z)``, no matter whethre the dimensions
+    ``A, B, ...`` actually exist.
+
+    Examples
+    --------
+
+    This predictor will calculate the product of the parameters with the
+    systematically varied matrices:
+
+    >>> M = [ [[1,0], [0,1]], [[0.9, 0], [0, 0.8]] ]
+    >>> p = LinearEinsumPredictor("ijk,...k->...ij", M, defaults=[1,1])
+    >>> p([1.0, 2.0])
+    (array([[1. , 2. ],
+        [0.9, 1.6]]),
+     array([1., 1.]))
+
+
+    Interpret parameters as matrix and do a matrix multiplication:
+
+    >>> M = [ [[1,0], [0,1]], [[0.9, 0], [0, 0.8]] ]
+    >>> p = LinearEinsumPredictor("ijk,...kl->...ijl", M, reshape_parameters=(2,2))
+    >>> p([1.0, 2.0, 3.0, 4.0])
+    (array([[1. , 2. , 3. , 4. ],
+        [0.9, 1.8, 2.4, 3.2]]),
+     array([1., 1.]))
+
+    Do an element-wise multiplication:
+
+    >>> M = [ [1, 2, 3, 4] ]
+    >>> p = LinearEinsumPredictor("ij,...j->...ij", M, reshape_parameters=(4,))
+    >>> p([1.0, 1.0, 1.0, 1.0])
+    (array([[1., 2., 3., 4.]]), array([1.]))
+
+    """
+
+    def __init__(
+        self,
+        subscripts,
+        coefficients,
+        constants=0.0,
+        weights=1.0,
+        bounds=None,
+        defaults=None,
+        reshape_parameters=None,
+    ):
+        self.subscripts = subscripts
+        self.coefficients = np.asfarray(coefficients)
+        self.constants = np.asfarray(constants)
+        while self.constants.ndim < 2:
+            self.constants = self.constants[np.newaxis, ...]
+        self.weights = np.asfarray(weights)
+        while self.weights.ndim < 1:
+            self.weights = self.weights[np.newaxis, ...]
+
+        if bounds is not None:
+            n_parameters = len(bounds)
+        elif defaults is not None:
+            n_parameters = len(defaults)
+        elif reshape_parameters is not None:
+            n_parameters = np.prod(reshape_parameters)
+        else:
+            raise RuntimeError(
+                "At least on of `bounds`, `defaults`, or `reshape_parameters` must be provided!"
+            )
+
+        if bounds is None:
+            bounds = np.array([(-np.inf, np.inf)] * n_parameters)
+        if defaults is None:
+            defaults = np.array([1.0] * n_parameters)
+        self.reshape_parameters = reshape_parameters
+        Predictor.__init__(self, bounds, defaults)
+
+    def prediction(self, parameters, systematics_index=_SLICE):
+        """Turn a set of parameters into a reco prediction.
+
+        Returns
+        -------
+
+        prediction : ndarray
+        weights : ndarray
+
+        """
+
+        if isinstance(systematics_index, int):
+            if systematics_index >= len(self.coefficients):
+                raise IndexError("Systematic index is out of bounds.")
+            systematics_index = slice(systematics_index, systematics_index + 1)
+            remove_systematics = True
+        else:
+            remove_systematics = False
+
+        coefficients = self.coefficients[systematics_index]
+
+        weights = self.weights
+        if len(weights) > 1:
+            # If there is only one, it applies to all systematics
+            weights = weights[systematics_index]
+
+        constants = self.constants
+        if len(constants) > 1:
+            # If there is only one, it applies to all systematics
+            constants = constants[systematics_index]
+
+        # Get parameters as vector
+        parameters = np.asarray(parameters)
+        orig_shape = parameters.shape
+        # Reshape parameters if requested
+        if self.reshape_parameters is not None:
+            parameters = parameters.reshape(orig_shape[:-1] + self.reshape_parameters)
+        # Calculate einsum
+        prediction = np.einsum(self.subscripts, coefficients, parameters)
+        # Flatten output
+        shape = prediction.shape[: len(orig_shape)] + (-1,)
+        prediction = prediction.reshape(shape)
+        # Apply constants
+        prediction = prediction + constants
+        # Reshape weights
+        weights = np.broadcast_to(weights, prediction.shape[:-1])
+        if remove_systematics:
+            prediction.shape = prediction.shape[:-2] + prediction.shape[-1:]
+            weights.shape = weights.shape[:-1]
+        return prediction, weights
+
+
+class MatrixPredictor(LinearEinsumPredictor):
     """Predictor that uses a matrix to fold parameters into reco space.
 
     ::
 
-        output = matrix X parameters [+ constant]
+        output = matrix X parameters [+ constants]
 
     Parameters
     ----------
@@ -1030,7 +1252,7 @@ class LinearPredictor(Predictor):
     bounds : ndarray, optional
         Lower and upper bounds for all parameters. Can be ``+/- np.inf``.
     defaults : ndarray, optional
-        "Reasonable" default values for the parameters. Used optimisation.
+        "Reasonable" default values for the parameters. Used in optimisation.
     sparse_indices : list or array of int, optional
         Used with sparse matrices that provide only the specified columns.
         All other columns are assumed to be 0, i.e. the parameters corresponding
@@ -1055,35 +1277,21 @@ class LinearPredictor(Predictor):
 
     """
 
-    def __init__(
-        self,
-        matrices,
-        constants=0.0,
-        weights=1.0,
-        bounds=None,
-        defaults=None,
-        sparse_indices=None,
-    ):
+    def __init__(self, matrices, constants=0.0, *, sparse_indices=_SLICE, **kwargs):
         self.matrices = np.asfarray(matrices)
         while self.matrices.ndim < 3:
             self.matrices = self.matrices[np.newaxis, ...]
-        self.constants = np.asfarray(constants)
-        while self.constants.ndim < 2:
-            self.constants = self.constants[np.newaxis, ...]
-        self.weights = np.asfarray(weights)
-        while self.weights.ndim < 1:
-            self.weights = self.weights[np.newaxis, ...]
-        if bounds is None:
-            bounds = np.array([(-np.inf, np.inf)] * self.matrices.shape[-1])
-        if defaults is None:
-            defaults = np.array([1.0] * self.matrices.shape[-1])
-        if sparse_indices is None:
-            self.sparse_indices = _SLICE
-        else:
-            self.sparse_indices = sparse_indices
-        Predictor.__init__(self, bounds, defaults)
+        self.sparse_indices = sparse_indices
+        LinearEinsumPredictor.__init__(
+            self,
+            "ijk,...k->...ij",
+            self.matrices,
+            constants=constants,
+            reshape_parameters=self.matrices.shape[-1:],
+            **kwargs
+        )
 
-    def prediction(self, parameters, systematics_index=_SLICE):
+    def prediction(self, parameters, *args, **kwargs):
         """Turn a set of parameters into a reco prediction.
 
         Returns
@@ -1093,15 +1301,14 @@ class LinearPredictor(Predictor):
         weights : ndarray
 
         """
-        matrix = self.matrices[systematics_index]
-        weights = self.weights[systematics_index]
-        constants = self.constants[systematics_index]
-
-        parameters = np.asarray(parameters)[..., self.sparse_indices]
-        prediction = np.tensordot(parameters, matrix, axes=((-1,), (-1,)))
-        prediction += constants
-        weights = np.broadcast_to(weights, prediction.shape[:-1])
-        return prediction, weights
+        # Get parameters as vector
+        parameters = np.asarray(parameters)
+        # Account for spare matrices
+        sparse_parameters = parameters[..., self.sparse_indices]
+        pred, weight = LinearEinsumPredictor.prediction(
+            self, sparse_parameters, *args, **kwargs
+        )
+        return pred, weight
 
     def compose(self, other):
         """Return a new Predictor that is a composition with `other`.
@@ -1112,8 +1319,8 @@ class LinearPredictor(Predictor):
 
         """
 
-        if isinstance(other, LinearPredictor):
-            return ComposedLinearPredictor([self, other])
+        if isinstance(other, MatrixPredictor):
+            return ComposedMatrixPredictor([self, other])
         else:
             return Predictor.compose(self, other)
 
@@ -1132,15 +1339,15 @@ class LinearPredictor(Predictor):
         See also
         --------
 
-        FixedParameterLinearPredictor
+        FixedParameterMatrixPredictor
 
         """
 
-        return FixedParameterLinearPredictor(self, fix_values)
+        return FixedParameterMatrixPredictor(self, fix_values)
 
 
-class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
-    """Composition of LinearPredictors.
+class ComposedMatrixPredictor(MatrixPredictor, ComposedPredictor):
+    """Composition of MatrixPredictors.
 
     Parameters
     ----------
@@ -1156,16 +1363,19 @@ class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
     evaluation_steps : array_like float, optional
         Shape: ``(n_parameters,)``
         Step away from the anchor point for the linearisation.
+    combine_systematics : string, optional
+        The strategy how to combine the systematics of the Predictors.
+        Default: "cartesian"
 
     Notes
     -----
 
-    This :class:`LinearPredictor` will calculate a linear coefficients and
+    This :class:`MatrixPredictor` will calculate a linear coefficients and
     offsets by evaluating the composed provided predictors at
     `evaluation_point`. The gradient at that point will be calculated by adding
     the `evaluation_steps` for each parameter separately.
 
-    For a composition of multiple :class:`LinearPredictor`, this will still
+    For a composition of multiple :class:`MatrixPredictor`, this will still
     lead to an exact representation (modulo variations from numerical
     accuracy). For non-linear, generic :class:`Predictor`, this means we are
     generating a linear approximation at `evaluation_point`.
@@ -1177,17 +1387,32 @@ class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
                  but might be completely unsuitable, i.e. too large, for linear
                  approximations of general functions.
 
+    Systematics will be handled according to the `combine_systematics`
+    parameter. Possible values are:
+
+    ``"cartesian"``
+        Combine systematics in a Cartesian product. There will be one
+        output prediction for each possible combination of intermediate
+        systematics.
+
+    ``"same"``
+        Assume that the systamtics are the same and no combination is done.
+        The dimensions and weights for the systematics _must_ be identical
+        for all provided Predictors.
+
     See also
     --------
 
-    LinearPredictor
+    MatrixPredictor
     ComposedPredictor
 
     """
 
-    def __init__(self, predictors, evaluation_point=None, evaluation_steps=None):
+    def __init__(
+        self, predictors, evaluation_point=None, evaluation_steps=None, **kwargs
+    ):
         # Init like ComposedPredictor
-        ComposedPredictor.__init__(self, predictors)
+        ComposedPredictor.__init__(self, predictors, **kwargs)
 
         if evaluation_point is None:
             evaluation_point = self.defaults
@@ -1214,14 +1439,14 @@ class ComposedLinearPredictor(LinearPredictor, ComposedPredictor):
         matrices = np.concatenate(columns, axis=-1)
         constants = y0 - (matrices @ evaluation_point)
 
-        LinearPredictor.__init__(
+        MatrixPredictor.__init__(
             self,
             matrices,
             constants=constants,
             weights=weights,
             bounds=self.bounds,
             defaults=self.defaults,
-            sparse_indices=None,
+            sparse_indices=_SLICE,
         )
 
 
@@ -1243,23 +1468,23 @@ def LinearizedPredictor(predictor, evaluation_point=None, evaluation_steps=None)
     Returns
     -------
 
-    predictor : ComposedLinearPredictor
+    predictor : ComposedMatrixPredictor
 
     Notes
     -----
 
     This is just a thin wrapper function to create a
-    :class:`ComposedLinearPredictor`. Instead of multiple :class:`Predictor`,
+    :class:`ComposedMatrixPredictor`. Instead of multiple :class:`Predictor`,
     it only accepts a single one.
 
     See also
     --------
 
-    ComposedLinearPredictor
+    ComposedMatrixPredictor
 
     """
 
-    return ComposedLinearPredictor(
+    return ComposedMatrixPredictor(
         [
             predictor,
         ],
@@ -1268,16 +1493,16 @@ def LinearizedPredictor(predictor, evaluation_point=None, evaluation_steps=None)
     )
 
 
-class FixedParameterLinearPredictor(LinearPredictor, FixedParameterPredictor):
+class FixedParameterMatrixPredictor(MatrixPredictor, FixedParameterPredictor):
     """Wrapper class that fixes parameters of a linear predictor.
 
     Speeds things up considerably compared to the universal `FixedParameterPredictor`,
-    but only works with `LinearPredictor`.
+    but only works with `MatrixPredictor`.
 
     Paramters
     ---------
 
-    predictor : LinearPredictor
+    predictor : MatrixPredictor
         The original predictor which will have some of its parameters fixed.
     fix_values : iterable
         List of the parameter values that the parameters should be fixed at.
@@ -1289,7 +1514,7 @@ class FixedParameterLinearPredictor(LinearPredictor, FixedParameterPredictor):
     --------
 
     FixedParameterPredictor
-    LinearPredictor
+    MatrixPredictor
 
     """
 
@@ -1302,18 +1527,18 @@ class FixedParameterLinearPredictor(LinearPredictor, FixedParameterPredictor):
         const_par[np.isnan(self.fix_values)] = 0.0
         constants, weights = self.predictor(const_par)
 
-        LinearPredictor.__init__(
+        MatrixPredictor.__init__(
             self,
             matrices,
             constants=constants,
             weights=weights,
             bounds=self.bounds,
             defaults=self.defaults,
-            sparse_indices=None,
+            sparse_indices=_SLICE,
         )
 
 
-class ResponseMatrixPredictor(LinearPredictor):
+class ResponseMatrixPredictor(MatrixPredictor):
     """Event rate predictor from ResponseMatrix objects.
 
     Parameters
@@ -1339,7 +1564,7 @@ class ResponseMatrixPredictor(LinearPredictor):
         ).eps  # Add epsilon so there is a very small allowed range for empty bins
         bounds = [(0.0, x + eps) for x in data["truth_entries"]]
         defaults = data["truth_entries"] / 2.0
-        LinearPredictor.__init__(
+        MatrixPredictor.__init__(
             self,
             matrices,
             constants=constants,
@@ -1350,8 +1575,8 @@ class ResponseMatrixPredictor(LinearPredictor):
         )
 
 
-class TemplatePredictor(LinearPredictor):
-    """LinearPredictor from templates.
+class TemplatePredictor(MatrixPredictor):
+    """MatrixPredictor from templates.
 
     Parameters
     ----------
@@ -1363,7 +1588,7 @@ class TemplatePredictor(LinearPredictor):
     constants : ndarray, optional
         Shape: ``([n_systematics,]n_reco_bins)``
     **kwargs : optional
-        Additional keyword arguments are passed to the LinearPredictor.
+        Additional keyword arguments are passed to the MatrixPredictor.
 
     """
 
@@ -1372,7 +1597,7 @@ class TemplatePredictor(LinearPredictor):
         matrices = np.array(np.swapaxes(matrices, -1, -2))
         bounds = kwargs.pop("bounds", [(0.0, np.inf)] * matrices.shape[-1])
         defaults = kwargs.pop("defaults", [1.0] * matrices.shape[-1])
-        LinearPredictor.__init__(
+        MatrixPredictor.__init__(
             self,
             matrices,
             constants=constants,
