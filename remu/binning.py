@@ -930,6 +930,29 @@ class Binning(yaml.YAMLObject):
         else:
             return None
 
+    def get_subbins(self, data_index):
+        """Return a tuple of the bin and subbins corresponding to the data_index.
+
+        Paramteters
+        -----------
+
+        data_index : int
+
+        Returns
+        -------
+
+        (bin[, subbin[, subbin ...]])
+
+        """
+
+        i = self.get_data_bin_index(data_index)
+        if i in self.subbinnings:
+            d = self.get_bin_data_index(i)  # Offset for data index in subbinning
+            bins = self.subbinnings[i].get_subbins(data_index - d)
+            return (self.bins[i],) + bins
+        else:
+            return (self.bins[i],)
+
     def get_adjacent_bin_indices(self):
         """Return a list of adjacent bin indices.
 
