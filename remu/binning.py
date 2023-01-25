@@ -953,6 +953,34 @@ class Binning(yaml.YAMLObject):
         else:
             return (self.bins[i],)
 
+    def get_event_subbins(self, event):
+        """Get the tuple of subbins of the event.
+
+        Returns `None` if the event does not fit in any bin.
+
+        Parameters
+        ----------
+
+        event : dict like
+            A dictionary (or similar object) with one value of each variable
+
+            in the binning, e.g.::
+
+                {'x': 1.4, 'y': -7.47}
+
+        Returns
+        -------
+
+        ([bin[, subbin[, subbin ...]]) or None
+
+        """
+
+        i = self.get_event_data_index(event)
+        if i is not None:
+            return self.get_subbins(i)
+        else:
+            return None
+
     def get_adjacent_bin_indices(self):
         """Return a list of adjacent bin indices.
 

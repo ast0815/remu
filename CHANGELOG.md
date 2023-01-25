@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for "same" systematics in ComposedPredictors
 - `iter_subbins` method to Binnings
 - `get_subbins` method to Binnings
+- `get_event_subbins` method to Binnings
 
 ### Changed
 - Calculate M. distance truth-bin by bin to avoid memory issues.
