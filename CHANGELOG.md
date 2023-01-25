@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `iter_subbins` method to Binnings
 - `get_subbins` method to Binnings
 - `get_event_subbins` method to Binnings
+- `get_marginal_bins` method to CartesianProductBins
 
 ### Changed
 - Calculate M. distance truth-bin by bin to avoid memory issues.

@@ -605,6 +605,27 @@ class CartesianProductBin(Bin):
         else:
             return True
 
+    def get_marginal_bins(self):
+        """Return the corresponding bins on the input binnings of the cartesian product.
+
+        Returns
+        -------
+
+        (bin_1, bin_2[, bin_3 ...])
+
+        See also
+        --------
+
+        get_marginal_subbins
+
+        """
+
+        bins = ()
+        for b, d in zip(self.binnings, self.data_indices):
+            bins = bins + (b.bins[b.get_data_bin_index(d)],)
+
+        return bins
+
     def __eq__(self, other):
         """CartesianProductBins are equal, if the binnings and indices are equal."""
         try:

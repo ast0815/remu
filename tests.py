@@ -251,6 +251,10 @@ class TestCartesianProductBins(unittest.TestCase):
         self.assertTrue(self.b != self.c)
         self.assertFalse(self.b == self.c)
 
+    def test_marginal_bins(self):
+        """Test returning the marginal bins."""
+        self.assertEqual(self.b.get_marginal_bins(), (self.x0, self.y1, self.z0))
+
     def test_clone(self):
         """Test whether the repr reproduces same object."""
         obj = self.b
