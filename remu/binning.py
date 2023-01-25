@@ -1428,6 +1428,26 @@ class Binning(yaml.YAMLObject):
         else:
             return True
 
+    def iter_subbins(self):
+        """Iterate over all bins and subbins.
+
+        Will yield a tuple of the bins in this Binning and all subbinnings in
+        the order they correspond to the data indices.
+
+        Yields
+        ------
+
+        (bin[, subbin[, subbin ...]])
+
+        """
+
+        for i, b in enumerate(self.bins):
+            if i in self.subbinnings:
+                for sb in self.subbinnings[i].iter_subbins():
+                    yield (b,) + sb
+            else:
+                yield (b,)
+
     def is_dummy(self):
         """Return `True` if there is no data array linked to this binning."""
         if self.value_array is None:

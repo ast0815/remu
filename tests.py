@@ -312,6 +312,13 @@ class TestBinnings(unittest.TestCase):
         self.assertTrue(self.binning.get_event_bin({"x": 1, "y": 10}) is self.b1)
         self.assertTrue(self.binning.get_event_bin({"x": 2, "y": 10}) is None)
 
+    def test_iter_subbins(self):
+        """Test that all subbins are returned correctly."""
+        bins = list(self.binning2.iter_subbins())
+        b0 = self.b0
+        b1 = self.b1
+        self.assertEqual(bins, [(b0, b0, b0), (b0, b0, b1), (b0, b1), (b1,)])
+
     def test_fill(self):
         """Test bin filling"""
         self.binning.fill({"x": 0.5, "y": 10})
