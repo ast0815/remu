@@ -626,6 +626,30 @@ class CartesianProductBin(Bin):
 
         return bins
 
+    def get_marginal_subbins(self):
+        """Return the corresponding subbins on the input binnings of the cartesian product.
+
+        This will return a tuple of tuples of subbins. One tuple for each input binning.
+
+        Returns
+        -------
+
+        ((bin_1, [subbin_1a ...]), (bin_2, [subbin_2a ...]) [, (bin_3, [subbin_3a ...]) ...])
+
+        See also
+        --------
+
+        get_marginal_bins
+        Binning.get_subbins
+
+        """
+
+        bins = ()
+        for b, d in zip(self.binnings, self.data_indices):
+            bins = bins + (b.get_subbins(b.get_data_bin_index(d)),)
+
+        return bins
+
     def __eq__(self, other):
         """CartesianProductBins are equal, if the binnings and indices are equal."""
         try:
