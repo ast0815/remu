@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `get_event_subbins` method to Binnings
 - `get_marginal_bins` method to CartesianProductBins
 - `get_marginal_subbins` method to CartesianProductBins
+- Allow selective `density` parameter for CartesianProductPlotter
 
 ### Changed
 - Calculate M. distance truth-bin by bin to avoid memory issues.
