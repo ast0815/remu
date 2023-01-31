@@ -78,7 +78,7 @@ class Plotter:
 
     def __del__(self):
         """Clean up figures."""
-        if self.figax is not None:
+        if self.figax is not None and plt is not None:
             plt.close(self.figax[0])
 
     def subplots(self, *args, **kwargs):
