@@ -2,35 +2,19 @@
 
 import numpy as np
 import pandas as pd
-from multiprocess import Pool
 
-from remu import binning, likelihood, plotting
-
-pool = Pool(8)
-likelihood.mapper = pool.map
+from remu import binning
 
 with open("../05/truth-binning.yml") as f:
     truth_binning = binning.yaml.full_load(f)
 
-# Define flux binning
-with open("flux-binning.yml") as f:
-    flux_binning = binning.yaml.full_load(f)
-
-# Fill flux with neutrinos per m^2
-from numpy.random import default_rng
-
-rng = default_rng()
-E = rng.normal(loc=8.0, scale=2.0, size=1000)
-df = pd.DataFrame({"E": E})
-flux_binning.fill(df, weight=0.01)
-
-pltr = plotting.get_plotter(flux_binning)
-pltr.plot_values()
-pltr.savefig("flux.png")
-
 # Get truth binnings for BG and signal
 bg_truth_binning = truth_binning.subbinnings[1].clone()
 signal_truth_binning = truth_binning.subbinnings[2].clone()
+
+# Define flux binning
+with open("flux-binning.yml") as f:
+    flux_binning = binning.yaml.full_load(f)
 
 # Create cross-section binnings
 bg_flux_binning = flux_binning.clone()
@@ -44,23 +28,59 @@ signal_xsec_binning = binning.CartesianProductBinning(
 n_bg_truth = bg_truth_binning.data_size
 n_signal_truth = signal_truth_binning.data_size
 n_flux = flux_binning.data_size
+n_bg_xsec = bg_xsec_binning.data_size
+n_signal_xsec = signal_xsec_binning.data_size
 with open("check_binning.txt", "w") as f:
     print(n_bg_truth, n_signal_truth, n_flux, file=f)
-    print(signal_xsec_binning.bins[0], file=f)
-    print(signal_xsec_binning.bins[1], file=f)
-    print(signal_xsec_binning.bins[n_flux], file=f)
+    print(n_bg_xsec, n_signal_xsec, file=f)
+    print(signal_xsec_binning.bins[0].data_indices, file=f)
+    print(signal_xsec_binning.bins[1].data_indices, file=f)
+    print(signal_xsec_binning.bins[n_flux].data_indices, file=f)
+
+from numpy.random import default_rng
+
+# Fill flux with exposure units (proportional to neutrinos per m^2)
+from remu import plotting
+
+rng = default_rng()
+E = rng.normal(loc=8.0, scale=2.0, size=1000)
+df = pd.DataFrame({"E": E})
+flux_binning.fill(df, weight=0.01)
+
+pltr = plotting.get_plotter(flux_binning)
+pltr.plot_values()
+pltr.savefig("flux.png")
+
+# Create fluctuated flux predictions
+E_throws = rng.normal(loc=8.0, scale=2.0, size=(100, 1000))
+flux = []
+for E in E_throws:
+    df = pd.DataFrame({"E": E})
+    flux_binning.reset()
+    flux_binning.fill(df, weight=0.01)
+    flux.append(flux_binning.get_values_as_ndarray())
+
+flux = np.asfarray(flux)
+with open("flux_shape.txt", "w") as f:
+    print(flux.shape, file=f)
 
 # Create event number predictors
-flux = flux_binning.get_values_as_ndarray()
+from multiprocess import Pool
+
+from remu import likelihood
+
+pool = Pool(8)
+likelihood.mapper = pool.map
+
 bg_predictor = likelihood.LinearEinsumPredictor(
     "ij,...kj->...ik",
-    [flux],
+    flux,
     reshape_parameters=(n_bg_truth, n_flux),
     bounds=[(0.0, np.inf)] * bg_xsec_binning.data_size,
 )
 signal_predictor = likelihood.LinearEinsumPredictor(
     "ij,...kj->...ik",
-    [flux],
+    flux,
     reshape_parameters=(n_signal_truth, n_flux),
     bounds=[(0.0, np.inf)] * signal_xsec_binning.data_size,
 )
@@ -86,10 +106,12 @@ pltr = plotting.get_plotter(signal_truth_binning)
 pltr.plot_values(density=False)
 pltr.savefig("few_events.png")
 
-# Create noise predictor and combine
-noise_predictor = likelihood.TemplatePredictor([[1.0]])
+# Create noise predictor
+noise_predictor = likelihood.TemplatePredictor([[[1.0]]] * 100)
+
+# Combine into single predictor
 event_predictor = likelihood.ConcatenatedPredictor(
-    [noise_predictor, bg_predictor, signal_predictor]
+    [noise_predictor, bg_predictor, signal_predictor], combine_systematics="same"
 )
 
 parameter_binning = truth_binning.marginalize_subbinnings()
@@ -100,16 +122,14 @@ parameter_binning = parameter_binning.insert_subbinning(2, signal_xsec_binning)
 noise_template = np.zeros(parameter_binning.data_size)
 noise_template[0] = 1.0
 
-bg_template = np.zeros(parameter_binning.data_size)
-bg_xsec = np.zeros(bg_xsec_binning.data_size)
-bg_offset = 1
 for i, b in enumerate(bg_xsec_binning.bins):
     # Get truth and flux bin from Cartesian Product
     truth_bin, flux_bin = b.get_marginal_bins()
 
-    print(i)
-    print(truth_bin)
-    print(flux_bin)
+    with open("marginal_bins.txt", "w") as f:
+        print(i, file=f)
+        print(truth_bin, file=f)
+        print(flux_bin, file=f)
 
     break
 
@@ -153,6 +173,9 @@ def calculate_bg_xsec(E_min, E_max, x_min, x_max, y_min, y_max):
     return xsec
 
 
+bg_template = np.zeros(parameter_binning.data_size)
+bg_xsec = np.zeros(bg_xsec_binning.data_size)
+bg_offset = parameter_binning.get_bin_data_index(1)
 for i, b in enumerate(bg_xsec_binning.bins):
     # Get truth and flux bin from Cartesian Product
     truth_bin, flux_bin = b.get_marginal_bins()
@@ -186,10 +209,6 @@ pltr.plot_array(bg_pred, scatter=500, label="xsec")
 
 pltr.legend()
 pltr.savefig("bg_prediction.png")
-
-model_A_xsec = np.zeros(signal_xsec_binning.data_size)
-model_A_template = np.zeros(parameter_binning.data_size)
-signal_offset = 1 + bg_xsec_binning.data_size
 
 
 def calculate_model_A_xsec(E_min, E_max, x_min, x_max, y_min, y_max):
@@ -229,6 +248,9 @@ def calculate_model_A_xsec(E_min, E_max, x_min, x_max, y_min, y_max):
     return xsec
 
 
+model_A_xsec = np.zeros(signal_xsec_binning.data_size)
+model_A_template = np.zeros(parameter_binning.data_size)
+signal_offset = parameter_binning.get_bin_data_index(2)
 for i, b in enumerate(signal_xsec_binning.bins):
     # Get truth and flux bin from Cartesian Product
     truth_bin, flux_bin = b.get_marginal_bins()
@@ -357,25 +379,31 @@ response_matrix = "../05/response_matrix.npz"
 matrix_predictor = likelihood.ResponseMatrixPredictor(response_matrix)
 
 # Combine into linear predictor
-data_predictor = likelihood.ComposedMatrixPredictor(
-    [matrix_predictor, event_predictor, xsec_template_predictor]
+data_predictor = likelihood.ComposedPredictor(
+    [matrix_predictor, event_predictor],
+    combine_systematics="same",
+)
+template_predictor = likelihood.ComposedMatrixPredictor(
+    [data_predictor, xsec_template_predictor], combine_systematics="cartesian"
 )
 
 # Likelihood caclulator and hypothesis tester
-calc = likelihood.LikelihoodCalculator(data_model, data_predictor)
+calc = likelihood.LikelihoodCalculator(data_model, template_predictor)
 maxi = likelihood.BasinHoppingMaximizer()
 
 # Fit everything
 ret = maxi.maximize_log_likelihood(calc)
-print(ret)
+with open("fit.txt", "w") as f:
+    print(ret, file=f)
 
 # Calculate p-values for hypotheses overall
 calc_A = calc.fix_parameters([None, None, None, 0.0])
 calc_B = calc.fix_parameters([None, None, 0.0, None])
 test_A = likelihood.HypothesisTester(calc_A)
 test_B = likelihood.HypothesisTester(calc_B)
-print(test_A.max_likelihood_p_value())
-print(test_B.max_likelihood_p_value())
+with open("p-values.txt", "w") as f:
+    print(test_A.max_likelihood_p_value(), file=f)
+    print(test_B.max_likelihood_p_value(), file=f)
 
 
 # Get Wilks' p-values for models
@@ -397,3 +425,6 @@ ax.axhline(0.32, color="k", linestyle="dashed")
 ax.axhline(0.05, color="k", linestyle="dashed")
 ax.legend(loc="best")
 fig.savefig("wilks-p-values.png")
+
+# Avoid exceptions during clean-up
+pool.close()
