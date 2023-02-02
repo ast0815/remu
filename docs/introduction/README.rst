@@ -305,3 +305,30 @@ made a part of the response matrix:
 .. image:: template-BG.svg
 
 See :ref:`example05` for details.
+
+Flux integration
+================
+
+So far we have only talked about the translation of expectation values of true
+event numbers to expectation values of reconstructed event numbers. To
+calculate the expected number of true events, it is often necessary to assume a
+certain flux of incoming particles or exposure of an experiment. These
+exposures themselves are not certain though and it is usually undesirable to
+have the users of a data set deal with the flux uncertainties in their event
+predictions.
+
+In the forward-folding scheme, the flux uncertainties can naturally be
+incorporated into the detector uncertainties. To calculate event number in
+different true kinematic bins, a cross section matrix is multiplied with an
+exposure vector. Each row of the matrix corresponds to a true kinematic bin for
+which we want to calculate the event numbers, and each column  corresponds to
+one energy bin in the flux/exposure.
+
+Uncertainties are again handled by providing multiple varied exposure vectors,
+and those can then either be matched one-to-one or in a Cartesian product with
+the response matrix variations to calculate the varied reconstruction
+expectation values and likelihoods.
+
+.. image:: flux-folding.svg
+
+See :ref:`example06` for details.
