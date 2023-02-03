@@ -1,0 +1,19 @@
+                        fun: 27.15065583063253
+             log_likelihood: -27.15065583063253
+ lowest_optimization_result:       fun: 27.15065583063253
+ hess_inv: <4x4 LbfgsInvHessProduct with dtype=float64>
+      jac: array([4.61852412e-06, 8.63309424e-05, 2.69738365e-01, 2.86348724e-04])
+  message: 'CONVERGENCE: REL_REDUCTION_OF_F_<=_FACTR*EPSMCH'
+     nfev: 250
+      nit: 35
+     njev: 50
+   status: 0
+  success: True
+        x: array([239.81428165,   0.3976332 ,   0.        ,   1.08239838])
+                    message: ['requested number of basinhopping iterations completed successfully']
+      minimization_failures: 0
+                       nfev: 1045
+                        nit: 10
+                       njev: 209
+                    success: True
+                          x: array([239.81428165,   0.3976332 ,   0.        ,   1.08239838])

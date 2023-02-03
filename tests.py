@@ -251,6 +251,13 @@ class TestCartesianProductBins(unittest.TestCase):
         self.assertTrue(self.b != self.c)
         self.assertFalse(self.b == self.c)
 
+    def test_marginal_bins(self):
+        """Test returning the marginal bins."""
+        self.assertEqual(self.b.get_marginal_bins(), (self.x0, self.y1, self.z0))
+        self.assertEqual(
+            self.b.get_marginal_subbins(), ((self.x0,), (self.y1,), (self.z0,))
+        )
+
     def test_clone(self):
         """Test whether the repr reproduces same object."""
         obj = self.b
@@ -311,6 +318,27 @@ class TestBinnings(unittest.TestCase):
         self.assertTrue(self.binning.get_event_bin({"x": 0, "y": 10}) is self.b0)
         self.assertTrue(self.binning.get_event_bin({"x": 1, "y": 10}) is self.b1)
         self.assertTrue(self.binning.get_event_bin({"x": 2, "y": 10}) is None)
+
+    def test_get_subbins(self):
+        """Test returning all subbins of a data index."""
+        b0 = self.b0
+        b1 = self.b1
+        self.assertEqual(self.binning2.get_subbins(0), (b0, b0, b0))
+        self.assertEqual(self.binning2.get_subbins(1), (b0, b0, b1))
+        self.assertEqual(self.binning2.get_subbins(2), (b0, b1))
+        self.assertEqual(self.binning2.get_subbins(3), (b1,))
+        self.assertEqual(
+            self.binning2.get_event_subbins({"x": 0, "y": 10}), (b0, b0, b0)
+        )
+        self.assertEqual(self.binning2.get_event_subbins({"x": 1, "y": 10}), (b1,))
+        self.assertTrue(self.binning2.get_event_subbins({"x": 2, "y": 10}) is None)
+
+    def test_iter_subbins(self):
+        """Test that all subbins are returned correctly."""
+        bins = list(self.binning2.iter_subbins())
+        b0 = self.b0
+        b1 = self.b1
+        self.assertEqual(bins, [(b0, b0, b0), (b0, b0, b1), (b0, b1), (b1,)])
 
     def test_fill(self):
         """Test bin filling"""

@@ -1,0 +1,3 @@
+0
+RectangularBin(include_upper=False, include_lower=True, variables=['true_x', 'true_y'], edges=[[-inf, -0.5], [-inf, -0.25]], phasespace=PhaseSpace(variables={'true_x', 'true_y'}), value_array=array([0.]), entries_array=array([0]), sumw2_array=array([0.]))
+RectangularBin(include_upper=False, include_lower=True, variables=['E'], edges=[[0.0, 2.0]], phasespace=PhaseSpace(variables={'E'}), value_array=array([0.]), entries_array=array([0]), sumw2_array=array([0.]))

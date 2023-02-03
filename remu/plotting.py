@@ -78,7 +78,7 @@ class Plotter:
 
     def __del__(self):
         """Clean up figures."""
-        if self.figax is not None:
+        if self.figax is not None and plt is not None:
             plt.close(self.figax[0])
 
     def subplots(self, *args, **kwargs):
@@ -454,10 +454,12 @@ class CartesianProductBinningPlotter(BinningPlotter):
 
         array : ndarray, optional
             The data to be plotted.
-        density : bool, optional
+        density : bool or list of int, optional
             Divide the data by the relative bin width: ``width / total_plot_range``.
             Dividing by the relative bin width, rather than the bin width directly,
             ensures that the maximum values in all 1D projections are comparable.
+            If a list of ints, only the bin widths in the respective binnings will
+            be used for the division.
         stack_function : float or function or (lower_function, function)
             How to deal with multiple arrays.
             When `float`, plot the respective quantile as equal-tailed interval.
@@ -604,12 +606,32 @@ class CartesianProductBinningPlotter(BinningPlotter):
                     xx = np.broadcast_to(x, (len(y), len(x))).flatten()
                     yy = np.repeat(y, len(x))
 
+                    # Deal with density in both directions explicitly
+                    try:
+                        divide = i in density
+                    except TypeError:
+                        divide = density
+                    if divide:
+                        data /= (x_edg[1:] - x_edg[:-1])[np.newaxis, :]
+                        data *= (
+                            x_edg[-1] - x_edg[0]
+                        )  # Only divide by relative bin width
+                    try:
+                        divide = j in density
+                    except TypeError:
+                        divide = density
+                    if divide:
+                        data /= (y_edg[1:] - y_edg[:-1])[:, np.newaxis]
+                        data *= (
+                            y_edg[-1] - y_edg[0]
+                        )  # Only divide by relative bin width
+
                     # Plot it
                     if data.sum() == 0:
                         # Empty data messes with the normalisation
                         data.fill(0.001)
                     ax.hist2d(
-                        xx, yy, weights=data.flat, bins=(x_edg, y_edg), density=density
+                        xx, yy, weights=data.flat, bins=(x_edg, y_edg), density=False
                     )
 
         # 1D vertical histograms
@@ -628,7 +650,11 @@ class CartesianProductBinningPlotter(BinningPlotter):
 
             # Divide by relative bin widths
             bins = np.asfarray(self.get_bin_edges(0, data.shape[1], i))
-            if density:
+            try:
+                divide = i in density
+            except TypeError:
+                divide = density
+            if divide:
                 total_width = bins[-1] - bins[0]
                 rel_widths = (bins[1:] - bins[:-1]) / total_width
                 data_hi /= rel_widths
@@ -673,7 +699,11 @@ class CartesianProductBinningPlotter(BinningPlotter):
 
             # Divide by relative bin widths
             bins = np.asfarray(self.get_bin_edges(0, data.shape[1], i))
-            if density:
+            try:
+                divide = i in density
+            except TypeError:
+                divide = density
+            if divide:
                 total_width = bins[-1] - bins[0]
                 rel_widths = (bins[1:] - bins[:-1]) / total_width
                 data_hi /= rel_widths

@@ -605,6 +605,51 @@ class CartesianProductBin(Bin):
         else:
             return True
 
+    def get_marginal_bins(self):
+        """Return the corresponding bins on the input binnings of the cartesian product.
+
+        Returns
+        -------
+
+        (bin_1, bin_2[, bin_3 ...])
+
+        See also
+        --------
+
+        get_marginal_subbins
+
+        """
+
+        bins = ()
+        for b, d in zip(self.binnings, self.data_indices):
+            bins = bins + (b.bins[b.get_data_bin_index(d)],)
+
+        return bins
+
+    def get_marginal_subbins(self):
+        """Return the corresponding subbins on the input binnings of the cartesian product.
+
+        This will return a tuple of tuples of subbins. One tuple for each input binning.
+
+        Returns
+        -------
+
+        ((bin_1, [subbin_1a ...]), (bin_2, [subbin_2a ...]) [, (bin_3, [subbin_3a ...]) ...])
+
+        See also
+        --------
+
+        get_marginal_bins
+        Binning.get_subbins
+
+        """
+
+        bins = ()
+        for b, d in zip(self.binnings, self.data_indices):
+            bins = bins + (b.get_subbins(b.get_data_bin_index(d)),)
+
+        return bins
+
     def __eq__(self, other):
         """CartesianProductBins are equal, if the binnings and indices are equal."""
         try:
@@ -927,6 +972,57 @@ class Binning(yaml.YAMLObject):
         i = self.get_event_bin_index(event)
         if i is not None:
             return self.bins[i]
+        else:
+            return None
+
+    def get_subbins(self, data_index):
+        """Return a tuple of the bin and subbins corresponding to the data_index.
+
+        Paramteters
+        -----------
+
+        data_index : int
+
+        Returns
+        -------
+
+        (bin[, subbin[, subbin ...]])
+
+        """
+
+        i = self.get_data_bin_index(data_index)
+        if i in self.subbinnings:
+            d = self.get_bin_data_index(i)  # Offset for data index in subbinning
+            bins = self.subbinnings[i].get_subbins(data_index - d)
+            return (self.bins[i],) + bins
+        else:
+            return (self.bins[i],)
+
+    def get_event_subbins(self, event):
+        """Get the tuple of subbins of the event.
+
+        Returns `None` if the event does not fit in any bin.
+
+        Parameters
+        ----------
+
+        event : dict like
+            A dictionary (or similar object) with one value of each variable
+
+            in the binning, e.g.::
+
+                {'x': 1.4, 'y': -7.47}
+
+        Returns
+        -------
+
+        ([bin[, subbin[, subbin ...]]) or None
+
+        """
+
+        i = self.get_event_data_index(event)
+        if i is not None:
+            return self.get_subbins(i)
         else:
             return None
 
@@ -1427,6 +1523,26 @@ class Binning(yaml.YAMLObject):
             return False
         else:
             return True
+
+    def iter_subbins(self):
+        """Iterate over all bins and subbins.
+
+        Will yield a tuple of the bins in this Binning and all subbinnings in
+        the order they correspond to the data indices.
+
+        Yields
+        ------
+
+        (bin[, subbin[, subbin ...]])
+
+        """
+
+        for i, b in enumerate(self.bins):
+            if i in self.subbinnings:
+                for sb in self.subbinnings[i].iter_subbins():
+                    yield (b,) + sb
+            else:
+                yield (b,)
 
     def is_dummy(self):
         """Return `True` if there is no data array linked to this binning."""

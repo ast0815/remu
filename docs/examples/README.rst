@@ -30,4 +30,5 @@ Example steps
     03/README
     04/README
     05/README
+    06/README
     PD/README

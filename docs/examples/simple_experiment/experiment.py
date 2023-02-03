@@ -62,7 +62,7 @@ class ModelBGenerator(Generator):
 class BGGenerator(Generator):
     """Background
 
-    x, y ~ Normal(mean=[0.5, 0.5], cov=[[0.2,0.0],[0.0,0.2]])
+    x, y ~ Normal(mean=[0.5, 0.5], cov=[[0.5,0.0],[0.0,0.5]])
     """
 
     def _generate(self, n):
