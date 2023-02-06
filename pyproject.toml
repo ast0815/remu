@@ -1,9 +1,10 @@
 [build-system]
-requires = ["flit_core >=3.2,<4"]
-build-backend = "flit_core.buildapi"
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
 
 [project]
 name = "remu"
+description = "Response Matrix Utilities for likelihood calculations and hypothesis testing"
 authors = [{name = "Lukas Koch", email = "lukas.koch@mailbox.org"}]
 readme = "README.rst"
 license = {file = "LICENSE"}
@@ -29,7 +30,7 @@ classifiers=[
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
-dynamic = ["version", "description"]
+dynamic = ["version"]
 requires-python = ">=3.7,<4"
 dependencies = [
     "numpy >= 1.21.0",
@@ -45,3 +46,10 @@ mcmc = [
 
 [project.urls]
 Home = "https://remu.readthedocs.io/en/latest/"
+
+[tool.setuptools]
+packages = ["remu"]
+zip-safe = true
+
+[tool.setuptools.dynamic]
+version = {attr = "remu.version.version"}
