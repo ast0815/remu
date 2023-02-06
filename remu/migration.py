@@ -143,7 +143,7 @@ class ResponseMatrix:
         Binning.fill_multiple_from_csv_file(
             [self.truth_binning, self.reco_binning, self.response_binning],
             *args,
-            **kwargs
+            **kwargs,
         )
         self._fix_rounding_errors()
         self._update_filled_indices()
