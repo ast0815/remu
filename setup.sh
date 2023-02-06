@@ -18,6 +18,7 @@ else
 
         # Upgrade pip to the latest version (optional)
         pip install --upgrade pip
+        pip install --upgrade setuptools
 
         # Install all required packages
         pip install -r "$SCRIPTPATH/requirements.txt"
