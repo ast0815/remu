@@ -48,8 +48,10 @@ mcmc = [
 Home = "https://remu.readthedocs.io/en/latest/"
 
 [tool.setuptools]
-packages = ["remu"]
 zip-safe = true
+
+[tool.setuptools.packages.find]
+include = ["remu"]
 
 [tool.setuptools.dynamic]
 version = {attr = "remu.version.version"}
