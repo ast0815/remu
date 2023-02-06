@@ -1288,7 +1288,7 @@ class MatrixPredictor(LinearEinsumPredictor):
             self.matrices,
             constants=constants,
             reshape_parameters=self.matrices.shape[-1:],
-            **kwargs
+            **kwargs,
         )
 
     def prediction(self, parameters, *args, **kwargs):
@@ -1603,7 +1603,7 @@ class TemplatePredictor(MatrixPredictor):
             constants=constants,
             bounds=bounds,
             defaults=defaults,
-            **kwargs
+            **kwargs,
         )
 
 

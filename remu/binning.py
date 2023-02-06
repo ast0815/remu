@@ -753,7 +753,6 @@ class Binning(yaml.YAMLObject):
         phasespace=None,
         dummy=False,
     ):
-
         if isinstance(bins, _BinProxy):
             self.bins = bins
         else:
