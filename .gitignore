@@ -1,7 +1,8 @@
 # Ignore virtualenv
 /ENV
-/remu/version.py
-/remu.egg-info
+_version.py
+*.egg-info
 /dist
+/build
 .coverage
 *.pyc

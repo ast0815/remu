@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools", "setuptools-scm[toml]"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -47,11 +47,8 @@ mcmc = [
 [project.urls]
 Home = "https://remu.readthedocs.io/en/latest/"
 
-[tool.setuptools]
-zip-safe = true
-
-[tool.setuptools.packages.find]
-include = ["remu"]
+[tool.setuptools_scm]
+write_to = "src/remu/_version.py"
 
 [tool.setuptools.dynamic]
-version = {attr = "remu.version.version"}
+version = {attr = "remu.__version__"}
