@@ -1138,8 +1138,8 @@ class Binning(yaml.YAMLObject):
                 # Try to get bin numbers from a pandas DataFrame
                 ibins = list(
                     map(
-                        lambda irow: self.get_event_data_index(irow[1]),
-                        event.iterrows(),
+                        lambda irow: self.get_event_data_index(irow._asdict()),
+                        event.itertuples(),
                     )
                 )
             except AttributeError:
