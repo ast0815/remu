@@ -1699,6 +1699,18 @@ class TestConcatenatedPredictorsWithSameParameters(unittest.TestCase):
         self.pred = likelihood.ConcatenatedPredictor(
             [self.pred0, self.pred1], share_parameters=True
         )
+        self.pred0a = likelihood.MatrixPredictor([np.diag([1, 2, 3])])
+        self.pred1a = likelihood.MatrixPredictor([np.eye(3)], [0.1, 0.2, 0.3])
+        self.preda = likelihood.ConcatenatedPredictor(
+            [self.pred0a, self.pred1a] * 30,
+            share_parameters=True,
+            combine_systematics="cartesian",
+        )
+        self.predb = likelihood.ConcatenatedPredictor(
+            [self.pred0a, self.pred1a] * 30,
+            share_parameters=True,
+            combine_systematics="same",
+        )
 
     def test_prediction(self):
         pred, weights = self.pred([1, 2, 3])
@@ -1715,6 +1727,15 @@ class TestConcatenatedPredictorsWithSameParameters(unittest.TestCase):
         self.assertEqual(pred.shape, (2, 6))
         self.assertEqual(weights.shape, (2,))
         self.assertEqual(self.pred.defaults.shape, (3,))
+        pred, weights = self.pred([1, 2, 3])
+        self.assertEqual(pred.shape, (8, 6))
+        self.assertEqual(weights.shape, (8,))
+        pred, weights = self.preda([1, 2, 3])
+        self.assertEqual(pred.shape, (1, 6 * 30))
+        self.assertEqual(weights.shape, (1,))
+        pred, weights = self.predb([1, 2, 3])
+        self.assertEqual(pred.shape, (1, 6 * 30))
+        self.assertEqual(weights.shape, (1,))
 
 
 class TestConcatenatedPredictorsWithSameSystematics(unittest.TestCase):

@@ -893,6 +893,8 @@ class ConcatenatedPredictor(Predictor):
     def _concatenate_cartesian(self, parameters):
         """Calculate predictions using the "cartesian" systematics strategy."""
 
+        orig_shape = parameters.shape
+
         weights = np.ones(parameters.shape[:-1])
         predictions = []
         i_par = 0
@@ -910,40 +912,39 @@ class ConcatenatedPredictor(Predictor):
             predictions.append(p)
 
             # Bring weights in right shape
-            # w.shape = ([c,d,...,]syst_n+1)
-            # weights.shape = ([c,d,...,]syst_0,...,syst_n-1)
-            # new.shape = ([c,d,...,]syst_0,...,syst_n-1,syst_n)
+            # w.shape = ([c,d,...,]syst_n)
+            # weights.shape = ([c,d,...,]syst_0*...*syst_n-1)
+            # new.shape = ([c,d,...,]syst_0*...*syst_n-1*syst_n)
             ndim_diff = weights.ndim - w.ndim
             slices = (Ellipsis,) + (np.newaxis,) * (ndim_diff + 1) + (slice(None),)
             w = w[slices]
             weights = weights[..., np.newaxis] * w
+            weights = weights.reshape(orig_shape[:-1] + (-1,))
 
-        # Concatenate predictions with right systamtic axes
+        # Concatenate predictions with right systematic axes
         # pred shapes = ([c,d,...,]syst_i,n_reco_i)
-        # desired output shape = ([c,d,...,]syst0,...,systn,n_reco)
-        input_dimensions = predictions[0].ndim - 2
-        slices = []
-        shapes = []
-        for i in range(len(predictions)):
-            slices.append(
-                (Ellipsis,)
-                + (np.newaxis,) * i
-                + (slice(None),)
-                + (np.newaxis,) * (len(predictions) - i - 1)
-                + (slice(None),)
-            )
-            shapes.append(
-                predictions[0].shape[:input_dimensions]
-                + tuple(p.shape[-2] for p in predictions)
-                + (predictions[i].shape[-1],)
-            )
+        # desired output shape = ([c,d,...,]syst0*...*systn,n_reco)
 
-        for i in range(len(predictions)):
-            p = predictions[i]
-            predictions[i] = np.broadcast_to(p[slices[i]], shapes[i])
-
-        # Now actually concatenate everything
-        prediction = np.concatenate(predictions, axis=-1)
+        prediction = predictions[0]
+        for i in range(1, len(predictions)):
+            # prediction.shape = ([c,d,...,]syst_X,n_reco_X)
+            # p1.shape = ([c,d,...,]syst_n,n_reco_n)
+            # intermediate.shape = ([c,d,...,]sys_X,syst_n,n_reco)
+            # final.shape = ([c,d,...,]sys_X*syst_n,n_reco)
+            p1 = predictions[i]
+            p0 = np.broadcast_to(
+                prediction[..., np.newaxis, :],
+                orig_shape[:-1]
+                + (prediction.shape[-2], p1.shape[-2], prediction.shape[-1]),
+            )
+            p1 = np.broadcast_to(
+                p1[..., np.newaxis, :, :],
+                orig_shape[:-1] + (prediction.shape[-2], p1.shape[-2], p1.shape[-1]),
+            )
+            prediction = np.concatenate([p0, p1], axis=-1)
+            prediction = prediction.reshape(
+                orig_shape[:-1] + (-1, prediction.shape[-1])
+            )
 
         return prediction, weights
 
@@ -955,10 +956,14 @@ class ConcatenatedPredictor(Predictor):
         i_par = 0
 
         for pred in self.predictors:
-            # Consume the given parameters in order.
-            j_par = i_par + len(pred.defaults)
-            par = parameters[..., i_par:j_par]
-            i_par = j_par
+            if not self.share_parameters:
+                # Consume the given parameters in order.
+                j_par = i_par + len(pred.defaults)
+                par = parameters[..., i_par:j_par]
+                i_par = j_par
+            else:
+                par = parameters
+
             p, w = pred.prediction(par)
             predictions.append(p)
             weights = w
@@ -991,8 +996,6 @@ class ConcatenatedPredictor(Predictor):
         """
 
         parameters = np.asarray(parameters)
-        orig_shape = parameters.shape
-        orig_len = len(orig_shape)
 
         if self.combine_systematics == "cartesian":
             prediction, weights = self._concatenate_cartesian(parameters)
@@ -1003,18 +1006,6 @@ class ConcatenatedPredictor(Predictor):
                 "%s is not a valid systematics combination strategy."
                 % (self.combine_systematics)
             )
-
-        # Flatten output
-        # original_parameters.shape = ([c,d,...,]n_parameters)
-        # concatenated_output.shape = ([c,d,...,]syst0,...,systn,n_reco)
-        # desired_output.shape = ([c,d,...,]syst,n_reco)
-        shape = prediction.shape
-        prediction = prediction.reshape(
-            orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),) + shape[-1:]
-        )
-        weights = weights.reshape(
-            orig_shape[:-1] + (np.prod(shape[orig_len - 1 : -1]),)
-        )
 
         return prediction[..., systematics_index, :], weights[..., systematics_index]
 
