@@ -881,8 +881,12 @@ class ConcatenatedPredictor(Predictor):
     ):
         self.predictors = predictors
 
-        self.bounds = np.concatenate([p.bounds for p in predictors], axis=0)
-        self.defaults = np.concatenate([p.defaults for p in predictors], axis=0)
+        if share_parameters:
+            self.bounds = predictors[0].bounds
+            self.defaults = predictors[0].defaults
+        else:
+            self.bounds = np.concatenate([p.bounds for p in predictors], axis=0)
+            self.defaults = np.concatenate([p.defaults for p in predictors], axis=0)
         self.share_parameters = share_parameters
         self.combine_systematics = combine_systematics
 

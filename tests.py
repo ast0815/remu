@@ -1683,6 +1683,7 @@ class TestConcatenatedPredictors(unittest.TestCase):
         pred, weights = self.pred([[2, 2, 2, 3, 4, 4, 4]] * 2, systematics_index=1)
         self.assertEqual(pred.shape, (2, 9))
         self.assertEqual(weights.shape, (2,))
+        self.assertEqual(self.pred.defaults.shape, (7,))
 
 
 class TestConcatenatedPredictorsWithSameParameters(unittest.TestCase):
@@ -1713,6 +1714,7 @@ class TestConcatenatedPredictorsWithSameParameters(unittest.TestCase):
         pred, weights = self.pred([[1, 2, 3]] * 2, systematics_index=1)
         self.assertEqual(pred.shape, (2, 6))
         self.assertEqual(weights.shape, (2,))
+        self.assertEqual(self.pred.defaults.shape, (3,))
 
 
 class TestConcatenatedPredictorsWithSameSystematics(unittest.TestCase):
