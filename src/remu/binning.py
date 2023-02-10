@@ -22,6 +22,9 @@ import numpy as np
 import yaml
 from numpy.lib.recfunctions import rename_fields
 
+# Use this function/object for parallelization where possible
+mapper = map
+
 
 class PhaseSpace(yaml.YAMLObject):
     """A PhaseSpace defines the possible combinations of variables that characterize an event.
@@ -1137,7 +1140,7 @@ class Binning(yaml.YAMLObject):
             try:
                 # Try to get bin numbers from a pandas DataFrame
                 ibins = list(
-                    map(
+                    mapper(
                         lambda irow: self.get_event_data_index(irow._asdict()),
                         event.itertuples(),
                     )
@@ -1149,7 +1152,7 @@ class Binning(yaml.YAMLObject):
         if ibins is None:
             try:
                 # Try to get bin numbers from structured numpy array
-                ibins = list(map(self.get_event_data_index, np.nditer(event)))
+                ibins = list(mapper(self.get_event_data_index, np.nditer(event)))
             except TypeError:
                 # Seems like this is not a structured numpy array
                 pass
@@ -1157,7 +1160,7 @@ class Binning(yaml.YAMLObject):
         if ibins is None:
             try:
                 # Try to get bin numbers from any iterable of events
-                ibins = list(map(self.get_event_data_index, event))
+                ibins = list(mapper(self.get_event_data_index, event))
             except TypeError:
                 # We probably only have a single event
                 ibins = [self.get_event_data_index(event)]

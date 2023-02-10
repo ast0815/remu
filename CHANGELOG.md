@@ -6,6 +6,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Possibility to use parallelisation to speed up binning filling
+
 ### Changed
 - Sped up filling from Pandas DataFrames
 
