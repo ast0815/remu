@@ -1,7 +1,9 @@
 import numpy as np
 
 
-def emcee_sampler(likelihood_calculator, nwalkers=None):
+def emcee_sampler(likelihood_calculator, nwalkers=None, **kwargs):
+    """Convenience function to create an EnsembleSampler."""
+
     import emcee
 
     defaults = likelihood_calculator.predictor.defaults
@@ -9,12 +11,14 @@ def emcee_sampler(likelihood_calculator, nwalkers=None):
     if nwalkers is None:
         nwalkers = 2 * ndim
 
-    sampler = emcee.EnsembleSampler(nwalkers, ndim, likelihood_calculator)
+    sampler = emcee.EnsembleSampler(nwalkers, ndim, likelihood_calculator, **kwargs)
 
     return sampler
 
 
 def emcee_initial_guess(likelihood_calculator, nwalkers=None):
+    """Convenience function to generate initial guess for EnsembleSampler."""
+
     bounds = likelihood_calculator.predictor.bounds
     defaults = likelihood_calculator.predictor.defaults
     ndim = len(defaults)
