@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Possibility to use parallelisation to speed up binning filling
+- Possibility to pass additional kwargs to mcmc sampler generator
 
 ### Changed
 - Sped up filling from Pandas DataFrames
