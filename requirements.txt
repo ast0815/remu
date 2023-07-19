@@ -3,5 +3,5 @@ flit==3.7.1
 matplotlib>=3.5
 numpy>=1.21
 pre-commit==2.17.0
-pyyaml==5.4
+pyyaml==6.0.1
 scipy>=1.7
