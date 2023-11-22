@@ -303,7 +303,7 @@ class Bin(yaml.YAMLObject):
 
     def __eq__(self, other):
         """Bins are equal if they are of the same type, defined on the same phase space."""
-        return type(self) == type(other) and self.phasespace == other.phasespace
+        return type(self) is type(other) and self.phasespace == other.phasespace
 
     def __ne__(self, other):
         return not self == other
@@ -2242,7 +2242,7 @@ class CartesianProductBinning(Binning):
     def __eq__(self, other):
         """CartesianProductBinnings are equal if the included Binnings match."""
         return (
-            type(self) == type(other)
+            type(self) is type(other)
             and self.binnings == other.binnings
             and self.subbinnings == other.subbinnings
         )
@@ -2527,7 +2527,7 @@ class LinearBinning(Binning):
     def __eq__(self, other):
         """Linear binnings are equal if the variable and edges match."""
         return (
-            type(self) == type(other)
+            type(self) is type(other)
             and self.variable == other.variable
             and np.all(self.bin_edges == other.bin_edges)
             and self.include_upper == other.include_upper
@@ -2876,7 +2876,7 @@ class RectilinearBinning(CartesianProductBinning):
     def __eq__(self, other):
         """RectilinearBinnings are equal if the bin edges and variables match."""
         return (
-            type(self) == type(other)
+            type(self) is type(other)
             and self.variables == other.variables
             and all(
                 tuple(
