@@ -14,7 +14,6 @@ using the ``binning.yaml`` module::
 
 """
 
-
 from copy import deepcopy
 from tempfile import TemporaryFile
 
