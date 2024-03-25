@@ -1,6 +1,5 @@
 """Module that deals with the calculations of likelihoods."""
 
-
 import numpy as np
 from scipy import optimize, stats
 from scipy.misc import derivative
