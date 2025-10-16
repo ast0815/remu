@@ -1,6 +1,5 @@
 """Utility functions for the work with response matrices."""
 
-
 import numpy as np
 from matplotlib import pyplot as plt
 from scipy import stats

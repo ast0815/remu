@@ -1,6 +1,5 @@
 """Module handling the creation and use of migration matrices."""
 
-
 from copy import deepcopy
 from warnings import warn
 
