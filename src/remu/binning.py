@@ -20,6 +20,7 @@ from tempfile import TemporaryFile
 import numpy as np
 import yaml
 from numpy.lib.recfunctions import rename_fields
+from . import yaml_compat
 
 # Use this function/object for parallelization where possible
 mapper = map

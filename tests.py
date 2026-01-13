@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import yaml
 from scipy import stats
+import remu.yaml_compat as yaml_compat
 
 import remu.binning as binning
 import remu.likelihood as likelihood
@@ -84,9 +85,9 @@ class TestPhaseSpaces(unittest.TestCase):
 
     def test_yaml_representation(self):
         """Test whether the text parsing can reproduce the original object."""
-        self.assertEqual(self.psX, yaml.full_load(yaml.dump(self.psX)))
-        self.assertEqual(self.psXY, yaml.full_load(yaml.dump(self.psXY)))
-        self.assertEqual(self.psXYZ, yaml.full_load(yaml.dump(self.psXYZ)))
+        self.assertEqual(self.psX, yaml_compat.full_load(yaml.dump(self.psX)))
+        self.assertEqual(self.psXY, yaml_compat.full_load(yaml.dump(self.psXY)))
+        self.assertEqual(self.psXYZ, yaml_compat.full_load(yaml.dump(self.psXYZ)))
 
 
 class TestBins(unittest.TestCase):
@@ -152,7 +153,7 @@ class TestBins(unittest.TestCase):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b0
         yml = yaml.dump(orig)
-        reco = yaml.full_load(yml)
+        reco = yaml_compat.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -219,7 +220,7 @@ class TestRectangularBins(unittest.TestCase):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b
         yml = yaml.dump(orig)
-        reco = yaml.full_load(yml)
+        reco = yaml_compat.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -274,7 +275,7 @@ class TestCartesianProductBins(unittest.TestCase):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b
         yml = yaml.dump(orig)
-        reco = yaml.full_load(yml)
+        reco = yaml_compat.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -551,19 +552,19 @@ class TestBinnings(unittest.TestCase):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.binning
         yml = yaml.dump(orig)
-        reco = yaml.full_load(yml)
+        reco = yaml_compat.full_load(yml)
         self.assertEqual(orig, reco)
         orig = self.binning0
         yml = yaml.dump(orig)
-        reco = yaml.full_load(yml)
+        reco = yaml_compat.full_load(yml)
         self.assertEqual(orig, reco)
         orig = self.binning1
         yml = yaml.dump(orig)
-        reco = yaml.full_load(yml)
+        reco = yaml_compat.full_load(yml)
         self.assertEqual(orig, reco)
         orig = self.binning2
         yml = yaml.dump(orig)
-        reco = yaml.full_load(yml)
+        reco = yaml_compat.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -650,7 +651,7 @@ class TestCartesianProductBinnings(unittest.TestCase):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b0
         yml = yaml.dump(orig)
-        reco = yaml.full_load(yml)
+        reco = yaml_compat.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -683,7 +684,7 @@ class TestRectangularBinnings(unittest.TestCase):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b0
         yml = yaml.dump(orig)
-        reco = yaml.full_load(yml)
+        reco = yaml_compat.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -753,7 +754,7 @@ class TestLinearBinnings(unittest.TestCase):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b0
         yml = yaml.dump(orig)
-        reco = yaml.full_load(yml)
+        reco = yaml_compat.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -966,7 +967,7 @@ class TestRectilinearBinnings(unittest.TestCase):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.bl
         yml = yaml.dump(orig)
-        reco = yaml.full_load(yml)
+        reco = yaml_compat.full_load(yml)
         self.assertEqual(orig, reco)
 
 
