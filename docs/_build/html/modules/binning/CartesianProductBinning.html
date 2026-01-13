@@ -1,0 +1,916 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CartesianProductBinning &mdash; ReMU  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="LinearBinning" href="LinearBinning.html" />
+    <link rel="prev" title="RectangularBinning" href="RectangularBinning.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/ReMU.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/README.html">An example analysis</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../README.html">Module references</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../binning.html">binning</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../binning.html#yaml-interface">YAML interface</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../binning.html#classes">Classes</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="PhaseSpace.html">PhaseSpace</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Bin.html">Bin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RectangularBin.html">RectangularBin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="CartesianProductBin.html">CartesianProductBin</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Binning.html">Binning</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RectangularBinning.html">RectangularBinning</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">CartesianProductBinning</a></li>
+<li class="toctree-l4"><a class="reference internal" href="LinearBinning.html">LinearBinning</a></li>
+<li class="toctree-l4"><a class="reference internal" href="RectilinearBinning.html">RectilinearBinning</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../migration.html">migration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../likelihood.html">likelihood</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plotting.html">plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../matrix_utils.html">matrix_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../likelihood_utils.html">likelihood_utils</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ReMU</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../README.html">Module references</a></li>
+          <li class="breadcrumb-item"><a href="../binning.html">binning</a></li>
+      <li class="breadcrumb-item active">CartesianProductBinning</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/modules/binning/CartesianProductBinning.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="cartesianproductbinning">
+<h1>CartesianProductBinning<a class="headerlink" href="#cartesianproductbinning" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">remu.binning.</span></span><span class="sig-name descname"><span class="pre">CartesianProductBinning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binnings</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/binning.html#CartesianProductBinning"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.binning.CartesianProductBinning" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="Binning.html#remu.binning.Binning" title="remu.binning.Binning"><code class="xref py py-class docutils literal notranslate"><span class="pre">Binning</span></code></a></p>
+<p>A Binning that is the cartesian product of two or more Binnings</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>binnings</strong><span class="classifier">list of Binning</span></dt><dd><p>The Binning objects to be multiplied.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Attributes</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>binnings</strong></p></td>
+<td><p>(tuple of Binning) The <a class="reference internal" href="Binning.html#remu.binning.Binning" title="remu.binning.Binning"><code class="xref py py-class docutils literal notranslate"><span class="pre">Binning</span></code></a> objects that make up the Cartesian product.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>bins</strong></p></td>
+<td><p>(proxy for Bins) Proxy that will generate <a class="reference internal" href="CartesianProductBin.html#remu.binning.CartesianProductBin" title="remu.binning.CartesianProductBin"><code class="xref py py-class docutils literal notranslate"><span class="pre">CartesianProductBin</span></code></a> instances, when accessed.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>nbins</strong></p></td>
+<td><p>(int) The number of bins in the binning.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>bins_shape</strong></p></td>
+<td><p>(tuple of int) The sizes of the constituent binnings.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>data_size</strong></p></td>
+<td><p>(int) The number of elements in the data arrays. Might differ from <code class="docutils literal notranslate"><span class="pre">nbins</span></code> due to subbinnings.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>subbinnings</strong></p></td>
+<td><p>(dict of {bin_index: Binning}) Subbinnings to replace certain bins.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>value_array</strong></p></td>
+<td><p>(slice of ndarray) A slice of a numpy array, where the values of the bins are stored.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>entries_array</strong></p></td>
+<td><p>(slice of ndarray) A slice of a numpy array, where the number of entries are stored.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>sumw2_array</strong></p></td>
+<td><p>(slice of ndarray) A slice of a numpy array, where the squared weights are stored.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>phasespace</strong></p></td>
+<td><p>(PhaseSpace) The <a class="reference internal" href="PhaseSpace.html#remu.binning.PhaseSpace" title="remu.binning.PhaseSpace"><code class="xref py py-class docutils literal notranslate"><span class="pre">PhaseSpace</span></code></a> the binning resides in.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.clone" title="remu.binning.CartesianProductBinning.clone"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clone</span></code></a>(**kwargs)</p></td>
+<td><p>Create a functioning copy of the Binning.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.event_in_binning" title="remu.binning.CartesianProductBinning.event_in_binning"><code class="xref py py-obj docutils literal notranslate"><span class="pre">event_in_binning</span></code></a>(event)</p></td>
+<td><p>Check whether an event fits into any of the bins.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.fill" title="remu.binning.CartesianProductBinning.fill"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fill</span></code></a>(event[, weight, raise_error, rename])</p></td>
+<td><p>Fill the events into their respective bins.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.fill_data_index" title="remu.binning.CartesianProductBinning.fill_data_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fill_data_index</span></code></a>(i[, weight])</p></td>
+<td><p>Add the weight(s) to the given data position.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.fill_from_csv_file" title="remu.binning.CartesianProductBinning.fill_from_csv_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fill_from_csv_file</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Fill the binning with events from a CSV file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.fill_multiple_from_csv_file" title="remu.binning.CartesianProductBinning.fill_multiple_from_csv_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fill_multiple_from_csv_file</span></code></a>(binnings, filename)</p></td>
+<td><p>Fill multiple Binnings from the same csv file(s).</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.from_yaml" title="remu.binning.CartesianProductBinning.from_yaml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">from_yaml</span></code></a>(loader, node)</p></td>
+<td><p>Convert a representation node to a Python object.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_adjacent_bin_indices" title="remu.binning.CartesianProductBinning.get_adjacent_bin_indices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_adjacent_bin_indices</span></code></a>()</p></td>
+<td><p>Return a list of adjacent bin indices.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_adjacent_data_indices" title="remu.binning.CartesianProductBinning.get_adjacent_data_indices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_adjacent_data_indices</span></code></a>()</p></td>
+<td><p>Return a list of adjacent data indices.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_bin_data_index" title="remu.binning.CartesianProductBinning.get_bin_data_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_bin_data_index</span></code></a>(bin_i)</p></td>
+<td><p>Calculate the data array index from the bin number.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_bin_index_tuple" title="remu.binning.CartesianProductBinning.get_bin_index_tuple"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_bin_index_tuple</span></code></a>(i_bin)</p></td>
+<td><p>Translate the linear bin index of the event to a tuple of single binning bin indices.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_data_bin_index" title="remu.binning.CartesianProductBinning.get_data_bin_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_data_bin_index</span></code></a>(data_i)</p></td>
+<td><p>Calculate the bin number from the data array index.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_entries_as_ndarray" title="remu.binning.CartesianProductBinning.get_entries_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_entries_as_ndarray</span></code></a>([shape, indices])</p></td>
+<td><p>Return the number of entries in the bins as ndarray.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_event_bin" title="remu.binning.CartesianProductBinning.get_event_bin"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_event_bin</span></code></a>(event)</p></td>
+<td><p>Get the bin of the event.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_event_bin_index" title="remu.binning.CartesianProductBinning.get_event_bin_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_event_bin_index</span></code></a>(event)</p></td>
+<td><p>Get the bin index for a given event.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_event_data_index" title="remu.binning.CartesianProductBinning.get_event_data_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_event_data_index</span></code></a>(event)</p></td>
+<td><p>Get the data array index of the given event.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_event_subbins" title="remu.binning.CartesianProductBinning.get_event_subbins"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_event_subbins</span></code></a>(event)</p></td>
+<td><p>Get the tuple of subbins of the event.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_event_tuple" title="remu.binning.CartesianProductBinning.get_event_tuple"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_event_tuple</span></code></a>(event)</p></td>
+<td><p>Get the variable index tuple for a given event.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_subbins" title="remu.binning.CartesianProductBinning.get_subbins"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_subbins</span></code></a>(data_index)</p></td>
+<td><p>Return a tuple of the bin and subbins corresponding to the data_index.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_sumw2_as_ndarray" title="remu.binning.CartesianProductBinning.get_sumw2_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_sumw2_as_ndarray</span></code></a>([shape, indices])</p></td>
+<td><p>Return the sum of squared weights in the bins as ndarray.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_tuple_bin_index" title="remu.binning.CartesianProductBinning.get_tuple_bin_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_tuple_bin_index</span></code></a>(tup)</p></td>
+<td><p>Translate a tuple of binning specific bin indices to the linear bin index of the event.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_values_as_ndarray" title="remu.binning.CartesianProductBinning.get_values_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_values_as_ndarray</span></code></a>([shape, indices])</p></td>
+<td><p>Return the bin values as ndarray.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.insert_subbinning" title="remu.binning.CartesianProductBinning.insert_subbinning"><code class="xref py py-obj docutils literal notranslate"><span class="pre">insert_subbinning</span></code></a>(bin_index, binning)</p></td>
+<td><p>Insert a new subbinning into the binning.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.insert_subbinning_on_ndarray" title="remu.binning.CartesianProductBinning.insert_subbinning_on_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">insert_subbinning_on_ndarray</span></code></a>(array, ...)</p></td>
+<td><p>Insert values of a new subbinning into the array.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.is_dummy" title="remu.binning.CartesianProductBinning.is_dummy"><code class="xref py py-obj docutils literal notranslate"><span class="pre">is_dummy</span></code></a>()</p></td>
+<td><p>Return <cite>True</cite> if there is no data array linked to this binning.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.iter_subbins" title="remu.binning.CartesianProductBinning.iter_subbins"><code class="xref py py-obj docutils literal notranslate"><span class="pre">iter_subbins</span></code></a>()</p></td>
+<td><p>Iterate over all bins and subbins.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.link_arrays" title="remu.binning.CartesianProductBinning.link_arrays"><code class="xref py py-obj docutils literal notranslate"><span class="pre">link_arrays</span></code></a>()</p></td>
+<td><p>Link the data storage arrays into the bins and sub_binnings.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.marginalize" title="remu.binning.CartesianProductBinning.marginalize"><code class="xref py py-obj docutils literal notranslate"><span class="pre">marginalize</span></code></a>(binning_i[, reduction_function])</p></td>
+<td><p>Marginalize out the given binnings and return a new CartesianProductBinning.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.marginalize_subbinnings" title="remu.binning.CartesianProductBinning.marginalize_subbinnings"><code class="xref py py-obj docutils literal notranslate"><span class="pre">marginalize_subbinnings</span></code></a>([bin_indices])</p></td>
+<td><p>Return a clone of the Binning with subbinnings removed.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.marginalize_subbinnings_on_ndarray" title="remu.binning.CartesianProductBinning.marginalize_subbinnings_on_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">marginalize_subbinnings_on_ndarray</span></code></a>(array[, ...])</p></td>
+<td><p>Marginalize out the bins corresponding to the subbinnings.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.project" title="remu.binning.CartesianProductBinning.project"><code class="xref py py-obj docutils literal notranslate"><span class="pre">project</span></code></a>(binning_i, **kwargs)</p></td>
+<td><p>Project the binning onto the given binnings and return a new CartesianProductBinning.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.reset" title="remu.binning.CartesianProductBinning.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code></a>([value, entries, sumw2])</p></td>
+<td><p>Reset all bin values to 0.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.set_entries_from_ndarray" title="remu.binning.CartesianProductBinning.set_entries_from_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_entries_from_ndarray</span></code></a>(arr)</p></td>
+<td><p>Set the number of bin entries to the values of the ndarray.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.set_sumw2_from_ndarray" title="remu.binning.CartesianProductBinning.set_sumw2_from_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_sumw2_from_ndarray</span></code></a>(arr)</p></td>
+<td><p>Set the sums of squared weights to the values of the ndarray.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.set_values_from_ndarray" title="remu.binning.CartesianProductBinning.set_values_from_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_values_from_ndarray</span></code></a>(arr)</p></td>
+<td><p>Set the bin values to the values of the ndarray.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.binning.CartesianProductBinning.to_yaml" title="remu.binning.CartesianProductBinning.to_yaml"><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_yaml</span></code></a>(dumper, obj)</p></td>
+<td><p>Convert a Python object to a representation node.</p></td>
+</tr>
+</tbody>
+</table>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>yaml_dumper</strong></p></td>
+<td></td>
+</tr>
+<tr class="row-even"><td><p><strong>yaml_loader</strong></p></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>This creates a Binning with as many bins as the product of the number of
+bins in the iput binnings.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.clone">
+<span class="sig-name descname"><span class="pre">clone</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.clone" title="Link to this definition"></a></dt>
+<dd><p>Create a functioning copy of the Binning.</p>
+<p>Can specify additional kwargs for the initialisation of the new Binning.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.event_in_binning">
+<span class="sig-name descname"><span class="pre">event_in_binning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.event_in_binning" title="Link to this definition"></a></dt>
+<dd><p>Check whether an event fits into any of the bins.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.fill">
+<span class="sig-name descname"><span class="pre">fill</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">raise_error</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.fill" title="Link to this definition"></a></dt>
+<dd><p>Fill the events into their respective bins.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>event</strong><span class="classifier">[iterable of] dict like or Numpy structured array or Pandas DataFrame</span></dt><dd><p>The event(s) to be filled into the binning.</p>
+</dd>
+<dt><strong>weight</strong><span class="classifier">float or iterable of floats, optional</span></dt><dd><p>The weight of the event(s).
+Can be either a scalar which is then used for all events
+or an iterable of weights for the single events.
+Default: 1.</p>
+</dd>
+<dt><strong>raise_error</strong><span class="classifier">bool, optional</span></dt><dd><p>Raise a ValueError if an event is not in the binning.
+Otherwise ignore the event.
+Default: False</p>
+</dd>
+<dt><strong>rename</strong><span class="classifier">dict, optional</span></dt><dd><p>Dict for translating event variable names to binning variable names.
+Default: <cite>{}</cite>, i.e. no translation</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.fill_data_index">
+<span class="sig-name descname"><span class="pre">fill_data_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.fill_data_index" title="Link to this definition"></a></dt>
+<dd><p>Add the weight(s) to the given data position.</p>
+<p>Also increases the number of entries and sum of squared weights accordingly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>i</strong><span class="classifier">int</span></dt><dd><p>The index of the data arrays to be filled.</p>
+</dd>
+<dt><strong>weight</strong><span class="classifier">float or iterable of floats, optional</span></dt><dd><p>Weight(s) to be added to the value of the bin.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.fill_from_csv_file">
+<span class="sig-name descname"><span class="pre">fill_from_csv_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.fill_from_csv_file" title="Link to this definition"></a></dt>
+<dd><p>Fill the binning with events from a CSV file.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>filename</strong><span class="classifier">string or list of strings</span></dt><dd><p>The csv file with the data. Can be a list of filenames.</p>
+</dd>
+<dt><strong>weightfield</strong><span class="classifier">string, optional</span></dt><dd><p>The column with the event weights.</p>
+</dd>
+<dt><strong>weight</strong><span class="classifier">float or iterable of floats, optional</span></dt><dd><p>A single weight that will be applied to all events in the file.
+Can be an iterable with one weight for each file if <cite>filename</cite> is a list.</p>
+</dd>
+<dt><strong>rename</strong><span class="classifier">dict, optional</span></dt><dd><p>A dict with columns that should be renamed before filling:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;csv_name&#39;</span><span class="p">:</span> <span class="s1">&#39;binning_name&#39;</span><span class="p">}</span>
+</pre></div>
+</div>
+</dd>
+<dt><strong>cut_function</strong><span class="classifier">function, optional</span></dt><dd><p>A function that modifies the loaded data before filling into the binning,
+e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">cut_function</span><span class="p">(</span><span class="n">data</span><span class="p">)</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;binning_name&#39;</span><span class="p">]</span> <span class="o">&gt;</span> <span class="n">some_threshold</span> <span class="p">]</span>
+</pre></div>
+</div>
+<p>This is done <em>after</em> the optional renaming.</p>
+</dd>
+<dt><strong>buffer_csv_files</strong><span class="classifier">bool, optional</span></dt><dd><p>Save the results of loading CSV files in temporary files
+that can be recovered if the same CSV file is loaded again. This
+speeds up filling multiple Binnings with the same CSV-files considerably!
+Default: False</p>
+</dd>
+<dt><strong>chunksize</strong><span class="classifier">int, optional</span></dt><dd><p>Load csv file in chunks of &lt;chunksize&gt; rows. This reduces the memory
+footprint of the loading operation, but can slow it down.
+Default: 10000</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The file must be formated like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">first_varname</span><span class="p">,</span><span class="n">second_varname</span><span class="p">,</span><span class="o">...</span>
+<span class="o">&lt;</span><span class="n">first_value</span><span class="o">&gt;</span><span class="p">,</span><span class="o">&lt;</span><span class="n">second_value</span><span class="o">&gt;</span><span class="p">,</span><span class="o">...</span>
+<span class="o">&lt;</span><span class="n">first_value</span><span class="o">&gt;</span><span class="p">,</span><span class="o">&lt;</span><span class="n">second_value</span><span class="o">&gt;</span><span class="p">,</span><span class="o">...</span>
+<span class="o">&lt;</span><span class="n">first_value</span><span class="o">&gt;</span><span class="p">,</span><span class="o">&lt;</span><span class="n">second_value</span><span class="o">&gt;</span><span class="p">,</span><span class="o">...</span>
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>For example:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">x</span><span class="p">,</span><span class="n">y</span><span class="p">,</span><span class="n">z</span>
+<span class="mf">1.0</span><span class="p">,</span><span class="mf">2.1</span><span class="p">,</span><span class="mf">3.2</span>
+<span class="mf">4.1</span><span class="p">,</span><span class="mf">2.0</span><span class="p">,</span><span class="mf">2.9</span>
+<span class="mi">3</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">1</span>
+</pre></div>
+</div>
+<p>All values are interpreted as floats. If <cite>weightfield</cite> is given, that
+field will be used as weigts for the event. Other keyword arguments
+are passed on to the Binning’s <a class="reference internal" href="#remu.binning.CartesianProductBinning.fill" title="remu.binning.CartesianProductBinning.fill"><code class="xref py py-meth docutils literal notranslate"><span class="pre">fill()</span></code></a> method. If filename is a list,
+all elemets are handled recursively.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.fill_multiple_from_csv_file">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">fill_multiple_from_csv_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binnings</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weightfield</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">weight</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rename</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cut_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">Binning.&lt;lambda&gt;&gt;</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">buffer_csv_files</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">chunksize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">**kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.fill_multiple_from_csv_file" title="Link to this definition"></a></dt>
+<dd><p>Fill multiple Binnings from the same csv file(s).</p>
+<p>This method saves time, because the numpy array only has to be
+generated once. Other than the list of binnings to be filled, the
+(keyword) arguments are identical to the ones used by the instance
+method <a class="reference internal" href="#remu.binning.CartesianProductBinning.fill_from_csv_file" title="remu.binning.CartesianProductBinning.fill_from_csv_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">fill_from_csv_file()</span></code></a>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.from_yaml">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">from_yaml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">loader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">node</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.from_yaml" title="Link to this definition"></a></dt>
+<dd><p>Convert a representation node to a Python object.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_adjacent_bin_indices">
+<span class="sig-name descname"><span class="pre">get_adjacent_bin_indices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/binning.html#CartesianProductBinning.get_adjacent_bin_indices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_adjacent_bin_indices" title="Link to this definition"></a></dt>
+<dd><p>Return a list of adjacent bin indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>adjacent_indices</strong><span class="classifier">list of ndarray</span></dt><dd><p>The adjacent indices of each bin</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_adjacent_data_indices">
+<span class="sig-name descname"><span class="pre">get_adjacent_data_indices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_adjacent_data_indices" title="Link to this definition"></a></dt>
+<dd><p>Return a list of adjacent data indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>adjacent_indices</strong><span class="classifier">list of ndarray</span></dt><dd><p>The adjacent indices of each data index</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Data indices inside a subbinning will only ever be adjacent to other
+indices inside the same subbinning. There is no information available
+about which bins in a subbinning are adjacent to which bins in the
+parent binning.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_bin_data_index">
+<span class="sig-name descname"><span class="pre">get_bin_data_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bin_i</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_bin_data_index" title="Link to this definition"></a></dt>
+<dd><p>Calculate the data array index from the bin number.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_bin_index_tuple">
+<span class="sig-name descname"><span class="pre">get_bin_index_tuple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i_bin</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/binning.html#CartesianProductBinning.get_bin_index_tuple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_bin_index_tuple" title="Link to this definition"></a></dt>
+<dd><p>Translate the linear bin index of the event to a tuple of single binning bin indices.</p>
+<p>Turns this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">i_bin</span>
+</pre></div>
+</div>
+<p>into this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="n">i_x</span><span class="p">,</span> <span class="n">i_y</span><span class="p">,</span> <span class="n">i_z</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The order of the indices in the tuple conforms to the order of
+<cite>binnings</cite>. The bins are ordered row-major (C-style), i.e. increasing
+the bin number of the last variable by one increases the overall bin
+number also by one. The increments of the other variables depend on the
+number of bins in each variable.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_data_bin_index">
+<span class="sig-name descname"><span class="pre">get_data_bin_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_i</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_data_bin_index" title="Link to this definition"></a></dt>
+<dd><p>Calculate the bin number from the data array index.</p>
+<p>All data indices inside a subbinning will return the bin index of that
+subbinning.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_entries_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_entries_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_entries_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Return the number of entries in the bins as ndarray.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>shape: tuple of ints</strong></dt><dd><p>Shape of the resulting array.
+Default: <code class="docutils literal notranslate"><span class="pre">(len(bins),)</span></code></p>
+</dd>
+<dt><strong>indices: list of ints</strong></dt><dd><p>Only return the given bins.
+Default: Return all bins.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>ndarray</dt><dd><p>An ndarray with the numbers of entries of the bins.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_event_bin">
+<span class="sig-name descname"><span class="pre">get_event_bin</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_event_bin" title="Link to this definition"></a></dt>
+<dd><p>Get the bin of the event.</p>
+<p>Returns <cite>None</cite> if the event does not fit in any bin.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>event</strong><span class="classifier">dict like</span></dt><dd><p>A dictionary (or similar object) with one value of each variable</p>
+<p>in the binning, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mf">1.4</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">7.47</span><span class="p">}</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>Bin or None</dt><dd><p>The <a class="reference internal" href="Bin.html#remu.binning.Bin" title="remu.binning.Bin"><code class="xref py py-class docutils literal notranslate"><span class="pre">Bin</span></code></a> object the event fits into.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_event_bin_index">
+<span class="sig-name descname"><span class="pre">get_event_bin_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/binning.html#CartesianProductBinning.get_event_bin_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_event_bin_index" title="Link to this definition"></a></dt>
+<dd><p>Get the bin index for a given event.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_event_data_index">
+<span class="sig-name descname"><span class="pre">get_event_data_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_event_data_index" title="Link to this definition"></a></dt>
+<dd><p>Get the data array index of the given event.</p>
+<p>Returns <cite>None</cite> if the event does not belong to any bin.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>event</strong><span class="classifier">dict like</span></dt><dd><p>A dictionary (or similar object) with one value of each variable
+in the binning, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mf">1.4</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">7.47</span><span class="p">}</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>int or None</dt><dd><p>The bin number</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#remu.binning.CartesianProductBinning.get_event_bin_index" title="remu.binning.CartesianProductBinning.get_event_bin_index"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_event_bin_index</span></code></a></dt><dd></dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_event_subbins">
+<span class="sig-name descname"><span class="pre">get_event_subbins</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_event_subbins" title="Link to this definition"></a></dt>
+<dd><p>Get the tuple of subbins of the event.</p>
+<p>Returns <cite>None</cite> if the event does not fit in any bin.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>event</strong><span class="classifier">dict like</span></dt><dd><p>A dictionary (or similar object) with one value of each variable</p>
+<p>in the binning, e.g.:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="mf">1.4</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="o">-</span><span class="mf">7.47</span><span class="p">}</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>([bin[, subbin[, subbin …]]) or None</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_event_tuple">
+<span class="sig-name descname"><span class="pre">get_event_tuple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/binning.html#CartesianProductBinning.get_event_tuple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_event_tuple" title="Link to this definition"></a></dt>
+<dd><p>Get the variable index tuple for a given event.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_subbins">
+<span class="sig-name descname"><span class="pre">get_subbins</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data_index</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_subbins" title="Link to this definition"></a></dt>
+<dd><p>Return a tuple of the bin and subbins corresponding to the data_index.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>(bin[, subbin[, subbin …]])</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_sumw2_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_sumw2_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_sumw2_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Return the sum of squared weights in the bins as ndarray.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>shape: tuple of ints</strong></dt><dd><p>Shape of the resulting array.
+Default: <code class="docutils literal notranslate"><span class="pre">(len(bins),)</span></code></p>
+</dd>
+<dt><strong>indices: list of ints</strong></dt><dd><p>Only return the given bins.
+Default: Return all bins.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>ndarray</dt><dd><p>An ndarray with the sum of squared weights of the bins.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_tuple_bin_index">
+<span class="sig-name descname"><span class="pre">get_tuple_bin_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tup</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/binning.html#CartesianProductBinning.get_tuple_bin_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_tuple_bin_index" title="Link to this definition"></a></dt>
+<dd><p>Translate a tuple of binning specific bin indices to the linear bin index of the event.</p>
+<p>Turns this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="n">i_x</span><span class="p">,</span> <span class="n">i_y</span><span class="p">,</span> <span class="n">i_z</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>into this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">i_bin</span>
+</pre></div>
+</div>
+<p>The order of the indices in the tuple must conform to the order of
+<cite>binnings</cite>. The bins are ordered row-major (C-style), i.e. increasing
+the bin number of the last binning by one increases the overall bin
+number also by one. The increments of the other variables depend on the
+number of bins in each variable.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.get_values_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_values_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.get_values_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Return the bin values as ndarray.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>shape: tuple of ints</strong></dt><dd><p>Shape of the resulting array.
+Default: <code class="docutils literal notranslate"><span class="pre">(len(bins),)</span></code></p>
+</dd>
+<dt><strong>indices: list of ints</strong></dt><dd><p>Only return the given bins.
+Default: Return all bins.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>ndarray</dt><dd><p>An ndarray with the values of the bins.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.insert_subbinning">
+<span class="sig-name descname"><span class="pre">insert_subbinning</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bin_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binning</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.insert_subbinning" title="Link to this definition"></a></dt>
+<dd><p>Insert a new subbinning into the binning.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>bin_index</strong><span class="classifier">int</span></dt><dd><p>The bin to be replaced with the subbinning.</p>
+</dd>
+<dt><strong>binning</strong><span class="classifier">Binning</span></dt><dd><p>The new subbinning</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>new_binning</strong><span class="classifier">Binning</span></dt><dd><p>A copy of this binning with the new subbinning.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>This will replace the content of the bin with the content of the new
+subbinning!</p>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.insert_subbinning_on_ndarray">
+<span class="sig-name descname"><span class="pre">insert_subbinning_on_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bin_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">insert_array</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.insert_subbinning_on_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Insert values of a new subbinning into the array.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>array</strong><span class="classifier">ndarray</span></dt><dd><p>The data to work on.</p>
+</dd>
+<dt><strong>bin_index</strong><span class="classifier">int</span></dt><dd><p>The bin to be replaced with the subbinning.</p>
+</dd>
+<dt><strong>insert_array</strong><span class="classifier">ndarrau</span></dt><dd><p>The array to be inserted.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>new_array</strong><span class="classifier">ndarray</span></dt><dd><p>The modified array.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.is_dummy">
+<span class="sig-name descname"><span class="pre">is_dummy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.is_dummy" title="Link to this definition"></a></dt>
+<dd><p>Return <cite>True</cite> if there is no data array linked to this binning.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.iter_subbins">
+<span class="sig-name descname"><span class="pre">iter_subbins</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.iter_subbins" title="Link to this definition"></a></dt>
+<dd><p>Iterate over all bins and subbins.</p>
+<p>Will yield a tuple of the bins in this Binning and all subbinnings in
+the order they correspond to the data indices.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Yields<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt>(bin[, subbin[, subbin …]])</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.link_arrays">
+<span class="sig-name descname"><span class="pre">link_arrays</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.link_arrays" title="Link to this definition"></a></dt>
+<dd><p>Link the data storage arrays into the bins and sub_binnings.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.marginalize">
+<span class="sig-name descname"><span class="pre">marginalize</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binning_i</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">reduction_function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">&lt;function</span> <span class="pre">sum&gt;</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/binning.html#CartesianProductBinning.marginalize"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.binning.CartesianProductBinning.marginalize" title="Link to this definition"></a></dt>
+<dd><p>Marginalize out the given binnings and return a new CartesianProductBinning.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>binning_i</strong><span class="classifier">iterable of int</span></dt><dd><p>Iterable of index of binning to be marginalized.</p>
+</dd>
+<dt><strong>reduction_function</strong><span class="classifier">function</span></dt><dd><p>Use this function to marginalize out the entries over the specified variables.
+Must support the <cite>axis</cite> keyword argument.
+Default: numpy.sum</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.marginalize_subbinnings">
+<span class="sig-name descname"><span class="pre">marginalize_subbinnings</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">bin_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.marginalize_subbinnings" title="Link to this definition"></a></dt>
+<dd><p>Return a clone of the Binning with subbinnings removed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>bin_indices</strong><span class="classifier">list of int, optional</span></dt><dd><p>The bin indices of the subbinnings to be marginalized.
+If no indices are specified, all subbinnings are marginalized.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>new_binning</strong><span class="classifier">Binning</span></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.marginalize_subbinnings_on_ndarray">
+<span class="sig-name descname"><span class="pre">marginalize_subbinnings_on_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">array</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bin_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.marginalize_subbinnings_on_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Marginalize out the bins corresponding to the subbinnings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>array</strong><span class="classifier">ndarray</span></dt><dd><p>The data to work on.</p>
+</dd>
+<dt><strong>bin_indices</strong><span class="classifier">list of int, optional</span></dt><dd><p>The bin indices of the subbinnings to be marginalized.
+If no indices are specified, all subbinnings are marginalized.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt><strong>new_array</strong><span class="classifier">ndarray</span></dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.project">
+<span class="sig-name descname"><span class="pre">project</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">binning_i</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/binning.html#CartesianProductBinning.project"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.binning.CartesianProductBinning.project" title="Link to this definition"></a></dt>
+<dd><p>Project the binning onto the given binnings and return a new CartesianProductBinning.</p>
+<p>The order of the original binnings is preserved. If a single <code class="docutils literal notranslate"><span class="pre">int</span></code> is
+provided, the returned Binning is of the same type as the respective
+binning.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>binning_i</strong><span class="classifier">iterable of int, or int</span></dt><dd><p>Iterable of index of binning to be marginalized.</p>
+</dd>
+<dt><strong>kwargs</strong><span class="classifier">optional</span></dt><dd><p>Additional keyword arguments are passed on to <a class="reference internal" href="#remu.binning.CartesianProductBinning.marginalize" title="remu.binning.CartesianProductBinning.marginalize"><code class="xref py py-meth docutils literal notranslate"><span class="pre">marginalize()</span></code></a>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>CartesianProductBinning or type(self.binnings[binning_i])</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">value</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">entries</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sumw2</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.reset" title="Link to this definition"></a></dt>
+<dd><p>Reset all bin values to 0.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>value</strong><span class="classifier">float, optional</span></dt><dd><p>Set the bin values to this value.</p>
+</dd>
+<dt><strong>entries</strong><span class="classifier">int, optional</span></dt><dd><p>Set the number of entries in each bin to this value.</p>
+</dd>
+<dt><strong>sumw2</strong><span class="classifier">float, optional</span></dt><dd><p>Set the sum of squared weights in each bin to this value.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.set_entries_from_ndarray">
+<span class="sig-name descname"><span class="pre">set_entries_from_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.set_entries_from_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Set the number of bin entries to the values of the ndarray.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.set_sumw2_from_ndarray">
+<span class="sig-name descname"><span class="pre">set_sumw2_from_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.set_sumw2_from_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Set the sums of squared weights to the values of the ndarray.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.set_values_from_ndarray">
+<span class="sig-name descname"><span class="pre">set_values_from_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">arr</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.set_values_from_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Set the bin values to the values of the ndarray.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.to_yaml">
+<span class="property"><span class="k"><span class="pre">classmethod</span></span><span class="w"> </span></span><span class="sig-name descname"><span class="pre">to_yaml</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dumper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">obj</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#remu.binning.CartesianProductBinning.to_yaml" title="Link to this definition"></a></dt>
+<dd><p>Convert a Python object to a representation node.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="remu.binning.CartesianProductBinning.yaml_loader">
+<span class="sig-name descname"><span class="pre">yaml_loader</span></span><a class="headerlink" href="#remu.binning.CartesianProductBinning.yaml_loader" title="Link to this definition"></a></dt>
+<dd><p>alias of <code class="xref py py-class docutils literal notranslate"><span class="pre">FullLoader</span></code></p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="RectangularBinning.html" class="btn btn-neutral float-left" title="RectangularBinning" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="LinearBinning.html" class="btn btn-neutral float-right" title="LinearBinning" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Lukas Koch.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

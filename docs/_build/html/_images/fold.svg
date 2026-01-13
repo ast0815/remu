@@ -1,0 +1,734 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="163.98083mm"
+   height="66.465973mm"
+   viewBox="0 0 163.98083 66.465973"
+   version="1.1"
+   id="svg6180"
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
+   sodipodi:docname="fold.svg">
+  <defs
+     id="defs6174" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1.979899"
+     inkscape:cx="325.48097"
+     inkscape:cy="116.01702"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     fit-margin-top="5"
+     fit-margin-left="5"
+     fit-margin-bottom="5"
+     fit-margin-right="5"
+     inkscape:window-width="1920"
+     inkscape:window-height="1000"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata6177">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(29.829703,-128.45154)">
+    <g
+       transform="matrix(0.50755939,0,0,0.50755939,-54.436276,-63.240423)"
+       id="g3459">
+      <g
+         id="g142">
+        <rect
+           id="rect138"
+           height="70"
+           width="10"
+           y="390"
+           x="100"
+           style="fill:#008000" />
+        <rect
+           id="rect140"
+           height="70"
+           width="10"
+           y="390"
+           x="100"
+           style="fill:none;fill-opacity:0;stroke:#008000;stroke-width:0.02" />
+      </g>
+      <g
+         id="g148">
+        <rect
+           id="rect144"
+           height="10"
+           width="10"
+           y="450"
+           x="110"
+           style="fill:#008000" />
+        <rect
+           id="rect146"
+           height="10"
+           width="10"
+           y="450"
+           x="110"
+           style="fill:none;fill-opacity:0;stroke:#008000;stroke-width:0.02" />
+      </g>
+      <g
+         id="g154">
+        <rect
+           id="rect150"
+           height="40"
+           width="10"
+           y="420"
+           x="90"
+           style="fill:#008000" />
+        <rect
+           id="rect152"
+           height="40"
+           width="10"
+           y="420"
+           x="90"
+           style="fill:none;fill-opacity:0;stroke:#008000;stroke-width:0.02" />
+      </g>
+      <text
+         id="text160"
+         y="480"
+         x="110"
+         style="font-style:normal;font-weight:normal;font-size:12.80000019px;font-family:Georgia;text-anchor:middle;fill:#008000"
+         font-size="12.8">
+        <tspan
+           id="tspan156"
+           y="480"
+           x="110">model expectation</tspan>
+        <tspan
+           id="tspan158"
+           y="496"
+           x="110">in truth space</tspan>
+      </text>
+      <g
+         id="g172">
+        <line
+           id="line166"
+           y2="460"
+           x2="139"
+           y1="460"
+           x1="60"
+           style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+        <polygon
+           id="polygon168"
+           points="139,455 139,465 149,460 "
+           style="fill:#000000" />
+        <polygon
+           id="polygon170"
+           points="139,455 139,465 149,460 "
+           style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+      </g>
+      <g
+         id="g178">
+        <rect
+           id="rect174"
+           height="30"
+           width="10"
+           y="430"
+           x="300"
+           style="fill:#000099" />
+        <rect
+           id="rect176"
+           height="30"
+           width="10"
+           y="430"
+           x="300"
+           style="fill:none;fill-opacity:0;stroke:#000099;stroke-width:0.02" />
+      </g>
+      <g
+         id="g184">
+        <rect
+           id="rect180"
+           height="20"
+           width="10"
+           y="440"
+           x="310"
+           style="fill:#000099" />
+        <rect
+           id="rect182"
+           height="20"
+           width="10"
+           y="440"
+           x="310"
+           style="fill:none;fill-opacity:0;stroke:#000099;stroke-width:0.02" />
+      </g>
+      <g
+         id="g190">
+        <rect
+           id="rect186"
+           height="20"
+           width="10"
+           y="440"
+           x="290"
+           style="fill:#000099" />
+        <rect
+           id="rect188"
+           height="20"
+           width="10"
+           y="440"
+           x="290"
+           style="fill:none;fill-opacity:0;stroke:#000099;stroke-width:0.02" />
+      </g>
+      <text
+         id="text196"
+         y="480"
+         x="310"
+         style="font-style:normal;font-weight:normal;font-size:12.80000019px;font-family:Georgia;text-anchor:middle;fill:#000099"
+         font-size="12.8">
+        <tspan
+           id="tspan192"
+           y="480"
+           x="310">model expectation</tspan>
+        <tspan
+           id="tspan194"
+           y="496"
+           x="310">in reco space</tspan>
+      </text>
+      <g
+         id="g206">
+        <rect
+           id="rect202"
+           height="10"
+           width="10"
+           y="450"
+           x="280"
+           style="fill:#000099" />
+        <rect
+           id="rect204"
+           height="10"
+           width="10"
+           y="450"
+           x="280"
+           style="fill:none;fill-opacity:0;stroke:#000099;stroke-width:0.02" />
+      </g>
+      <g
+         id="g212">
+        <rect
+           id="rect208"
+           height="10"
+           width="10"
+           y="450"
+           x="320"
+           style="fill:#000099" />
+        <rect
+           id="rect210"
+           height="10"
+           width="10"
+           y="450"
+           x="320"
+           style="fill:none;fill-opacity:0;stroke:#000099;stroke-width:0.02" />
+      </g>
+      <g
+         id="g220">
+        <line
+           id="line214"
+           y2="460"
+           x2="339"
+           y1="460"
+           x1="260"
+           style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+        <polygon
+           id="polygon216"
+           points="339,455 339,465 349,460 "
+           style="fill:#000000" />
+        <polygon
+           id="polygon218"
+           points="339,455 339,465 349,460 "
+           style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+      </g>
+      <text
+         id="text224"
+         y="397.20001"
+         x="200"
+         style="font-style:normal;font-weight:normal;font-size:12.80000019px;font-family:Georgia;text-anchor:middle;fill:#800000"
+         font-size="12.8">
+        <tspan
+           id="tspan222"
+           y="397.20001"
+           x="200">detector response matrix</tspan>
+      </text>
+      <line
+         id="line230"
+         y2="440"
+         x2="170"
+         y1="430"
+         x1="160"
+         style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+      <line
+         id="line232"
+         y2="430"
+         x2="170"
+         y1="440"
+         x1="160"
+         style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+      <line
+         id="line234"
+         y2="431.92801"
+         x2="250"
+         y1="431.92801"
+         x1="240"
+         style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+      <line
+         id="line236"
+         y2="438.07199"
+         x2="250"
+         y1="438.07199"
+         x1="240"
+         style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+      <g
+         id="g832">
+        <g
+           id="g686">
+          <rect
+             id="rect682"
+             height="10"
+             width="10"
+             y="410"
+             x="180"
+             style="fill:#c40000" />
+          <rect
+             id="rect684"
+             height="10"
+             width="10"
+             y="410"
+             x="180"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g692">
+          <rect
+             id="rect688"
+             height="10"
+             width="10"
+             y="410"
+             x="190"
+             style="fill:#c40000" />
+          <rect
+             id="rect690"
+             height="10"
+             width="10"
+             y="410"
+             x="190"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g698">
+          <rect
+             id="rect694"
+             height="10"
+             width="10"
+             y="410"
+             x="200"
+             style="fill:#c40000" />
+          <rect
+             id="rect696"
+             height="10"
+             width="10"
+             y="410"
+             x="200"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g704">
+          <rect
+             id="rect700"
+             height="10"
+             width="10"
+             y="410"
+             x="210"
+             style="fill:#c40000" />
+          <rect
+             id="rect702"
+             height="10"
+             width="10"
+             y="410"
+             x="210"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g710">
+          <rect
+             id="rect706"
+             height="10"
+             width="10"
+             y="410"
+             x="220"
+             style="fill:#c40000" />
+          <rect
+             id="rect708"
+             height="10"
+             width="10"
+             y="410"
+             x="220"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g716">
+          <rect
+             id="rect712"
+             height="10"
+             width="10"
+             y="420"
+             x="180"
+             style="fill:#c40000" />
+          <rect
+             id="rect714"
+             height="10"
+             width="10"
+             y="420"
+             x="180"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g722">
+          <rect
+             id="rect718"
+             height="10"
+             width="10"
+             y="420"
+             x="190"
+             style="fill:#c40000" />
+          <rect
+             id="rect720"
+             height="10"
+             width="10"
+             y="420"
+             x="190"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g728">
+          <rect
+             id="rect724"
+             height="10"
+             width="10"
+             y="420"
+             x="200"
+             style="fill:#c40000" />
+          <rect
+             id="rect726"
+             height="10"
+             width="10"
+             y="420"
+             x="200"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g734">
+          <rect
+             id="rect730"
+             height="10"
+             width="10"
+             y="420"
+             x="210"
+             style="fill:#c40000" />
+          <rect
+             id="rect732"
+             height="10"
+             width="10"
+             y="420"
+             x="210"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g740">
+          <rect
+             id="rect736"
+             height="10"
+             width="10"
+             y="420"
+             x="220"
+             style="fill:#c40000" />
+          <rect
+             id="rect738"
+             height="10"
+             width="10"
+             y="420"
+             x="220"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g746">
+          <rect
+             id="rect742"
+             height="10"
+             width="10"
+             y="430"
+             x="180"
+             style="fill:#c40000" />
+          <rect
+             id="rect744"
+             height="10"
+             width="10"
+             y="430"
+             x="180"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g752">
+          <rect
+             id="rect748"
+             height="10"
+             width="10"
+             y="430"
+             x="190"
+             style="fill:#c40000" />
+          <rect
+             id="rect750"
+             height="10"
+             width="10"
+             y="430"
+             x="190"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g758">
+          <rect
+             id="rect754"
+             height="10"
+             width="10"
+             y="430"
+             x="200"
+             style="fill:#c40000" />
+          <rect
+             id="rect756"
+             height="10"
+             width="10"
+             y="430"
+             x="200"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g764">
+          <rect
+             id="rect760"
+             height="10"
+             width="10"
+             y="430"
+             x="210"
+             style="fill:#c40000" />
+          <rect
+             id="rect762"
+             height="10"
+             width="10"
+             y="430"
+             x="210"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g770">
+          <rect
+             id="rect766"
+             height="10"
+             width="10"
+             y="430"
+             x="220"
+             style="fill:#c40000" />
+          <rect
+             id="rect768"
+             height="10"
+             width="10"
+             y="430"
+             x="220"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g776">
+          <rect
+             id="rect772"
+             height="10"
+             width="10"
+             y="440"
+             x="180"
+             style="fill:#c40000" />
+          <rect
+             id="rect774"
+             height="10"
+             width="10"
+             y="440"
+             x="180"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g782">
+          <rect
+             id="rect778"
+             height="10"
+             width="10"
+             y="440"
+             x="190"
+             style="fill:#c40000" />
+          <rect
+             id="rect780"
+             height="10"
+             width="10"
+             y="440"
+             x="190"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g788">
+          <rect
+             id="rect784"
+             height="10"
+             width="10"
+             y="440"
+             x="200"
+             style="fill:#c40000" />
+          <rect
+             id="rect786"
+             height="10"
+             width="10"
+             y="440"
+             x="200"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g794">
+          <rect
+             id="rect790"
+             height="10"
+             width="10"
+             y="440"
+             x="210"
+             style="fill:#c40000" />
+          <rect
+             id="rect792"
+             height="10"
+             width="10"
+             y="440"
+             x="210"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g800">
+          <rect
+             id="rect796"
+             height="10"
+             width="10"
+             y="440"
+             x="220"
+             style="fill:#c40000" />
+          <rect
+             id="rect798"
+             height="10"
+             width="10"
+             y="440"
+             x="220"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g806">
+          <rect
+             id="rect802"
+             height="10"
+             width="10"
+             y="450"
+             x="180"
+             style="fill:#c40000" />
+          <rect
+             id="rect804"
+             height="10"
+             width="10"
+             y="450"
+             x="180"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g812">
+          <rect
+             id="rect808"
+             height="10"
+             width="10"
+             y="450"
+             x="190"
+             style="fill:#c40000" />
+          <rect
+             id="rect810"
+             height="10"
+             width="10"
+             y="450"
+             x="190"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g818">
+          <rect
+             id="rect814"
+             height="10"
+             width="10"
+             y="450"
+             x="200"
+             style="fill:#c40000" />
+          <rect
+             id="rect816"
+             height="10"
+             width="10"
+             y="450"
+             x="200"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g824">
+          <rect
+             id="rect820"
+             height="10"
+             width="10"
+             y="450"
+             x="210"
+             style="fill:#c40000" />
+          <rect
+             id="rect822"
+             height="10"
+             width="10"
+             y="450"
+             x="210"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g830">
+          <rect
+             id="rect826"
+             height="10"
+             width="10"
+             y="450"
+             x="220"
+             style="fill:#c40000" />
+          <rect
+             id="rect828"
+             height="10"
+             width="10"
+             y="450"
+             x="220"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

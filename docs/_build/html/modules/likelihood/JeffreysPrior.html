@@ -1,0 +1,287 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>JeffreysPrior &mdash; ReMU  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="plotting" href="../plotting.html" />
+    <link rel="prev" title="HypothesisTester" href="HypothesisTester.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/ReMU.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/README.html">An example analysis</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../README.html">Module references</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../binning.html">binning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../migration.html">migration</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../likelihood.html">likelihood</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../likelihood.html#classes">Classes</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="DataModel.html">DataModel</a></li>
+<li class="toctree-l4"><a class="reference internal" href="PoissonData.html">PoissonData</a></li>
+<li class="toctree-l4"><a class="reference internal" href="Predictor.html">Predictor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="FixedParameterPredictor.html">FixedParameterPredictor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ComposedPredictor.html">ComposedPredictor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="SummedPredictor.html">SummedPredictor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ConcatenatedPredictor.html">ConcatenatedPredictor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="LinearEinsumPredictor.html">LinearEinsumPredictor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MatrixPredictor.html">MatrixPredictor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="FixedParameterMatrixPredictor.html">FixedParameterMatrixPredictor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ComposedMatrixPredictor.html">ComposedMatrixPredictor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="LinearizedPredictor.html">LinearizedPredictor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="TemplatePredictor.html">TemplatePredictor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResponseMatrixPredictor.html">ResponseMatrixPredictor</a></li>
+<li class="toctree-l4"><a class="reference internal" href="SystematicsConsumer.html">SystematicsConsumer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="NoSystematics.html">NoSystematics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="MarginalLikelihoodSystematics.html">MarginalLikelihoodSystematics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ProfileLikelihoodSystematics.html">ProfileLikelihoodSystematics</a></li>
+<li class="toctree-l4"><a class="reference internal" href="LikelihoodCalculator.html">LikelihoodCalculator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="LikelihoodMaximizer.html">LikelihoodMaximizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="BasinHoppingMaximizer.html">BasinHoppingMaximizer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="HypothesisTester.html">HypothesisTester</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">JeffreysPrior</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../plotting.html">plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../matrix_utils.html">matrix_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../likelihood_utils.html">likelihood_utils</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ReMU</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../README.html">Module references</a></li>
+          <li class="breadcrumb-item"><a href="../likelihood.html">likelihood</a></li>
+      <li class="breadcrumb-item active">JeffreysPrior</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/modules/likelihood/JeffreysPrior.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="jeffreysprior">
+<h1>JeffreysPrior<a class="headerlink" href="#jeffreysprior" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="remu.likelihood.JeffreysPrior">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">remu.likelihood.</span></span><span class="sig-name descname"><span class="pre">JeffreysPrior</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">response_matrix</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">translation_function</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter_limits</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">default_values</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dx</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">total_truth_limit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/likelihood.html#JeffreysPrior"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.likelihood.JeffreysPrior" title="Link to this definition"></a></dt>
+<dd><p>Universal non-informative prior for use in Bayesian MCMC analysis.</p>
+<dl class="field-list">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl>
+<dt><strong>response_matrix</strong><span class="classifier">ndarray</span></dt><dd><p>Response matrix that translates truth into reco bins.
+Can be an array of matrices.</p>
+</dd>
+<dt><strong>translation_function</strong><span class="classifier">function</span></dt><dd><p>The function to translate a vector of parameters into a vector of truth
+expectation values:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">truth_vector</span> <span class="o">=</span> <span class="n">translation_function</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>It must support translating arrays of parameter vectors into arrays of
+truth vectors:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">truth_vector</span><span class="p">,</span> <span class="o">...</span><span class="p">]</span> <span class="o">=</span> <span class="n">translation_function</span><span class="p">([</span><span class="n">parameter_vector</span><span class="p">,</span> <span class="o">...</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd>
+<dt><strong>parameter_limits</strong><span class="classifier">iterable of tuple of floats</span></dt><dd><p>An iterable of lower and upper limits of the hypothesis’ parameters.
+The number of limits determines the number of parameters. Parameters
+can be <cite>None</cite>. This sets no limit in that direction.</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span> <span class="p">(</span><span class="n">x1_min</span><span class="p">,</span> <span class="n">x1_max</span><span class="p">),</span> <span class="p">(</span><span class="n">x2_min</span><span class="p">,</span> <span class="n">x2_max</span><span class="p">),</span> <span class="o">...</span> <span class="p">]</span>
+</pre></div>
+</div>
+</dd>
+<dt><strong>default_values</strong><span class="classifier">iterable of floats</span></dt><dd><p>The default values of the parameters</p>
+</dd>
+<dt><strong>dx</strong><span class="classifier">array like</span></dt><dd><p>Array of step sizes to be used in numerical differentiation.
+Default: <code class="docutils literal notranslate"><span class="pre">numpy.full(len(parameter_limits),</span> <span class="pre">1e-3)</span></code></p>
+</dd>
+<dt><strong>total_truth_limit</strong><span class="classifier">float</span></dt><dd><p>Maximum total number of truth events to consider in the prior. This can
+be used to make priors proper in a consistent way, since the limit is
+defined in the truth space, rather than the prior parameter space.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Attributes</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>response_matrix</strong></p></td>
+<td><p>(ndarray) The response matrix used to calculate the Fisher matrix.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>default_values</strong></p></td>
+<td><p>(ndarray) The default values of the parameters.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>lower_limits</strong></p></td>
+<td><p>(ndarray) Lower limits of the parameters.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>upper_limits</strong></p></td>
+<td><p>(ndarray) Upper limits of the parameters.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>total_truth_limit</strong></p></td>
+<td><p>(float) The upper limit of total number of true events.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>dx</strong></p></td>
+<td><p>(ndarray) Array of step sizes to be used in numerical differentiation.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><code class="xref py py-obj docutils literal notranslate"><span class="pre">__call__</span></code>(value[, toy_index])</p></td>
+<td><p>Calculate the prior probability of the given parameter set.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.likelihood.JeffreysPrior.fisher_matrix" title="remu.likelihood.JeffreysPrior.fisher_matrix"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fisher_matrix</span></code></a>(parameters[, toy_index])</p></td>
+<td><p>Calculate the Fisher information matrix for the given parameters.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.likelihood.JeffreysPrior.translate" title="remu.likelihood.JeffreysPrior.translate"><code class="xref py py-obj docutils literal notranslate"><span class="pre">translate</span></code></a>(parameters)</p></td>
+<td><p>Translate the parameter vector to a truth vector.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>The <cite>JeffreysPrior</cite> object can be called like a function. It will return
+the prior log-likliehood of the given set of parameters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">prior_likelihood</span> <span class="o">=</span> <span class="n">jeffreys_prior</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If the prior was constructed with more than one response matrix,
+the matrix to be used for the calculation can be chosen with the
+<cite>toy_index</cite> argument:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">jeffreys_prior</span><span class="p">(</span><span class="n">parameter_vector</span><span class="p">,</span> <span class="n">toy_index</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>By construction, the JeffreysPrior will return the log probability
+<cite>-inf</cite>, a probability of 0, when the expected <em>reco</em> values do not
+depend on one of the parameters. In this case the “useless” parameter
+should be removed. It simply cannot be constrained with the given
+detector response.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.likelihood.JeffreysPrior.fisher_matrix">
+<span class="sig-name descname"><span class="pre">fisher_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">toy_index</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/likelihood.html#JeffreysPrior.fisher_matrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.likelihood.JeffreysPrior.fisher_matrix" title="Link to this definition"></a></dt>
+<dd><p>Calculate the Fisher information matrix for the given parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>parameters</strong><span class="classifier">array like</span></dt><dd><p>The parameters of the translation function.</p>
+</dd>
+<dt><strong>toy_index</strong><span class="classifier">int, optional</span></dt><dd><p>The index of the response matrix to be used for the calculation</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>ndarray</dt><dd><p>The Fisher information matrix.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.likelihood.JeffreysPrior.translate">
+<span class="sig-name descname"><span class="pre">translate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/likelihood.html#JeffreysPrior.translate"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.likelihood.JeffreysPrior.translate" title="Link to this definition"></a></dt>
+<dd><p>Translate the parameter vector to a truth vector.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>parameters</strong><span class="classifier">ndarray like</span></dt><dd><p>Vector of the hypothesis parameters.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>ndarray</dt><dd><p>Vector of the corresponding truth space expectation values.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="HypothesisTester.html" class="btn btn-neutral float-left" title="HypothesisTester" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../plotting.html" class="btn btn-neutral float-right" title="plotting" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Lukas Koch.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

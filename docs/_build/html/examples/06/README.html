@@ -1,0 +1,821 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Example 06 – Cross sections &amp; flux uncertainties &mdash; ReMU  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Example PD – Advanced data loading with pandas and ROOT" href="../PD/README.html" />
+    <link rel="prev" title="Example 05 – Backgrounds" href="../05/README.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/ReMU.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/README.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../README.html">An example analysis</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../README.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../README.html#the-experimental-setup">The experimental setup</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../README.html#example-steps">Example steps</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../00/README.html">Example 00 – Basic usage of binnings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../01/README.html">Example 01 – Building a response matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../02/README.html">Example 02 – Simple model fits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../03/README.html">Example 03 – Detector uncertainties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../04/README.html">Example 04 – Markov Chain Monte Carlo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../05/README.html">Example 05 – Backgrounds</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Example 06 – Cross sections &amp; flux uncertainties</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#aims">Aims</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#instructions">Instructions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../PD/README.html">Example PD – Advanced data loading with pandas and ROOT</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/README.html">Module references</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ReMU</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../README.html">An example analysis</a></li>
+      <li class="breadcrumb-item active">Example 06 – Cross sections &amp; flux uncertainties</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/examples/06/README.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="example-06-cross-sections-flux-uncertainties">
+<span id="example06"></span><h1>Example 06 – Cross sections &amp; flux uncertainties<a class="headerlink" href="#example-06-cross-sections-flux-uncertainties" title="Link to this heading"></a></h1>
+<section id="aims">
+<h2>Aims<a class="headerlink" href="#aims" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Turn cross sections as input parameters into event numbers using fluxes</p></li>
+<li><p>Implement flux uncertainties</p></li>
+</ul>
+</section>
+<section id="instructions">
+<h2>Instructions<a class="headerlink" href="#instructions" title="Link to this heading"></a></h2>
+<p>So far we have concentrated on raw event numbers or simple template scaling
+parameters to parameterize the number of events we expect to see in our
+detector. But these raw numbers or templates themselves depend on other more
+fundamental parameters.</p>
+<p>E.g, if you are recording products of a radioactive decay, they will depend on
+the number of radioactive nuclei inside the detector, the decay rates into the
+different states you are distinguishing, and the total amount of time the
+experiment was collecting data:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">n_true_events_in_state_j</span> <span class="o">=</span> <span class="n">N_nuclei</span> <span class="o">*</span> <span class="n">time</span> <span class="o">*</span> <span class="n">decay_rate_to_state_j</span>
+</pre></div>
+</div>
+<p>Of these three parameters, the decay rate is usually the truly interesting one.
+It is the physics one wants to examine with the experimental setup. The number
+of nuclei and the time that the experiment ran on the other hand are just
+properties of the experimental setup and the data that was recorded. So just
+like the detector response, it would be good if we could absorb them into a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">Predictor</span></code>, so that we can do statistical tests with the interesting
+physics parameters directly.</p>
+<p>A slightly more complicated example is the measurement of interactions of a
+particle beam with a target material, e.g. a neutrino beam with a water target.
+Here the number of true events depends and the neutrino flux as a function of
+the neutrino energy, the number of target molecules in the detector, and the
+neutrino interaction cross sections for the different final states
+distinguished by the detector:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">n_true_events_j</span> <span class="o">=</span> <span class="n">T</span> <span class="o">*</span> <span class="n">sum_k</span><span class="p">(</span><span class="n">sigma_jk</span> <span class="o">*</span> <span class="n">F_k</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Here <cite>T</cite> is the number of targets, <cite>F_k</cite> is the integrated recorded neutrino
+flux in neutrino energy bin <cite>k</cite> (unit: neutrinos/m^2), and <cite>sigma_jk</cite> is the
+cross section for neutrinos in energy bin <cite>k</cite> to cause a reaction to the final
+state <cite>j</cite> that can be recorded by the detector.</p>
+<p>In general, a lot of experimental setups can be described with a matrix
+multiplication in the form:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">n_true_events_j</span> <span class="o">=</span> <span class="n">sum_k</span><span class="p">(</span><span class="n">physics_parameter_matrix_jk</span> <span class="o">*</span> <span class="n">exposure_k</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Depending on the details of the experiment, the parameter matrix and exposure
+vector have slightly different meanings. In the case of the radioactive decay
+measurement, the physics parameters would be the decay rates, and the exposure
+would be the product of number of nuclei and the recording time. In the
+neutrino case the parameters would be the cross sections, and the exposure
+would be the product of integrated neutrino fluxes and target mass. In the
+context of a collider experiment, the exposure would probably be called an
+integrated luminosity.</p>
+<p>We will extend the previous example and treat it like a neutrino beam experiment.
+First we will need to get the binning in the true event properties:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="nn">pd</span>
+
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">binning</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;../05/truth-binning.yml&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">truth_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+<span class="c1"># Get truth binnings for BG and signal</span>
+<span class="n">bg_truth_binning</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">subbinnings</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">signal_truth_binning</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">subbinnings</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>As a binning for the flux, we will use a simple linear binning in the neutrino
+energy:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>!LinearBinning
+bin_edges:
+- 0.0
+- 2.0
+- 4.0
+- 6.0
+- 8.0
+- 10.0
+- 12.0
+- 16.0
+- 20.0
+- .inf
+include_upper: false
+phasespace: !PhaseSpace
+- E
+variable: E
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Define flux binning</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;flux-binning.yml&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">flux_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The binning of the cross section is done as a <code class="xref py py-class docutils literal notranslate"><span class="pre">CartesianProductBinning</span></code>.
+Every possible combination of true kinematic bin and true neutrino energy bin
+gets its own cross-section values:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create cross-section binnings</span>
+<span class="n">bg_flux_binning</span> <span class="o">=</span> <span class="n">flux_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">bg_xsec_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">CartesianProductBinning</span><span class="p">((</span><span class="n">bg_truth_binning</span><span class="p">,</span> <span class="n">bg_flux_binning</span><span class="p">))</span>
+<span class="n">signal_flux_binning</span> <span class="o">=</span> <span class="n">flux_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">signal_xsec_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">CartesianProductBinning</span><span class="p">(</span>
+    <span class="p">(</span><span class="n">signal_truth_binning</span><span class="p">,</span> <span class="n">signal_flux_binning</span><span class="p">)</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>We can have a look at the structure of the resulting binning:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Check binning structure</span>
+<span class="n">n_bg_truth</span> <span class="o">=</span> <span class="n">bg_truth_binning</span><span class="o">.</span><span class="n">data_size</span>
+<span class="n">n_signal_truth</span> <span class="o">=</span> <span class="n">signal_truth_binning</span><span class="o">.</span><span class="n">data_size</span>
+<span class="n">n_flux</span> <span class="o">=</span> <span class="n">flux_binning</span><span class="o">.</span><span class="n">data_size</span>
+<span class="n">n_bg_xsec</span> <span class="o">=</span> <span class="n">bg_xsec_binning</span><span class="o">.</span><span class="n">data_size</span>
+<span class="n">n_signal_xsec</span> <span class="o">=</span> <span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">data_size</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">n_bg_truth</span><span class="p">,</span> <span class="n">n_signal_truth</span><span class="p">,</span> <span class="n">n_flux</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">n_bg_xsec</span><span class="p">,</span> <span class="n">n_signal_xsec</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data_indices</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data_indices</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">bins</span><span class="p">[</span><span class="n">n_flux</span><span class="p">]</span><span class="o">.</span><span class="n">data_indices</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">48</span> <span class="mi">120</span> <span class="mi">9</span>
+<span class="mi">432</span> <span class="mi">1080</span>
+<span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+<span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>An increase of the bin index by one means that we increase the corresponding
+data index in the flux binning by one. Once every flux bin has been stepped
+through, the data index in the truth binning increases by one.</p>
+<p>To create a <code class="xref py py-class docutils literal notranslate"><span class="pre">Predictor</span></code> that can turn cross sections into event
+numbers, we need an actual neutrino flux. We can easily create one by filling
+the flux binning:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Fill flux with exposure units (proportional to neutrinos per m^2)</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">plotting</span>
+<span class="kn">from</span> <span class="nn">numpy.random</span> <span class="kn">import</span> <span class="n">default_rng</span>
+
+<span class="n">rng</span> <span class="o">=</span> <span class="n">default_rng</span><span class="p">()</span>
+<span class="n">E</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">1000</span><span class="p">)</span>
+<span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;E&quot;</span><span class="p">:</span> <span class="n">E</span><span class="p">})</span>
+<span class="n">flux_binning</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We fill the binning with a weight of 0.01 so that the total amount of exposure
+in the binning is 10, corresponding with the assumed 10 years of data taking
+used for the event generation in the previous examples. So one “unit” of
+exposure corresponds to one year of data taking.</p>
+<p>The “simulated” flux looks like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">flux_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_values</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;flux.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/flux.png" src="../../_images/flux.png" />
+<p>Of course the exact flux is never known (especially with neutrino experiments).
+To simulate a flux uncertainty, we can just create lots of throws:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create fluctuated flux predictions</span>
+<span class="n">E_throws</span> <span class="o">=</span> <span class="n">rng</span><span class="o">.</span><span class="n">normal</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mf">8.0</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">2.0</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span><span class="mi">1000</span><span class="p">))</span>
+<span class="n">flux</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">E</span> <span class="ow">in</span> <span class="n">E_throws</span><span class="p">:</span>
+    <span class="n">df</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s2">&quot;E&quot;</span><span class="p">:</span> <span class="n">E</span><span class="p">})</span>
+    <span class="n">flux_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="n">flux_binning</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">df</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span>
+    <span class="n">flux</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">flux_binning</span><span class="o">.</span><span class="n">get_values_as_ndarray</span><span class="p">())</span>
+
+<span class="n">flux</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">flux</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">flux</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="mi">9</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now we can use those flux predictions to create a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">LinearEinsumPredictor</span></code> that will do the correct matrix multiplication
+to combine the cross sections and the flux into event numbers:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create event number predictors</span>
+<span class="kn">from</span> <span class="nn">multiprocess</span> <span class="kn">import</span> <span class="n">Pool</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">likelihood</span>
+<span class="n">pool</span> <span class="o">=</span> <span class="n">Pool</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">likelihood</span><span class="o">.</span><span class="n">mapper</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span>
+
+<span class="n">bg_predictor</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">LinearEinsumPredictor</span><span class="p">(</span>
+    <span class="s2">&quot;ij,...kj-&gt;...ik&quot;</span><span class="p">,</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">reshape_parameters</span><span class="o">=</span><span class="p">(</span><span class="n">n_bg_truth</span><span class="p">,</span> <span class="n">n_flux</span><span class="p">),</span>
+    <span class="n">bounds</span><span class="o">=</span><span class="p">[(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)]</span> <span class="o">*</span> <span class="n">bg_xsec_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">signal_predictor</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">LinearEinsumPredictor</span><span class="p">(</span>
+    <span class="s2">&quot;ij,...kj-&gt;...ik&quot;</span><span class="p">,</span>
+    <span class="n">flux</span><span class="p">,</span>
+    <span class="n">reshape_parameters</span><span class="o">=</span><span class="p">(</span><span class="n">n_signal_truth</span><span class="p">,</span> <span class="n">n_flux</span><span class="p">),</span>
+    <span class="n">bounds</span><span class="o">=</span><span class="p">[(</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">)]</span> <span class="o">*</span> <span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>Let us do a quick test of the predictions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Test cross-section predictions</span>
+<span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">fill</span><span class="p">({</span><span class="s2">&quot;E&quot;</span><span class="p">:</span> <span class="mf">8.0</span><span class="p">,</span> <span class="s2">&quot;true_x&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;true_y&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">},</span> <span class="mf">100.0</span><span class="p">)</span>
+<span class="n">signal_xsec</span> <span class="o">=</span> <span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">get_values_as_ndarray</span><span class="p">()</span>
+
+<span class="n">signal_events</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="n">signal_predictor</span><span class="p">(</span><span class="n">signal_xsec</span><span class="p">)</span>
+<span class="n">signal_truth_binning</span><span class="o">.</span><span class="n">set_values_from_ndarray</span><span class="p">(</span><span class="n">signal_events</span><span class="p">)</span>
+<span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">signal_truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_values</span><span class="p">(</span><span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;many_events.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/many_events.png" src="../../_images/many_events.png" />
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">fill</span><span class="p">({</span><span class="s2">&quot;E&quot;</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span> <span class="s2">&quot;true_x&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span> <span class="s2">&quot;true_y&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">},</span> <span class="mf">100.0</span><span class="p">)</span>
+<span class="n">signal_xsec</span> <span class="o">=</span> <span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">get_values_as_ndarray</span><span class="p">()</span>
+
+<span class="n">signal_events</span><span class="p">,</span> <span class="n">weights</span> <span class="o">=</span> <span class="n">signal_predictor</span><span class="p">(</span><span class="n">signal_xsec</span><span class="p">)</span>
+<span class="n">signal_truth_binning</span><span class="o">.</span><span class="n">set_values_from_ndarray</span><span class="p">(</span><span class="n">signal_events</span><span class="p">)</span>
+<span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">signal_truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_values</span><span class="p">(</span><span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;few_events.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/few_events.png" src="../../_images/few_events.png" />
+<p>Despite filling the same cross section to the same true kinematics int the two
+cases, the resulting number of events was different. This is of course because
+the flux at 3 is smaller than the flux at 8. So even if the cross sections at 3
+and 8 are the same, the different flux will lead to a different number of
+predicted events.</p>
+<p>Finally we need a predictor for the noise events. These are events that do not
+correspond to any interesting physics and are just weighted up or down with a
+single parameter as input to the response matrix, so we will just pass through
+that single parameter. We will use the <code class="xref py py-class docutils literal notranslate"><span class="pre">TemplatePredictor</span></code> for this,
+since it set the parameter limits to <code class="docutils literal notranslate"><span class="pre">(0,</span> <span class="pre">np.inf)</span></code> by default, which is
+convenient here. In order or the systematics to line up, we will have to create
+100 identical “variations”:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create noise predictor</span>
+<span class="n">noise_predictor</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">([[[</span><span class="mf">1.0</span><span class="p">]]]</span> <span class="o">*</span> <span class="mi">100</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now that we have the three separate predictors for the noise, background, and
+signal events, we need to combine them into a single
+<code class="xref py py-class docutils literal notranslate"><span class="pre">ConcatenatedPredictor</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Combine into single predictor</span>
+<span class="n">event_predictor</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">ConcatenatedPredictor</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">noise_predictor</span><span class="p">,</span> <span class="n">bg_predictor</span><span class="p">,</span> <span class="n">signal_predictor</span><span class="p">],</span>
+    <span class="n">combine_systematics</span><span class="o">=</span><span class="s2">&quot;same&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>The input of the combined predictor will be a concatenation of the separate
+inputs. I.e. first the single noise scaling parameter, then the background
+cross-section parameters, and finally the signal cross-section parameters. The
+output likewise will be a concatenation of the single output: first the
+unmodified noise scaling parameter, then the background events numbers, and
+finally the signal event numbers. If we have done everything right, this
+corresponds exactly to the meaning of the data of the original <cite>truth_binning</cite>,
+so it can be used as input for the response matrix.</p>
+<p>At this point we could combine the event predictor with a response matrix and
+likelihood calculator to do statistical tests with the cross-section
+parameters. With hundreds or thousands of parameters, this is a computationally
+intensive task though. So for this tutorial we will again define some models as
+templates and investigate them by varying their weights.</p>
+<p>In order to to simplify that task, we will first create a binning that
+encapsulates all input parameters for the <cite>event_predictor</cite>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">parameter_binning</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">marginalize_subbinnings</span><span class="p">()</span>
+<span class="n">parameter_binning</span> <span class="o">=</span> <span class="n">parameter_binning</span><span class="o">.</span><span class="n">insert_subbinning</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">bg_xsec_binning</span><span class="p">)</span>
+<span class="n">parameter_binning</span> <span class="o">=</span> <span class="n">parameter_binning</span><span class="o">.</span><span class="n">insert_subbinning</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">signal_xsec_binning</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We started by marginalizing out all subbinnings in the original
+<cite>truth_binning</cite>, which yield a binning that only distinguishes the three event
+types in order: noise, background, signal. Then we inserted the cross-section
+binnings as subbinnings into their respective top level bins. This leaves us
+with a binning where the desired data structure: first a single bin for the
+noise, then the background cross-section bins as defined by the
+<cite>bg_xsec_binning</cite>, and finally the signal cross-section bins as defined by
+<cite>signal_xsec_binning</cite>.</p>
+<p>The template for the noise events is simple. Again, we just want to scale the
+noise parameter directly:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">noise_template</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">parameter_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">)</span>
+<span class="n">noise_template</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+</pre></div>
+</div>
+<p>For the cross-section templates, we need to take a look at the cross-section
+bins, so we can understand what values to put in them:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bg_xsec_binning</span><span class="o">.</span><span class="n">bins</span><span class="p">):</span>
+    <span class="c1"># Get truth and flux bin from Cartesian Product</span>
+    <span class="n">truth_bin</span><span class="p">,</span> <span class="n">flux_bin</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_marginal_bins</span><span class="p">()</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">truth_bin</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">flux_bin</span><span class="p">)</span>
+
+    <span class="k">break</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mi">0</span>
+<span class="n">RectangularBin</span><span class="p">(</span><span class="n">include_upper</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">include_lower</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;true_x&#39;</span><span class="p">,</span> <span class="s1">&#39;true_y&#39;</span><span class="p">],</span> <span class="n">edges</span><span class="o">=</span><span class="p">[[</span><span class="o">-</span><span class="n">inf</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">],</span> <span class="p">[</span><span class="o">-</span><span class="n">inf</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.25</span><span class="p">]],</span> <span class="n">phasespace</span><span class="o">=</span><span class="n">PhaseSpace</span><span class="p">(</span><span class="n">variables</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;true_x&#39;</span><span class="p">,</span> <span class="s1">&#39;true_y&#39;</span><span class="p">}),</span> <span class="n">value_array</span><span class="o">=</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">]),</span> <span class="n">entries_array</span><span class="o">=</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span> <span class="n">sumw2_array</span><span class="o">=</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">]))</span>
+<span class="n">RectangularBin</span><span class="p">(</span><span class="n">include_upper</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">include_lower</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">variables</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;E&#39;</span><span class="p">],</span> <span class="n">edges</span><span class="o">=</span><span class="p">[[</span><span class="mf">0.0</span><span class="p">,</span> <span class="mf">2.0</span><span class="p">]],</span> <span class="n">phasespace</span><span class="o">=</span><span class="n">PhaseSpace</span><span class="p">(</span><span class="n">variables</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;E&#39;</span><span class="p">}),</span> <span class="n">value_array</span><span class="o">=</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">]),</span> <span class="n">entries_array</span><span class="o">=</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">]),</span> <span class="n">sumw2_array</span><span class="o">=</span><span class="n">array</span><span class="p">([</span><span class="mf">0.</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p>The method <code class="xref py py-meth docutils literal notranslate"><span class="pre">CartesianProductBin.get_marginal_bins()</span></code> returns the bins of
+the original binnings, that correspond to the given bin of the
+<code class="xref py py-class docutils literal notranslate"><span class="pre">CartesianProductBinning</span></code>. In this case, these are the bin of the true
+kinematics, and the bin of the neutrino Energy. For each we have the <cite>edges</cite> of
+the bin, so we can use those to calculate the correct cross section: The number
+of true events expected in the given truth bin, for each unit of exposure in
+the given flux bin:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">scipy.stats</span> <span class="kn">import</span> <span class="n">expon</span><span class="p">,</span> <span class="n">norm</span><span class="p">,</span> <span class="n">uniform</span>
+
+
+<span class="k">def</span> <span class="nf">calculate_bg_xsec</span><span class="p">(</span><span class="n">E_min</span><span class="p">,</span> <span class="n">E_max</span><span class="p">,</span> <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the cross section for the BG process.&quot;&quot;&quot;</span>
+
+    <span class="c1"># We need to make an assumption about the E dsitribution within the E bin</span>
+    <span class="c1"># Bin edges can be +/- np.inf</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">E_min</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">E_max</span><span class="p">):</span>
+        <span class="c1"># Uniform in given bounds</span>
+        <span class="n">E_dist</span> <span class="o">=</span> <span class="n">uniform</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">E_min</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">E_max</span> <span class="o">-</span> <span class="n">E_min</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">E_min</span><span class="p">):</span>
+        <span class="c1"># Exponential from E_min to inf</span>
+        <span class="n">E_dist</span> <span class="o">=</span> <span class="n">expon</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">E_min</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Exponential from -inf to E_max</span>
+        <span class="n">E_dist</span> <span class="o">=</span> <span class="n">expon</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">E_max</span><span class="p">,</span> <span class="n">scale</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Simple overall cross section: One unit of exposure yields 30 true events</span>
+    <span class="n">xsec</span> <span class="o">=</span> <span class="mf">30.0</span>
+
+    <span class="c1"># True x is True E with a shift and scale</span>
+    <span class="c1"># Average XSEC in bin is proportional to overlap</span>
+    <span class="n">E_0</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_min</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">+</span> <span class="mi">8</span>
+    <span class="n">E_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_max</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">)</span> <span class="o">*</span> <span class="mi">2</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">0.5</span><span class="p">)</span> <span class="o">+</span> <span class="mi">8</span>
+    <span class="n">lower</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">E_min</span><span class="p">,</span> <span class="n">E_0</span><span class="p">)</span>
+    <span class="n">upper</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">E_max</span><span class="p">,</span> <span class="n">E_1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">upper</span> <span class="o">&gt;=</span> <span class="n">lower</span><span class="p">:</span>
+        <span class="n">xsec</span> <span class="o">*=</span> <span class="n">E_dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">upper</span><span class="p">)</span> <span class="o">-</span> <span class="n">E_dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">lower</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">xsec</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># Differential XSEC in y is Gaussian</span>
+    <span class="c1"># Independent of x</span>
+    <span class="n">y_dist</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mf">0.5</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mf">0.5</span><span class="p">))</span>
+    <span class="n">xsec</span> <span class="o">*=</span> <span class="n">y_dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">y_max</span><span class="p">)</span> <span class="o">-</span> <span class="n">y_dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">y_min</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">xsec</span>
+
+
+<span class="n">bg_template</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">parameter_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">)</span>
+<span class="n">bg_xsec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">bg_xsec_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">)</span>
+<span class="n">bg_offset</span> <span class="o">=</span> <span class="n">parameter_binning</span><span class="o">.</span><span class="n">get_bin_data_index</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bg_xsec_binning</span><span class="o">.</span><span class="n">bins</span><span class="p">):</span>
+    <span class="c1"># Get truth and flux bin from Cartesian Product</span>
+    <span class="n">truth_bin</span><span class="p">,</span> <span class="n">flux_bin</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_marginal_bins</span><span class="p">()</span>
+
+    <span class="n">E_min</span><span class="p">,</span> <span class="n">E_max</span> <span class="o">=</span> <span class="n">flux_bin</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span> <span class="o">=</span> <span class="n">truth_bin</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">truth_bin</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">bg_xsec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">calculate_bg_xsec</span><span class="p">(</span><span class="n">E_min</span><span class="p">,</span> <span class="n">E_max</span><span class="p">,</span> <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">)</span>
+    <span class="n">bg_template</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">bg_offset</span><span class="p">]</span> <span class="o">=</span> <span class="n">bg_xsec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+<span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">bg_xsec_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">bg_xsec</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;bg_xsec.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/bg_xsec.png" src="../../_images/bg_xsec.png" />
+<p>This plot of the template is not very intuitive, since the plotter of a general
+<code class="xref py py-class docutils literal notranslate"><span class="pre">CartesianProductBinning</span></code> does not know the meaning of the single bins
+in the constituent binnings. So it can only plot bin numbers vs one another. A
+<code class="xref py py-class docutils literal notranslate"><span class="pre">CatesianProductBinning</span></code> consisting of only
+<code class="xref py py-class docutils literal notranslate"><span class="pre">RectilinearBinning</span></code>, and <code class="xref py py-class docutils literal notranslate"><span class="pre">LinearBinning</span></code> without any
+subbinnings has the same data structure as a <code class="xref py py-class docutils literal notranslate"><span class="pre">RectilinearBinning</span></code>
+though, so we can use that plotter to get a slightly more readable plot:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bg_xsec_plot_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">RectilinearBinning</span><span class="p">(</span>
+    <span class="n">bg_truth_binning</span><span class="o">.</span><span class="n">variables</span> <span class="o">+</span> <span class="p">(</span><span class="n">flux_binning</span><span class="o">.</span><span class="n">variable</span><span class="p">,),</span>
+    <span class="n">bg_truth_binning</span><span class="o">.</span><span class="n">bin_edges</span> <span class="o">+</span> <span class="p">(</span><span class="n">flux_binning</span><span class="o">.</span><span class="n">bin_edges</span><span class="p">,),</span>
+<span class="p">)</span>
+<span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">bg_xsec_plot_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">bg_xsec</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;bg_xsec_pretty.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/bg_xsec_pretty.png" src="../../_images/bg_xsec_pretty.png" />
+<p>Here we told the plotter to only plot densities with relation to variables 0
+and 1, i.e. <cite>true_x</cite> and <cite>true_y</cite>. This means the plots are “differential” in
+<cite>true_X</cite> and <cite>true_y</cite> but not in E. The marginal plot of the E “distribution”
+shows the total cross section of each bin, and not a density. The marginal
+plots of <cite>true_x</cite> and <cite>true_y</cite> are technically differential cross sections, but
+in this particular case they are flux integrated over a flux with one unit of
+exposure in each energy bin. In order to see the flux integrated cross sections
+in the actual flux, we need to use the predictors to actually predict the
+number of events:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">bg_truth_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">bg_truth_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../05/bg_truth.txt&quot;</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">bg_truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_values</span><span class="p">(</span><span class="n">scatter</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;generator&quot;</span><span class="p">)</span>
+
+<span class="n">bg_pred</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">bg_predictor</span><span class="p">(</span><span class="n">bg_xsec</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">bg_pred</span><span class="p">,</span> <span class="n">scatter</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;xsec&quot;</span><span class="p">)</span>
+
+<span class="n">pltr</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;bg_prediction.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/bg_prediction.png" src="../../_images/bg_prediction.png" />
+<p>Here we also plotted the previously generated number of events for comparison.
+The prediction from the cross-section model is not a perfect match, but it is
+very close.</p>
+<p>Now that we have a cross section for the background process, we need to repeat
+this process for the two signal processes:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">calculate_model_A_xsec</span><span class="p">(</span><span class="n">E_min</span><span class="p">,</span> <span class="n">E_max</span><span class="p">,</span> <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the cross section for the model A process.&quot;&quot;&quot;</span>
+
+    <span class="c1"># We need to make an assumption about the E dsitribution within the E bin</span>
+    <span class="c1"># Bin edges can be +/- np.inf</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">E_min</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">E_max</span><span class="p">):</span>
+        <span class="c1"># Uniform in given bounds</span>
+        <span class="n">E_dist</span> <span class="o">=</span> <span class="n">uniform</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">E_min</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">E_max</span> <span class="o">-</span> <span class="n">E_min</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">E_min</span><span class="p">):</span>
+        <span class="c1"># Exponential from E_min to inf</span>
+        <span class="n">E_dist</span> <span class="o">=</span> <span class="n">expon</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">E_min</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Exponential from -inf to E_max</span>
+        <span class="n">E_dist</span> <span class="o">=</span> <span class="n">expon</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">E_max</span><span class="p">,</span> <span class="n">scale</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Simple overall cross section: One unit of exposure yields 100 true events</span>
+    <span class="n">xsec</span> <span class="o">=</span> <span class="mf">100.0</span>
+
+    <span class="c1"># True x is True E with a shift and scale</span>
+    <span class="c1"># Average XSEC in bin is proportional to overlap</span>
+    <span class="n">E_0</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_min</span> <span class="o">-</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">+</span> <span class="mi">8</span>
+    <span class="n">E_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_max</span> <span class="o">-</span> <span class="mf">0.1</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">+</span> <span class="mi">8</span>
+    <span class="n">lower</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">E_min</span><span class="p">,</span> <span class="n">E_0</span><span class="p">)</span>
+    <span class="n">upper</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">E_max</span><span class="p">,</span> <span class="n">E_1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">upper</span> <span class="o">&gt;=</span> <span class="n">lower</span><span class="p">:</span>
+        <span class="n">xsec</span> <span class="o">*=</span> <span class="n">E_dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">upper</span><span class="p">)</span> <span class="o">-</span> <span class="n">E_dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">lower</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">xsec</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># Differential XSEC in y is Gaussian</span>
+    <span class="c1"># Independent of x</span>
+    <span class="n">y_dist</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mf">0.2</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span><span class="p">)</span>
+    <span class="n">xsec</span> <span class="o">*=</span> <span class="n">y_dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">y_max</span><span class="p">)</span> <span class="o">-</span> <span class="n">y_dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">y_min</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">xsec</span>
+
+
+<span class="n">model_A_xsec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">)</span>
+<span class="n">model_A_template</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">parameter_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">)</span>
+<span class="n">signal_offset</span> <span class="o">=</span> <span class="n">parameter_binning</span><span class="o">.</span><span class="n">get_bin_data_index</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">bins</span><span class="p">):</span>
+    <span class="c1"># Get truth and flux bin from Cartesian Product</span>
+    <span class="n">truth_bin</span><span class="p">,</span> <span class="n">flux_bin</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_marginal_bins</span><span class="p">()</span>
+
+    <span class="n">E_min</span><span class="p">,</span> <span class="n">E_max</span> <span class="o">=</span> <span class="n">flux_bin</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span> <span class="o">=</span> <span class="n">truth_bin</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">truth_bin</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">model_A_xsec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">calculate_model_A_xsec</span><span class="p">(</span><span class="n">E_min</span><span class="p">,</span> <span class="n">E_max</span><span class="p">,</span> <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">)</span>
+    <span class="n">model_A_template</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">signal_offset</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_A_xsec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+<span class="n">signal_xsec_plot_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">RectilinearBinning</span><span class="p">(</span>
+    <span class="n">signal_truth_binning</span><span class="o">.</span><span class="n">variables</span> <span class="o">+</span> <span class="p">(</span><span class="n">flux_binning</span><span class="o">.</span><span class="n">variable</span><span class="p">,),</span>
+    <span class="n">signal_truth_binning</span><span class="o">.</span><span class="n">bin_edges</span> <span class="o">+</span> <span class="p">(</span><span class="n">flux_binning</span><span class="o">.</span><span class="n">bin_edges</span><span class="p">,),</span>
+<span class="p">)</span>
+<span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">signal_xsec_plot_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">model_A_xsec</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;model_A_xsec.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/model_A_xsec.png" src="../../_images/model_A_xsec.png" />
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">signal_truth_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">signal_truth_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelA_truth.txt&quot;</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">signal_truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_values</span><span class="p">(</span><span class="n">scatter</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;generator&quot;</span><span class="p">)</span>
+
+<span class="n">model_A_pred</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">signal_predictor</span><span class="p">(</span><span class="n">model_A_xsec</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">model_A_pred</span><span class="p">,</span> <span class="n">scatter</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;xsec&quot;</span><span class="p">)</span>
+
+<span class="n">pltr</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;model_A_prediction.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/model_A_prediction.png" src="../../_images/model_A_prediction.png" />
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">model_B_xsec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">)</span>
+<span class="n">model_B_template</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">parameter_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">)</span>
+<span class="n">signal_offset</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">bg_xsec_binning</span><span class="o">.</span><span class="n">data_size</span>
+
+
+<span class="k">def</span> <span class="nf">calculate_model_B_xsec</span><span class="p">(</span><span class="n">E_min</span><span class="p">,</span> <span class="n">E_max</span><span class="p">,</span> <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the cross section for the model A process.&quot;&quot;&quot;</span>
+
+    <span class="c1"># We need to make an assumption about the E dsitribution within the E bin</span>
+    <span class="c1"># Bin edges can be +/- np.inf</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">E_min</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">E_max</span><span class="p">):</span>
+        <span class="c1"># Uniform in given bounds</span>
+        <span class="n">E_dist</span> <span class="o">=</span> <span class="n">uniform</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">E_min</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">E_max</span> <span class="o">-</span> <span class="n">E_min</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">E_min</span><span class="p">):</span>
+        <span class="c1"># Exponential from E_min to inf</span>
+        <span class="n">E_dist</span> <span class="o">=</span> <span class="n">expon</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">E_min</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Exponential from -inf to E_max</span>
+        <span class="n">E_dist</span> <span class="o">=</span> <span class="n">expon</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="n">E_max</span><span class="p">,</span> <span class="n">scale</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Simple overall cross section: One unit of exposure yields 100 true events</span>
+    <span class="n">xsec</span> <span class="o">=</span> <span class="mf">100.0</span>
+
+    <span class="c1"># True x is True E with a shift and scale</span>
+    <span class="c1"># Average XSEC in bin is proportional to overlap</span>
+    <span class="n">E_0</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_min</span> <span class="o">-</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">+</span> <span class="mi">8</span>
+    <span class="n">E_1</span> <span class="o">=</span> <span class="p">(</span><span class="n">x_max</span> <span class="o">-</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">*</span> <span class="mf">2.0</span> <span class="o">+</span> <span class="mi">8</span>
+    <span class="n">lower</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="n">E_min</span><span class="p">,</span> <span class="n">E_0</span><span class="p">)</span>
+    <span class="n">upper</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">E_max</span><span class="p">,</span> <span class="n">E_1</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">upper</span> <span class="o">&gt;=</span> <span class="n">lower</span><span class="p">:</span>
+        <span class="n">xsec</span> <span class="o">*=</span> <span class="n">E_dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">upper</span><span class="p">)</span> <span class="o">-</span> <span class="n">E_dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">lower</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">xsec</span> <span class="o">=</span> <span class="mf">0.0</span>
+
+    <span class="c1"># Differential XSEC in y is Gaussian</span>
+    <span class="c1"># Correalted with x</span>
+    <span class="c1"># Should integrate 2D distribution of x/E and y</span>
+    <span class="c1"># Instead, cheat and assume median E value</span>
+    <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">lower</span><span class="p">)</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">upper</span><span class="p">):</span>
+        <span class="n">E_m</span> <span class="o">=</span> <span class="p">(</span><span class="n">upper</span> <span class="o">+</span> <span class="n">lower</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">lower</span><span class="p">):</span>
+        <span class="n">E_m</span> <span class="o">=</span> <span class="n">lower</span> <span class="o">+</span> <span class="mi">1</span>
+    <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">upper</span><span class="p">):</span>
+        <span class="n">E_m</span> <span class="o">=</span> <span class="n">upper</span> <span class="o">-</span> <span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">E_m</span> <span class="o">=</span> <span class="mf">0.0</span>
+    <span class="n">x_m</span> <span class="o">=</span> <span class="p">(</span><span class="n">E_m</span> <span class="o">-</span> <span class="mf">8.0</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+
+    <span class="n">y_dist</span> <span class="o">=</span> <span class="n">norm</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="mf">0.5</span> <span class="o">*</span> <span class="n">x_m</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mf">1.0</span> <span class="o">-</span> <span class="mf">0.5</span><span class="o">**</span><span class="mi">2</span><span class="p">)</span>
+    <span class="n">xsec</span> <span class="o">*=</span> <span class="n">y_dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">y_max</span><span class="p">)</span> <span class="o">-</span> <span class="n">y_dist</span><span class="o">.</span><span class="n">cdf</span><span class="p">(</span><span class="n">y_min</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">xsec</span>
+
+
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">b</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">signal_xsec_binning</span><span class="o">.</span><span class="n">bins</span><span class="p">):</span>
+    <span class="c1"># Get truth and flux bin from Cartesian Product</span>
+    <span class="n">truth_bin</span><span class="p">,</span> <span class="n">flux_bin</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_marginal_bins</span><span class="p">()</span>
+
+    <span class="n">E_min</span><span class="p">,</span> <span class="n">E_max</span> <span class="o">=</span> <span class="n">flux_bin</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span> <span class="o">=</span> <span class="n">truth_bin</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span> <span class="o">=</span> <span class="n">truth_bin</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+    <span class="n">model_B_xsec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">calculate_model_B_xsec</span><span class="p">(</span><span class="n">E_min</span><span class="p">,</span> <span class="n">E_max</span><span class="p">,</span> <span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">,</span> <span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">)</span>
+    <span class="n">model_B_template</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="n">signal_offset</span><span class="p">]</span> <span class="o">=</span> <span class="n">model_B_xsec</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+<span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">signal_xsec_plot_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">model_B_xsec</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;model_B_xsec.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/model_B_xsec.png" src="../../_images/model_B_xsec.png" />
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">signal_truth_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">signal_truth_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelB_truth.txt&quot;</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mf">0.1</span><span class="p">)</span>
+<span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">signal_truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_values</span><span class="p">(</span><span class="n">scatter</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;generator&quot;</span><span class="p">)</span>
+
+<span class="n">model_B_pred</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">signal_predictor</span><span class="p">(</span><span class="n">model_B_xsec</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">model_B_pred</span><span class="p">,</span> <span class="n">scatter</span><span class="o">=</span><span class="mi">500</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;xsec&quot;</span><span class="p">)</span>
+
+<span class="n">pltr</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;model_B_prediction.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/model_B_prediction.png" src="../../_images/model_B_prediction.png" />
+<p>Now that we have the templates, we can combine them into a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">TemplatePredictor</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Template predictor for noise, bg, model A, model B</span>
+<span class="n">xsec_template_predictor</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">noise_template</span><span class="p">,</span> <span class="n">bg_template</span><span class="p">,</span> <span class="n">model_A_template</span><span class="p">,</span> <span class="n">model_B_template</span><span class="p">]</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>This can then be combined with the detector response and event predictor to get
+the full chain to the reconstructed level:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Load data and response matrix</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;../01/reco-binning.yml&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">reco_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+<span class="n">reco_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../05/real_data.txt&quot;</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">reco_binning</span><span class="o">.</span><span class="n">get_entries_as_ndarray</span><span class="p">()</span>
+<span class="n">data_model</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">PoissonData</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+<span class="n">response_matrix</span> <span class="o">=</span> <span class="s2">&quot;../05/response_matrix.npz&quot;</span>
+<span class="n">matrix_predictor</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">ResponseMatrixPredictor</span><span class="p">(</span><span class="n">response_matrix</span><span class="p">)</span>
+
+<span class="c1"># Combine into linear predictor</span>
+<span class="n">data_predictor</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">ComposedPredictor</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">matrix_predictor</span><span class="p">,</span> <span class="n">event_predictor</span><span class="p">],</span>
+    <span class="n">combine_systematics</span><span class="o">=</span><span class="s2">&quot;same&quot;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">template_predictor</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">ComposedMatrixPredictor</span><span class="p">(</span>
+    <span class="p">[</span><span class="n">data_predictor</span><span class="p">,</span> <span class="n">xsec_template_predictor</span><span class="p">],</span> <span class="n">combine_systematics</span><span class="o">=</span><span class="s2">&quot;cartesian&quot;</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>We composed the <cite>matrix_predictor</cite> and <cite>event_predictor</cite> with the <code class="docutils literal notranslate"><span class="pre">same</span></code>
+strategy for combining systematics. This means that the 100 flux variations are
+matched one-to-one to the 100 detector response variations, for a total of 100
+systematic variations. The default <code class="docutils literal notranslate"><span class="pre">cartesian</span></code> strategy would man that each
+of the 100 detector variations is combined with all of the 100 flux variations,
+for a total of 10,000 systematic variations.</p>
+<p>For the final <cite>template_predictor</cite> we compose the <cite>data_predictor</cite> and
+<cite>xsec_template_predictor</cite> using a <code class="xref py py-class docutils literal notranslate"><span class="pre">ComposedMatrixPredictor</span></code>. This is a
+special kind of <code class="xref py py-class docutils literal notranslate"><span class="pre">ComposedPredictor</span></code>, which pre-computes a linear
+approximation of the composed predictors in the form of a matrix
+multiplication. So for a prediction, it does _not_ need to call the original
+predictors in order, but only needs to do a simple matrix multiplication, where
+the matrix is the size of the number of output parameters times the number of
+input parameters. This speeds things up considerably, since we effectively
+circumvent the hundreds of cross-section parameters that would otherwise need
+to be calculate each time the predictor is called. And since all predictors
+that go into this final predictor are actually linear, the linear
+“approximation” is actually exact (modulo numerical variations).</p>
+<p>Now that we have a performant predictor of the reconstructed data, we can run
+statistical analyses with it, like a simple maximum likelihood fit:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Likelihood caclulator and hypothesis tester</span>
+<span class="n">calc</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">LikelihoodCalculator</span><span class="p">(</span><span class="n">data_model</span><span class="p">,</span> <span class="n">template_predictor</span><span class="p">)</span>
+<span class="n">maxi</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">BasinHoppingMaximizer</span><span class="p">()</span>
+
+<span class="c1"># Fit everything</span>
+<span class="n">ret</span> <span class="o">=</span> <span class="n">maxi</span><span class="o">.</span><span class="n">maximize_log_likelihood</span><span class="p">(</span><span class="n">calc</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>                        <span class="n">fun</span><span class="p">:</span> <span class="mf">27.15065583063253</span>
+             <span class="n">log_likelihood</span><span class="p">:</span> <span class="o">-</span><span class="mf">27.15065583063253</span>
+ <span class="n">lowest_optimization_result</span><span class="p">:</span>       <span class="n">fun</span><span class="p">:</span> <span class="mf">27.15065583063253</span>
+ <span class="n">hess_inv</span><span class="p">:</span> <span class="o">&lt;</span><span class="mi">4</span><span class="n">x4</span> <span class="n">LbfgsInvHessProduct</span> <span class="k">with</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float64</span><span class="o">&gt;</span>
+      <span class="n">jac</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">4.61852412e-06</span><span class="p">,</span> <span class="mf">8.63309424e-05</span><span class="p">,</span> <span class="mf">2.69738365e-01</span><span class="p">,</span> <span class="mf">2.86348724e-04</span><span class="p">])</span>
+  <span class="n">message</span><span class="p">:</span> <span class="s1">&#39;CONVERGENCE: REL_REDUCTION_OF_F_&lt;=_FACTR*EPSMCH&#39;</span>
+     <span class="n">nfev</span><span class="p">:</span> <span class="mi">250</span>
+      <span class="n">nit</span><span class="p">:</span> <span class="mi">35</span>
+     <span class="n">njev</span><span class="p">:</span> <span class="mi">50</span>
+   <span class="n">status</span><span class="p">:</span> <span class="mi">0</span>
+  <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">239.81428165</span><span class="p">,</span>   <span class="mf">0.3976332</span> <span class="p">,</span>   <span class="mf">0.</span>        <span class="p">,</span>   <span class="mf">1.08239838</span><span class="p">])</span>
+                    <span class="n">message</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;requested number of basinhopping iterations completed successfully&#39;</span><span class="p">]</span>
+      <span class="n">minimization_failures</span><span class="p">:</span> <span class="mi">0</span>
+                       <span class="n">nfev</span><span class="p">:</span> <span class="mi">1045</span>
+                        <span class="n">nit</span><span class="p">:</span> <span class="mi">10</span>
+                       <span class="n">njev</span><span class="p">:</span> <span class="mi">209</span>
+                    <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+                          <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">239.81428165</span><span class="p">,</span>   <span class="mf">0.3976332</span> <span class="p">,</span>   <span class="mf">0.</span>        <span class="p">,</span>   <span class="mf">1.08239838</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>We can calculate the overall p-values for the two hypotheses:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Calculate p-values for hypotheses overall</span>
+<span class="n">calc_A</span> <span class="o">=</span> <span class="n">calc</span><span class="o">.</span><span class="n">fix_parameters</span><span class="p">([</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">])</span>
+<span class="n">calc_B</span> <span class="o">=</span> <span class="n">calc</span><span class="o">.</span><span class="n">fix_parameters</span><span class="p">([</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">,</span> <span class="kc">None</span><span class="p">])</span>
+<span class="n">test_A</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">HypothesisTester</span><span class="p">(</span><span class="n">calc_A</span><span class="p">)</span>
+<span class="n">test_B</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">HypothesisTester</span><span class="p">(</span><span class="n">calc_B</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">test_A</span><span class="o">.</span><span class="n">max_likelihood_p_value</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">test_B</span><span class="o">.</span><span class="n">max_likelihood_p_value</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">0.6</span>
+<span class="mf">0.86</span>
+</pre></div>
+</div>
+<p>Or we can do a scan of the Wilks p-value for the model template weights:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get Wilks&#39; p-values for models</span>
+<span class="n">norms</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">,</span> <span class="mi">50</span><span class="p">)</span>
+<span class="n">p_values_A</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">p_values_B</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">norms</span><span class="p">:</span>
+    <span class="n">p_values_A</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">test_A</span><span class="o">.</span><span class="n">wilks_max_likelihood_ratio_p_value</span><span class="p">([</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="p">]))</span>
+    <span class="n">p_values_B</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">test_B</span><span class="o">.</span><span class="n">wilks_max_likelihood_ratio_p_value</span><span class="p">([</span><span class="kc">None</span><span class="p">,</span> <span class="kc">None</span><span class="p">,</span> <span class="n">n</span><span class="p">]))</span>
+
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Model weight&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;p-value&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">norms</span><span class="p">,</span> <span class="n">p_values_A</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Model A&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;C1&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">norms</span><span class="p">,</span> <span class="n">p_values_B</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Model B&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;C2&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mf">0.32</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;dashed&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;dashed&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;best&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;wilks-p-values.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/wilks-p-values.png" src="../../_images/wilks-p-values.png" />
+<p>Since the flux integrations and uncertainty is now handled by the predictors,
+the cross-section parameters (or templates of cross-section parameters) can be
+used just like described in the previous examples.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../05/README.html" class="btn btn-neutral float-left" title="Example 05 – Backgrounds" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../PD/README.html" class="btn btn-neutral float-right" title="Example PD – Advanced data loading with pandas and ROOT" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Lukas Koch.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

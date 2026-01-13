@@ -1,0 +1,708 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="107.4514mm"
+   height="46.544277mm"
+   viewBox="0 0 107.4514 46.544277"
+   version="1.1"
+   id="svg8380"
+   inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
+   sodipodi:docname="asym.svg">
+  <defs
+     id="defs8374" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="2.3770075"
+     inkscape:cx="198.73743"
+     inkscape:cy="91.386901"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     fit-margin-top="5"
+     fit-margin-right="5"
+     fit-margin-bottom="5"
+     fit-margin-left="5"
+     inkscape:window-width="1920"
+     inkscape:window-height="1000"
+     inkscape:window-x="-11"
+     inkscape:window-y="-11"
+     inkscape:window-maximized="1" />
+  <metadata
+     id="metadata8377">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-34.720724,-107.41834)">
+    <g
+       transform="matrix(0.50755939,0,0,0.50755939,14.850314,-272.81924)"
+       id="g3815">
+      <line
+         id="line2066"
+         y2="800"
+         x2="220"
+         y1="790"
+         x1="210"
+         style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+      <line
+         id="line2068"
+         y2="790"
+         x2="220"
+         y1="800"
+         x1="210"
+         style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+      <line
+         id="line2070"
+         y2="791.25"
+         x2="120"
+         y1="791.25"
+         x1="110"
+         style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+      <line
+         id="line2072"
+         y2="798.75"
+         x2="120"
+         y1="798.75"
+         x1="110"
+         style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+      <line
+         id="line2074"
+         y2="791.25"
+         x2="80"
+         y1="791.25"
+         x1="70"
+         style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+      <line
+         id="line2076"
+         y2="798.23798"
+         x2="80"
+         y1="798.23798"
+         x1="70"
+         style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+      <text
+         id="text2080"
+         y="786.05798"
+         x="71.681602"
+         style="font-style:normal;font-weight:normal;font-size:12.80000019px;font-family:sans-serif;text-anchor:start;fill:#000000"
+         font-size="12.8">
+        <tspan
+           id="tspan2078"
+           y="786.05798"
+           x="71.681602">?</tspan>
+      </text>
+      <g
+         id="g2100">
+        <g
+           id="g2086">
+          <rect
+             id="rect2082"
+             height="10"
+             width="10"
+             y="780"
+             x="90"
+             style="fill:#0000ff" />
+          <rect
+             id="rect2084"
+             height="10"
+             width="10"
+             y="780"
+             x="90"
+             style="fill:none;fill-opacity:0;stroke:#000099;stroke-width:2" />
+        </g>
+        <g
+           id="g2092">
+          <rect
+             id="rect2088"
+             height="10"
+             width="10"
+             y="790"
+             x="90"
+             style="fill:#0000ff" />
+          <rect
+             id="rect2090"
+             height="10"
+             width="10"
+             y="790"
+             x="90"
+             style="fill:none;fill-opacity:0;stroke:#000099;stroke-width:2" />
+        </g>
+        <g
+           id="g2098">
+          <rect
+             id="rect2094"
+             height="10"
+             width="10"
+             y="800"
+             x="90"
+             style="fill:#0000ff" />
+          <rect
+             id="rect2096"
+             height="10"
+             width="10"
+             y="800"
+             x="90"
+             style="fill:none;fill-opacity:0;stroke:#000099;stroke-width:2" />
+        </g>
+      </g>
+      <g
+         id="g2120">
+        <g
+           id="g2106">
+          <rect
+             id="rect2102"
+             height="10"
+             width="10"
+             y="780"
+             x="50"
+             style="fill:#4d4d4d" />
+          <rect
+             id="rect2104"
+             height="10"
+             width="10"
+             y="780"
+             x="50"
+             style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+        </g>
+        <g
+           id="g2112">
+          <rect
+             id="rect2108"
+             height="10"
+             width="10"
+             y="790"
+             x="50"
+             style="fill:#4d4d4d" />
+          <rect
+             id="rect2110"
+             height="10"
+             width="10"
+             y="790"
+             x="50"
+             style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+        </g>
+        <g
+           id="g2118">
+          <rect
+             id="rect2114"
+             height="10"
+             width="10"
+             y="800"
+             x="50"
+             style="fill:#4d4d4d" />
+          <rect
+             id="rect2116"
+             height="10"
+             width="10"
+             y="800"
+             x="50"
+             style="fill:none;fill-opacity:0;stroke:#000000;stroke-width:2" />
+        </g>
+      </g>
+      <g
+         id="g2248">
+        <g
+           id="g2126">
+          <rect
+             id="rect2122"
+             height="10"
+             width="10"
+             y="780"
+             x="140"
+             style="fill:#c40000" />
+          <rect
+             id="rect2124"
+             height="10"
+             width="10"
+             y="780"
+             x="140"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2132">
+          <rect
+             id="rect2128"
+             height="10"
+             width="10"
+             y="780"
+             x="150"
+             style="fill:#c40000" />
+          <rect
+             id="rect2130"
+             height="10"
+             width="10"
+             y="780"
+             x="150"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2138">
+          <rect
+             id="rect2134"
+             height="10"
+             width="10"
+             y="780"
+             x="160"
+             style="fill:#c40000" />
+          <rect
+             id="rect2136"
+             height="10"
+             width="10"
+             y="780"
+             x="160"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2144">
+          <rect
+             id="rect2140"
+             height="10"
+             width="10"
+             y="780"
+             x="170"
+             style="fill:#c40000" />
+          <rect
+             id="rect2142"
+             height="10"
+             width="10"
+             y="780"
+             x="170"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2150">
+          <rect
+             id="rect2146"
+             height="10"
+             width="10"
+             y="780"
+             x="180"
+             style="fill:#c40000" />
+          <rect
+             id="rect2148"
+             height="10"
+             width="10"
+             y="780"
+             x="180"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2156">
+          <rect
+             id="rect2152"
+             height="10"
+             width="10"
+             y="790"
+             x="140"
+             style="fill:#c40000" />
+          <rect
+             id="rect2154"
+             height="10"
+             width="10"
+             y="790"
+             x="140"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2162">
+          <rect
+             id="rect2158"
+             height="10"
+             width="10"
+             y="790"
+             x="150"
+             style="fill:#c40000" />
+          <rect
+             id="rect2160"
+             height="10"
+             width="10"
+             y="790"
+             x="150"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2168">
+          <rect
+             id="rect2164"
+             height="10"
+             width="10"
+             y="790"
+             x="160"
+             style="fill:#c40000" />
+          <rect
+             id="rect2166"
+             height="10"
+             width="10"
+             y="790"
+             x="160"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2174">
+          <rect
+             id="rect2170"
+             height="10"
+             width="10"
+             y="790"
+             x="170"
+             style="fill:#c40000" />
+          <rect
+             id="rect2172"
+             height="10"
+             width="10"
+             y="790"
+             x="170"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2180">
+          <rect
+             id="rect2176"
+             height="10"
+             width="10"
+             y="790"
+             x="180"
+             style="fill:#c40000" />
+          <rect
+             id="rect2178"
+             height="10"
+             width="10"
+             y="790"
+             x="180"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2186">
+          <rect
+             id="rect2182"
+             height="10"
+             width="10"
+             y="800"
+             x="140"
+             style="fill:#c40000" />
+          <rect
+             id="rect2184"
+             height="10"
+             width="10"
+             y="800"
+             x="140"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2192">
+          <rect
+             id="rect2188"
+             height="10"
+             width="10"
+             y="800"
+             x="150"
+             style="fill:#c40000" />
+          <rect
+             id="rect2190"
+             height="10"
+             width="10"
+             y="800"
+             x="150"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2198">
+          <rect
+             id="rect2194"
+             height="10"
+             width="10"
+             y="800"
+             x="160"
+             style="fill:#c40000" />
+          <rect
+             id="rect2196"
+             height="10"
+             width="10"
+             y="800"
+             x="160"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2204">
+          <rect
+             id="rect2200"
+             height="10"
+             width="10"
+             y="800"
+             x="170"
+             style="fill:#c40000" />
+          <rect
+             id="rect2202"
+             height="10"
+             width="10"
+             y="800"
+             x="170"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2210">
+          <rect
+             id="rect2206"
+             height="10"
+             width="10"
+             y="800"
+             x="180"
+             style="fill:#c40000" />
+          <rect
+             id="rect2208"
+             height="10"
+             width="10"
+             y="800"
+             x="180"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2216">
+          <rect
+             id="rect2212"
+             height="10"
+             width="10"
+             y="780"
+             x="130"
+             style="fill:#c40000" />
+          <rect
+             id="rect2214"
+             height="10"
+             width="10"
+             y="780"
+             x="130"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2222">
+          <rect
+             id="rect2218"
+             height="10"
+             width="10"
+             y="790"
+             x="130"
+             style="fill:#c40000" />
+          <rect
+             id="rect2220"
+             height="10"
+             width="10"
+             y="790"
+             x="130"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2228">
+          <rect
+             id="rect2224"
+             height="10"
+             width="10"
+             y="800"
+             x="130"
+             style="fill:#c40000" />
+          <rect
+             id="rect2226"
+             height="10"
+             width="10"
+             y="800"
+             x="130"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2234">
+          <rect
+             id="rect2230"
+             height="10"
+             width="10"
+             y="780"
+             x="190"
+             style="fill:#c40000" />
+          <rect
+             id="rect2232"
+             height="10"
+             width="10"
+             y="780"
+             x="190"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2240">
+          <rect
+             id="rect2236"
+             height="10"
+             width="10"
+             y="790"
+             x="190"
+             style="fill:#c40000" />
+          <rect
+             id="rect2238"
+             height="10"
+             width="10"
+             y="790"
+             x="190"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+        <g
+           id="g2246">
+          <rect
+             id="rect2242"
+             height="10"
+             width="10"
+             y="800"
+             x="190"
+             style="fill:#c40000" />
+          <rect
+             id="rect2244"
+             height="10"
+             width="10"
+             y="800"
+             x="190"
+             style="fill:none;fill-opacity:0;stroke:#800000;stroke-width:2" />
+        </g>
+      </g>
+      <g
+         id="g2292">
+        <g
+           id="g2254">
+          <rect
+             id="rect2250"
+             height="10"
+             width="10"
+             y="770"
+             x="230"
+             style="fill:#00c400" />
+          <rect
+             id="rect2252"
+             height="10"
+             width="10"
+             y="770"
+             x="230"
+             style="fill:none;fill-opacity:0;stroke:#008000;stroke-width:2" />
+        </g>
+        <g
+           id="g2260">
+          <rect
+             id="rect2256"
+             height="10"
+             width="10"
+             y="780"
+             x="230"
+             style="fill:#00c400" />
+          <rect
+             id="rect2258"
+             height="10"
+             width="10"
+             y="780"
+             x="230"
+             style="fill:none;fill-opacity:0;stroke:#008000;stroke-width:2" />
+        </g>
+        <g
+           id="g2266">
+          <rect
+             id="rect2262"
+             height="10"
+             width="10"
+             y="790"
+             x="230"
+             style="fill:#00c400" />
+          <rect
+             id="rect2264"
+             height="10"
+             width="10"
+             y="790"
+             x="230"
+             style="fill:none;fill-opacity:0;stroke:#008000;stroke-width:2" />
+        </g>
+        <g
+           id="g2272">
+          <rect
+             id="rect2268"
+             height="10"
+             width="10"
+             y="800"
+             x="230"
+             style="fill:#00c400" />
+          <rect
+             id="rect2270"
+             height="10"
+             width="10"
+             y="800"
+             x="230"
+             style="fill:none;fill-opacity:0;stroke:#008000;stroke-width:2" />
+        </g>
+        <g
+           id="g2278">
+          <rect
+             id="rect2274"
+             height="10"
+             width="10"
+             y="810"
+             x="230"
+             style="fill:#00c400" />
+          <rect
+             id="rect2276"
+             height="10"
+             width="10"
+             y="810"
+             x="230"
+             style="fill:none;fill-opacity:0;stroke:#008000;stroke-width:2" />
+        </g>
+        <g
+           id="g2284">
+          <rect
+             id="rect2280"
+             height="10"
+             width="10"
+             y="760"
+             x="230"
+             style="fill:#00c400" />
+          <rect
+             id="rect2282"
+             height="10"
+             width="10"
+             y="760"
+             x="230"
+             style="fill:none;fill-opacity:0;stroke:#008000;stroke-width:2" />
+        </g>
+        <g
+           id="g2290">
+          <rect
+             id="rect2286"
+             height="10"
+             width="10"
+             y="820"
+             x="230"
+             style="fill:#00c400" />
+          <rect
+             id="rect2288"
+             height="10"
+             width="10"
+             y="820"
+             x="230"
+             style="fill:none;fill-opacity:0;stroke:#008000;stroke-width:2" />
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

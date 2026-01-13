@@ -1,0 +1,350 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Example 04 – Markov Chain Monte Carlo &mdash; ReMU  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Example 05 – Backgrounds" href="../05/README.html" />
+    <link rel="prev" title="Example 03 – Detector uncertainties" href="../03/README.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/ReMU.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/README.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../README.html">An example analysis</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../README.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../README.html#the-experimental-setup">The experimental setup</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../README.html#example-steps">Example steps</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../00/README.html">Example 00 – Basic usage of binnings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../01/README.html">Example 01 – Building a response matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../02/README.html">Example 02 – Simple model fits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../03/README.html">Example 03 – Detector uncertainties</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Example 04 – Markov Chain Monte Carlo</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#aims">Aims</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#instructions">Instructions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../05/README.html">Example 05 – Backgrounds</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../06/README.html">Example 06 – Cross sections &amp; flux uncertainties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../PD/README.html">Example PD – Advanced data loading with pandas and ROOT</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/README.html">Module references</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ReMU</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../README.html">An example analysis</a></li>
+      <li class="breadcrumb-item active">Example 04 – Markov Chain Monte Carlo</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/examples/04/README.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="example-04-markov-chain-monte-carlo">
+<span id="example04"></span><h1>Example 04 – Markov Chain Monte Carlo<a class="headerlink" href="#example-04-markov-chain-monte-carlo" title="Link to this heading"></a></h1>
+<section id="aims">
+<h2>Aims<a class="headerlink" href="#aims" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Use <code class="xref py py-class docutils literal notranslate"><span class="pre">LikelihoodCalculator</span></code> objects in a Marcov Chain Monte Carlo
+Sampling</p></li>
+</ul>
+</section>
+<section id="instructions">
+<h2>Instructions<a class="headerlink" href="#instructions" title="Link to this heading"></a></h2>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">LikelihoodCalculator</span></code> objects allow direct access to the likelihood
+function of theoretical models given the measured data. As such they can easily
+be used in Bayesian inference using Marcov Chain Monte Carlo (MCMC) methods.</p>
+<p>ReMU has some built-in support to simplyfy the use of
+<code class="xref py py-class docutils literal notranslate"><span class="pre">LikelihoodCalculator</span></code> objects with <code class="docutils literal notranslate"><span class="pre">emcee</span></code>, a MCMC package for
+python:</p>
+<p><a class="reference external" href="https://emcee.readthedocs.io/">https://emcee.readthedocs.io/</a></p>
+<p>Before we can use the MCMC, we have to create the response matrix,
+<code class="xref py py-class docutils literal notranslate"><span class="pre">LikelihoodCalculator</span></code> objects, just like in the previous examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">binning</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">plotting</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">likelihood</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">likelihood_utils</span>
+<span class="kn">import</span> <span class="nn">emcee</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;../01/reco-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">reco_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;../01/optimised-truth-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">truth_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+<span class="n">reco_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/real_data.txt&quot;</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">reco_binning</span><span class="o">.</span><span class="n">get_entries_as_ndarray</span><span class="p">()</span>
+<span class="n">data_model</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">PoissonData</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+<span class="n">response_matrix</span> <span class="o">=</span> <span class="s2">&quot;../03/response_matrix.npz&quot;</span>
+<span class="n">matrix_predictor</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">ResponseMatrixPredictor</span><span class="p">(</span><span class="n">response_matrix</span><span class="p">)</span>
+<span class="n">calc</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">LikelihoodCalculator</span><span class="p">(</span><span class="n">data_model</span><span class="p">,</span> <span class="n">matrix_predictor</span><span class="p">)</span>
+
+<span class="n">truth_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelA_truth.txt&quot;</span><span class="p">)</span>
+<span class="n">modelA</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">get_values_as_ndarray</span><span class="p">()</span>
+<span class="n">modelA</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">modelA</span><span class="p">)</span>
+
+<span class="n">modelA_shape</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">([</span><span class="n">modelA</span><span class="p">])</span>
+<span class="n">calcA</span> <span class="o">=</span> <span class="n">calc</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">modelA_shape</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now we can create a sampler and inital guesses for the parameters
+using the <code class="xref py py-mod docutils literal notranslate"><span class="pre">likelihood_utils</span></code> module:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">samplerA</span> <span class="o">=</span> <span class="n">likelihood_utils</span><span class="o">.</span><span class="n">emcee_sampler</span><span class="p">(</span><span class="n">calcA</span><span class="p">)</span>
+<span class="n">guessA</span> <span class="o">=</span> <span class="n">likelihood_utils</span><span class="o">.</span><span class="n">emcee_initial_guess</span><span class="p">(</span><span class="n">calcA</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>These can then be used to draw from the posterior distribution. Since the
+likelihood function used here is not modified by a prior, this is equivalent to
+using flat priors for the parameters. See the emcee documentation for details
+about how to use these objects:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">state</span> <span class="o">=</span> <span class="n">samplerA</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="n">guessA</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="n">chain</span> <span class="o">=</span> <span class="n">samplerA</span><span class="o">.</span><span class="n">get_chain</span><span class="p">(</span><span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="mi">200</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Note that the number of data points is higher than the requested chain length.
+This is due to the fact that <code class="docutils literal notranslate"><span class="pre">emcee</span></code> will sample multiple chains in parallel,
+which get combined into one long chain when using the <code class="docutils literal notranslate"><span class="pre">flat</span></code> option. The
+number of chains depends on the number of free parameters.</p>
+<p>We can now plot the distribution of the template weight parameter:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">chain</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;model A weight&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;burn_short.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/burn_short.png" src="../../_images/burn_short.png" />
+<p>There clearly is something wrong with this distribution. The MCMC has not
+converged yet. The authors of <code class="docutils literal notranslate"><span class="pre">emcee</span></code> suggest to use the autocorrelation time
+as a measure of whether a chain has converged:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="n">tau</span> <span class="o">=</span> <span class="n">samplerA</span><span class="o">.</span><span class="n">get_autocorr_time</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">emcee</span><span class="o">.</span><span class="n">autocorr</span><span class="o">.</span><span class="n">AutocorrError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>The chain is shorter than 50 times the integrated autocorrelation time for 1 parameter(s). Use this estimate with caution and run a longer chain!
+N/50 = 2;
+tau: [13.27761416]
+</pre></div>
+</div>
+<p>So let us try again with a longer chain:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">samplerA</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">samplerA</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="n">guessA</span><span class="p">,</span> <span class="mi">200</span><span class="o">*</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">chain</span> <span class="o">=</span> <span class="n">samplerA</span><span class="o">.</span><span class="n">get_chain</span><span class="p">(</span><span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">tau</span> <span class="o">=</span> <span class="n">samplerA</span><span class="o">.</span><span class="n">get_autocorr_time</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">emcee</span><span class="o">.</span><span class="n">autocorr</span><span class="o">.</span><span class="n">AutocorrError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="mf">47.5875875</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>Now the chain is long enough and we can have another look at the distribution:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">chain</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;model A weight&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;burn_long.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/burn_long.png" src="../../_images/burn_long.png" />
+<p>Now we can discard these events and generate a new set from the last state of
+the sampler:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">samplerA</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">samplerA</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="mi">100</span><span class="o">*</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">chain</span> <span class="o">=</span> <span class="n">samplerA</span><span class="o">.</span><span class="n">get_chain</span><span class="p">(</span><span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">tau</span> <span class="o">=</span> <span class="n">samplerA</span><span class="o">.</span><span class="n">get_autocorr_time</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">emcee</span><span class="o">.</span><span class="n">autocorr</span><span class="o">.</span><span class="n">AutocorrError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="mf">27.64249535</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">chain</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;model A weight&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;weightA.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/weightA.png" src="../../_images/weightA.png" />
+<p>We can also take a look at how these predictions look in truth and reco space:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">truth</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">modelA_shape</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span>
+<span class="n">truth</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">truth</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">truth</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">stack_function</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Post. median&quot;</span><span class="p">,</span> <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">truth</span><span class="p">,</span> <span class="n">stack_function</span><span class="o">=</span><span class="mf">0.68</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Post. 68%&quot;</span><span class="p">,</span> <span class="n">scatter</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;truthA.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/truthA.png" src="../../_images/truthA.png" />
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">reco</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">calcA</span><span class="o">.</span><span class="n">predictor</span><span class="p">(</span><span class="n">chain</span><span class="p">)</span>
+<span class="n">reco</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">reco</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]),</span> <span class="n">reco</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">reco_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">reco</span><span class="p">,</span> <span class="n">stack_function</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Post. median&quot;</span><span class="p">,</span> <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">reco</span><span class="p">,</span> <span class="n">stack_function</span><span class="o">=</span><span class="mf">0.68</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Post. 68%&quot;</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Data&quot;</span><span class="p">,</span> <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;recoA.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/recoA.png" src="../../_images/recoA.png" />
+<p>All of this also works with more parameters, of course:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">truth_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">truth_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelB_truth.txt&quot;</span><span class="p">)</span>
+<span class="n">modelB</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">get_values_as_ndarray</span><span class="p">()</span>
+<span class="n">modelB</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">modelB</span><span class="p">)</span>
+
+<span class="n">combined</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">([</span><span class="n">modelA</span><span class="p">,</span> <span class="n">modelB</span><span class="p">])</span>
+<span class="n">calcC</span> <span class="o">=</span> <span class="n">calc</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">combined</span><span class="p">)</span>
+
+<span class="n">samplerC</span> <span class="o">=</span> <span class="n">likelihood_utils</span><span class="o">.</span><span class="n">emcee_sampler</span><span class="p">(</span><span class="n">calcC</span><span class="p">)</span>
+<span class="n">guessC</span> <span class="o">=</span> <span class="n">likelihood_utils</span><span class="o">.</span><span class="n">emcee_initial_guess</span><span class="p">(</span><span class="n">calcC</span><span class="p">)</span>
+
+<span class="n">state</span> <span class="o">=</span> <span class="n">samplerC</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="n">guessC</span><span class="p">,</span> <span class="mi">200</span><span class="o">*</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">chain</span> <span class="o">=</span> <span class="n">samplerC</span><span class="o">.</span><span class="n">get_chain</span><span class="p">(</span><span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">chain</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">(</span><span class="mi">40000</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="n">tau</span> <span class="o">=</span> <span class="n">samplerC</span><span class="o">.</span><span class="n">get_autocorr_time</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">emcee</span><span class="o">.</span><span class="n">autocorr</span><span class="o">.</span><span class="n">AutocorrError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="mf">68.8796533</span>  <span class="mf">56.78473315</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">samplerC</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">state</span> <span class="o">=</span> <span class="n">samplerC</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="mi">100</span><span class="o">*</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">chain</span> <span class="o">=</span> <span class="n">samplerC</span><span class="o">.</span><span class="n">get_chain</span><span class="p">(</span><span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">tau</span> <span class="o">=</span> <span class="n">samplerC</span><span class="o">.</span><span class="n">get_autocorr_time</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+<span class="k">except</span> <span class="n">emcee</span><span class="o">.</span><span class="n">autocorr</span><span class="o">.</span><span class="n">AutocorrError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="mf">84.59675341</span> <span class="mf">99.31384933</span><span class="p">]</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">hist2d</span><span class="p">(</span><span class="n">chain</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">chain</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;model A weight&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;model B weight&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;combined.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/combined.png" src="../../_images/combined.png" />
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">chain</span><span class="p">,</span> <span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;model A weight + model B weight&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;total.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/total.png" src="../../_images/total.png" />
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../03/README.html" class="btn btn-neutral float-left" title="Example 03 – Detector uncertainties" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../05/README.html" class="btn btn-neutral float-right" title="Example 05 – Backgrounds" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Lukas Koch.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

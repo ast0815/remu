@@ -1,0 +1,454 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Example 02 – Simple model fits &mdash; ReMU  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Example 03 – Detector uncertainties" href="../03/README.html" />
+    <link rel="prev" title="Example 01 – Building a response matrix" href="../01/README.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/ReMU.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/README.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../README.html">An example analysis</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../README.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../README.html#the-experimental-setup">The experimental setup</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../README.html#example-steps">Example steps</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../00/README.html">Example 00 – Basic usage of binnings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../01/README.html">Example 01 – Building a response matrix</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Example 02 – Simple model fits</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#aims">Aims</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#instructions">Instructions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../03/README.html">Example 03 – Detector uncertainties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../04/README.html">Example 04 – Markov Chain Monte Carlo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../05/README.html">Example 05 – Backgrounds</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../06/README.html">Example 06 – Cross sections &amp; flux uncertainties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../PD/README.html">Example PD – Advanced data loading with pandas and ROOT</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/README.html">Module references</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ReMU</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../README.html">An example analysis</a></li>
+      <li class="breadcrumb-item active">Example 02 – Simple model fits</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/examples/02/README.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="example-02-simple-model-fits">
+<span id="example02"></span><h1>Example 02 – Simple model fits<a class="headerlink" href="#example-02-simple-model-fits" title="Link to this heading"></a></h1>
+<section id="aims">
+<h2>Aims<a class="headerlink" href="#aims" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Create a <code class="xref py py-class docutils literal notranslate"><span class="pre">LikelihoodCalculator</span></code> with the response matrix
+and experiment data</p></li>
+<li><p>Calculate likelihoods of model predictions</p></li>
+<li><p>Create a <code class="xref py py-class docutils literal notranslate"><span class="pre">HypothesisTester</span></code> and calculate p-values</p></li>
+<li><p>Fit parameters and calculate p-values of composite hypotheses</p></li>
+<li><p>Construct confidence intervals of parameters of composite hypotheses</p></li>
+</ul>
+</section>
+<section id="instructions">
+<h2>Instructions<a class="headerlink" href="#instructions" title="Link to this heading"></a></h2>
+<p>The calculation of likelihoods and p-values is handled by the classes in the
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">likelihood</span></code> module:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">binning</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">plotting</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">likelihood</span>
+</pre></div>
+</div>
+<p>Some calculations handled in this module can be parallelized by setting the
+<code class="docutils literal notranslate"><span class="pre">mapper</span></code> function to something that uses parallel processes or threads, e.g.
+the map function of a <code class="xref py py-class docutils literal notranslate"><span class="pre">multiprocess.Pool</span></code> object:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">multiprocess</span> <span class="kn">import</span> <span class="n">Pool</span>
+<span class="n">pool</span> <span class="o">=</span> <span class="n">Pool</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">likelihood</span><span class="o">.</span><span class="n">mapper</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span>
+</pre></div>
+</div>
+<p>This is completely optional, but can speed up the calculation of p-values
+considerably. Please not the use of the <code class="docutils literal notranslate"><span class="pre">multiprocess</span></code> package, instead of
+Python’s native <code class="docutils literal notranslate"><span class="pre">multiprocessing</span></code>. The latter does not support the pickling
+of arbitrary functions, so it does not work.</p>
+<p>First we will create <code class="xref py py-class docutils literal notranslate"><span class="pre">DataModel</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">ResponseMatrixPredictor</span></code>
+objects from the information of the previous examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">response_matrix</span> <span class="o">=</span> <span class="s2">&quot;../01/response_matrix.npz&quot;</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;../01/reco-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">reco_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;../01/optimised-truth-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">truth_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+<span class="n">reco_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/real_data.txt&quot;</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">reco_binning</span><span class="o">.</span><span class="n">get_entries_as_ndarray</span><span class="p">()</span>
+<span class="n">data_model</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">PoissonData</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="n">matrix_predictor</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">ResponseMatrixPredictor</span><span class="p">(</span><span class="n">response_matrix</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The data model knows how to compare event rate predictions to the data and
+calculate the respective likelihoods, in this case using Poisson statistics.
+The matrix predictor contains the information of the previously built response
+matrix and is used to predict reco-space event rates from truth-space event
+rates. These two can now be combined into a <code class="xref py py-class docutils literal notranslate"><span class="pre">LikelihoodCalculator</span></code> and
+<code class="xref py py-class docutils literal notranslate"><span class="pre">HypothesisTester</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">calc</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">LikelihoodCalculator</span><span class="p">(</span><span class="n">data_model</span><span class="p">,</span> <span class="n">matrix_predictor</span><span class="p">)</span>
+<span class="n">test</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">HypothesisTester</span><span class="p">(</span><span class="n">calc</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Likelihood calculators are in charge of computing likelihoods of parameter
+sets. In this case, it will calculate the likelihoods of truth-space
+event-rates, as that is what the predictor is expecting as parameters.
+Hypothesis testers use the likelihood calculator to do statistical tests and
+calculate p-values.</p>
+<p>Now we need some models to test against the data. We will use the models A and
+B of the previous steps, but we will turn them into area-normalised templates:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">truth_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelA_truth.txt&quot;</span><span class="p">)</span>
+<span class="n">modelA</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">get_values_as_ndarray</span><span class="p">()</span>
+<span class="n">modelA</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">modelA</span><span class="p">)</span>
+
+<span class="n">truth_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">truth_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelB_truth.txt&quot;</span><span class="p">)</span>
+<span class="n">modelB</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">get_values_as_ndarray</span><span class="p">()</span>
+<span class="n">modelB</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">modelB</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Let us calculate some likelihoods and p-values with these templates, assuming
+total of 1000 expected events in the truth space (i.e. before efficiency
+effects):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">calc</span><span class="p">(</span><span class="n">modelA</span><span class="o">*</span><span class="mi">1000</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">test</span><span class="o">.</span><span class="n">likelihood_p_value</span><span class="p">(</span><span class="n">modelA</span><span class="o">*</span><span class="mi">1000</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">calc</span><span class="p">(</span><span class="n">modelB</span><span class="o">*</span><span class="mi">1000</span><span class="p">))</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">test</span><span class="o">.</span><span class="n">likelihood_p_value</span><span class="p">(</span><span class="n">modelB</span><span class="o">*</span><span class="mi">1000</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">-</span><span class="mf">27.800234247380704</span>
+<span class="mf">0.1968</span>
+<span class="o">-</span><span class="mf">24.480283069694824</span>
+<span class="mf">0.6804</span>
+</pre></div>
+</div>
+<p>The exact results may vary due to statistical fluctuations. Especially the
+p-values are calculated by generating random data sets assuming the tested
+model is true. The fraction of data sets with a worse likelihood than the
+actual measured one is the p-value. Depending on the required confidence level,
+we could exclude the “1000*A” hypothesis, while the “1000*B” hypothesis is more
+compatible with the data.</p>
+<p>Models that predict the true distribution of events usually have some free
+parameters. For example we could assume that the shapes of models A and B are
+well motivated but the total number of events is not well predicted. To test
+these more flexible models, we can create predictors that take the free
+parameters of the models as inputs and predict event rates in truth space.
+By composing (i.e. “chaining”) these predictors to the matrix predictor,
+we can then build a likelihood calculator that takes these parameters as
+inputs directly:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">modelA_shape</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">([</span><span class="n">modelA</span><span class="p">])</span>
+<span class="n">modelA_reco_shape</span> <span class="o">=</span> <span class="n">matrix_predictor</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">modelA_shape</span><span class="p">)</span>
+<span class="n">calcA</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">LikelihoodCalculator</span><span class="p">(</span><span class="n">data_model</span><span class="p">,</span> <span class="n">modelA_reco_shape</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This example uses the <code class="xref py py-class docutils literal notranslate"><span class="pre">TemplatePredictor</span></code> class, which takes a list of
+templates as its initialisation parameter and creates a predictor with one
+template weight parameter per template. Since we only provide one template
+here, it only takes one parameter.</p>
+<p>We can now do a maximum likelihood fit with the model, using a
+<code class="xref py py-class docutils literal notranslate"><span class="pre">BasinHoppingMaximiser</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">maxi</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">BasinHoppingMaximizer</span><span class="p">()</span>
+<span class="n">retA</span> <span class="o">=</span> <span class="n">maxi</span><span class="p">(</span><span class="n">calcA</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">retA</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>                        <span class="n">fun</span><span class="p">:</span> <span class="mf">25.257278617610154</span>
+             <span class="n">log_likelihood</span><span class="p">:</span> <span class="o">-</span><span class="mf">25.257278617610154</span>
+ <span class="n">lowest_optimization_result</span><span class="p">:</span>       <span class="n">fun</span><span class="p">:</span> <span class="mf">25.257278617610154</span>
+ <span class="n">hess_inv</span><span class="p">:</span> <span class="o">&lt;</span><span class="mi">1</span><span class="n">x1</span> <span class="n">LbfgsInvHessProduct</span> <span class="k">with</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float64</span><span class="o">&gt;</span>
+      <span class="n">jac</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">6.75015063e-06</span><span class="p">])</span>
+  <span class="n">message</span><span class="p">:</span> <span class="s1">&#39;CONVERGENCE: NORM_OF_PROJECTED_GRADIENT_&lt;=_PGTOL&#39;</span>
+     <span class="n">nfev</span><span class="p">:</span> <span class="mi">20</span>
+      <span class="n">nit</span><span class="p">:</span> <span class="mi">4</span>
+     <span class="n">njev</span><span class="p">:</span> <span class="mi">10</span>
+   <span class="n">status</span><span class="p">:</span> <span class="mi">0</span>
+  <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">900.29272504</span><span class="p">])</span>
+                    <span class="n">message</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;requested number of basinhopping iterations completed successfully&#39;</span><span class="p">]</span>
+      <span class="n">minimization_failures</span><span class="p">:</span> <span class="mi">0</span>
+                       <span class="n">nfev</span><span class="p">:</span> <span class="mi">140</span>
+                        <span class="n">nit</span><span class="p">:</span> <span class="mi">10</span>
+                       <span class="n">njev</span><span class="p">:</span> <span class="mi">70</span>
+                    <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+                          <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">900.29272504</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>The parameter values of the maximum likelihood solution are returned as
+<code class="docutils literal notranslate"><span class="pre">ret.x</span></code>. The actual maximum log likelihood is stored in
+<code class="docutils literal notranslate"><span class="pre">ret.log_likelihood</span></code>. The other properties of the returned object show the
+status of the optimisation and are not important for this example.</p>
+<p>Instead of composing the predictors and building a new likelihood calculator
+with the result, it is also possible to directly compose the model predictor
+with the likelihood calculator:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">modelB_shape</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">([</span><span class="n">modelB</span><span class="p">])</span>
+<span class="n">calcB</span> <span class="o">=</span> <span class="n">calc</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">modelB_shape</span><span class="p">)</span>
+<span class="n">retB</span> <span class="o">=</span> <span class="n">maxi</span><span class="p">(</span><span class="n">calcB</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">retB</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>                        <span class="n">fun</span><span class="p">:</span> <span class="mf">24.439068081734</span>
+             <span class="n">log_likelihood</span><span class="p">:</span> <span class="o">-</span><span class="mf">24.439068081734</span>
+ <span class="n">lowest_optimization_result</span><span class="p">:</span>       <span class="n">fun</span><span class="p">:</span> <span class="mf">24.439068081734</span>
+ <span class="n">hess_inv</span><span class="p">:</span> <span class="o">&lt;</span><span class="mi">1</span><span class="n">x1</span> <span class="n">LbfgsInvHessProduct</span> <span class="k">with</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float64</span><span class="o">&gt;</span>
+      <span class="n">jac</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">7.10542172e-07</span><span class="p">])</span>
+  <span class="n">message</span><span class="p">:</span> <span class="s1">&#39;CONVERGENCE: NORM_OF_PROJECTED_GRADIENT_&lt;=_PGTOL&#39;</span>
+     <span class="n">nfev</span><span class="p">:</span> <span class="mi">18</span>
+      <span class="n">nit</span><span class="p">:</span> <span class="mi">4</span>
+     <span class="n">njev</span><span class="p">:</span> <span class="mi">9</span>
+   <span class="n">status</span><span class="p">:</span> <span class="mi">0</span>
+  <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">986.50497796</span><span class="p">])</span>
+                    <span class="n">message</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;requested number of basinhopping iterations completed successfully&#39;</span><span class="p">]</span>
+      <span class="n">minimization_failures</span><span class="p">:</span> <span class="mi">0</span>
+                       <span class="n">nfev</span><span class="p">:</span> <span class="mi">104</span>
+                        <span class="n">nit</span><span class="p">:</span> <span class="mi">10</span>
+                       <span class="n">njev</span><span class="p">:</span> <span class="mi">52</span>
+                    <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+                          <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">986.50497796</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>The maximum likelihood solutions for model A shows a lower number of events
+than that of model B. This is due to the higher average efficiency of
+reconstructing the events of model A, i.e. their distribution in <code class="docutils literal notranslate"><span class="pre">y</span></code>. The
+maximum log likelihood of model B is higher than for model A. So model B is
+able to describe the given data better than model A. This is also reflected in
+the p-values:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">testA</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">HypothesisTester</span><span class="p">(</span><span class="n">calcA</span><span class="p">,</span> <span class="n">maximizer</span><span class="o">=</span><span class="n">maxi</span><span class="p">)</span>
+<span class="n">testB</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">HypothesisTester</span><span class="p">(</span><span class="n">calcB</span><span class="p">,</span> <span class="n">maximizer</span><span class="o">=</span><span class="n">maxi</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">testA</span><span class="o">.</span><span class="n">max_likelihood_p_value</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">testB</span><span class="o">.</span><span class="n">max_likelihood_p_value</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">0.428</span>
+<span class="mf">0.54</span>
+</pre></div>
+</div>
+<p>Here we explicitly told the hypothesis testers which maximiser to use, but this
+is optional.</p>
+<p>Again the p-value is calculated from randomly generated data sets assuming the
+given model is true. This time it is the ratio of data sets that yield a worse
+<em>maximum</em> likelihood though. This means a fit is performed for each mock data
+set.</p>
+<p>We can also take a qualitative look at the fit of data and the two models by
+plotting the result in reco space:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">reco_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_entries</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">modelA_reco</span><span class="p">,</span> <span class="n">modelA_weights</span> <span class="o">=</span> <span class="n">modelA_reco_shape</span><span class="p">(</span><span class="n">retA</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+<span class="n">modelA_logL</span> <span class="o">=</span> <span class="n">calcA</span><span class="p">(</span><span class="n">retA</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+<span class="n">modelA_p</span> <span class="o">=</span> <span class="n">testA</span><span class="o">.</span><span class="n">likelihood_p_value</span><span class="p">(</span><span class="n">retA</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+<span class="n">modelB_reco</span><span class="p">,</span> <span class="n">modelB_weights</span> <span class="o">=</span> <span class="n">calcB</span><span class="o">.</span><span class="n">predictor</span><span class="p">(</span><span class="n">retB</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+<span class="n">modelB_logL</span> <span class="o">=</span> <span class="n">calcB</span><span class="p">(</span><span class="n">retB</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+<span class="n">modelB_p</span> <span class="o">=</span> <span class="n">testB</span><span class="o">.</span><span class="n">likelihood_p_value</span><span class="p">(</span><span class="n">retB</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">modelA_reco</span><span class="p">,</span>
+    <span class="n">label</span><span class="o">=</span><span class="s1">&#39;model A: $\log L=</span><span class="si">%.1f</span><span class="s1">$, $p=</span><span class="si">%.3f</span><span class="s1">$&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">modelA_logL</span><span class="p">,</span> <span class="n">modelA_p</span><span class="p">),</span>
+    <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;dashed&#39;</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">modelB_reco</span><span class="p">,</span>
+    <span class="n">label</span><span class="o">=</span><span class="s1">&#39;model B: $\log L=</span><span class="si">%.1f</span><span class="s1">$, $p=</span><span class="si">%.3f</span><span class="s1">$&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">modelB_logL</span><span class="p">,</span> <span class="n">modelB_p</span><span class="p">),</span>
+    <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;dotted&#39;</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;lower center&#39;</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;reco-comparison.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/reco-comparison.png" src="../../_images/reco-comparison.png" />
+<p>The p-value shown in this plot is again the <code class="xref py py-meth docutils literal notranslate"><span class="pre">likelihood_p_value()</span></code> (as
+opposed to the <code class="xref py py-meth docutils literal notranslate"><span class="pre">max_likelihood_p_value()</span></code>). This is a better
+representation of the goodness of fit of the maximum likelihood solution,
+roughly equivalent to checking for a “chi-square” close to the number of bins.</p>
+<p>The return values of the predictors are formated to accomodate multiple
+weighted predictions per set of parameters, i.e. systematic incertainties. We
+can ignore the weights for now.</p>
+<p>Usually there is more than one template to be fitted to the data. Let’s see
+what happens if we allow combinations of model A and B:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">mix_model</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">([</span><span class="n">modelA</span><span class="p">,</span> <span class="n">modelB</span><span class="p">])</span>
+<span class="n">calc_mix</span> <span class="o">=</span> <span class="n">calc</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">mix_model</span><span class="p">)</span>
+<span class="n">ret</span> <span class="o">=</span> <span class="n">maxi</span><span class="o">.</span><span class="n">maximize_log_likelihood</span><span class="p">(</span><span class="n">calc_mix</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>                        <span class="n">fun</span><span class="p">:</span> <span class="mf">23.818800345296474</span>
+             <span class="n">log_likelihood</span><span class="p">:</span> <span class="o">-</span><span class="mf">23.818800345296474</span>
+ <span class="n">lowest_optimization_result</span><span class="p">:</span>       <span class="n">fun</span><span class="p">:</span> <span class="mf">23.818800345296474</span>
+ <span class="n">hess_inv</span><span class="p">:</span> <span class="o">&lt;</span><span class="mi">2</span><span class="n">x2</span> <span class="n">LbfgsInvHessProduct</span> <span class="k">with</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float64</span><span class="o">&gt;</span>
+      <span class="n">jac</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">0.00000000e+00</span><span class="p">,</span> <span class="mf">2.84216869e-06</span><span class="p">])</span>
+  <span class="n">message</span><span class="p">:</span> <span class="s1">&#39;CONVERGENCE: NORM_OF_PROJECTED_GRADIENT_&lt;=_PGTOL&#39;</span>
+     <span class="n">nfev</span><span class="p">:</span> <span class="mi">87</span>
+      <span class="n">nit</span><span class="p">:</span> <span class="mi">4</span>
+     <span class="n">njev</span><span class="p">:</span> <span class="mi">29</span>
+   <span class="n">status</span><span class="p">:</span> <span class="mi">0</span>
+  <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">351.46741373</span><span class="p">,</span> <span class="mf">601.38025556</span><span class="p">])</span>
+                    <span class="n">message</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;requested number of basinhopping iterations completed successfully&#39;</span><span class="p">]</span>
+      <span class="n">minimization_failures</span><span class="p">:</span> <span class="mi">0</span>
+                       <span class="n">nfev</span><span class="p">:</span> <span class="mi">273</span>
+                        <span class="n">nit</span><span class="p">:</span> <span class="mi">10</span>
+                       <span class="n">njev</span><span class="p">:</span> <span class="mi">91</span>
+                    <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+                          <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">351.46741373</span><span class="p">,</span> <span class="mf">601.38025556</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">test</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">HypothesisTester</span><span class="p">(</span><span class="n">calc_mix</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">test</span><span class="o">.</span><span class="n">max_likelihood_p_value</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">0.664</span>
+</pre></div>
+</div>
+<p>The two parameters of this new combined model are the weights of model A and B
+respectively. This allows a contribution of model A in the maximum likelihood
+solution.</p>
+<p>It might be useful to calculate a confidence interval for a parameter embedded
+in a larger hypothesis with more parameters. This can be done by fixing that
+parameter at different values (reducing the number of free parameters) and
+calculating the likelihood ratio of this new embedded hypothesis and the
+embedding original hypothesis. Comparing this likelihood ratio with the
+expected distribution of likelihood ratios assuming the embedded hypothesis is
+true yields p-values that can be used to construct the confidence interval:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">p_values</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">A_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">11</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">A</span> <span class="ow">in</span> <span class="n">A_values</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">max_likelihood_ratio_p_value</span><span class="p">((</span><span class="n">A</span><span class="p">,</span><span class="kc">None</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+    <span class="n">p_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Calculating these might take a while. The method
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">max_likelihood_ratio_p_value()</span></code> fixes the specified parameters and
+generates toy data sets at the best fit point of the remaining parameters. It
+then computes the maximum likelihoods for both the fixed and unfixed version of
+the predictors for all toy data sets. The fraction of toy data sets with an
+equal or worse maximum likelihood ratio then the real data is the p-value.</p>
+<p>This p-value is sometimes called the “profile plug-in p-value”, as one “plugs
+in” the maximum likelihood estimate of the hypothesis’ (nuisance) parameters to
+generate the toy data and calculate the p-value. It’s coverage properties are
+not exact, so care has to be taken to make sure it performs as expected (e.g.
+by testing it with simulated data).</p>
+<p>In the limit of “large statistics”, the maximum log likelihood ratio should be
+distributed like a chi-square distribution, according to Wilks’ theorem. This
+can be used to speed up the calculation of p-values considerably, as it skips
+the generation of fit to toy data sets:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">wilks_p_values</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">fine_A_values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1000</span><span class="p">,</span> <span class="mi">100</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">A</span> <span class="ow">in</span> <span class="n">fine_A_values</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">test</span><span class="o">.</span><span class="n">wilks_max_likelihood_ratio_p_value</span><span class="p">((</span><span class="n">A</span><span class="p">,</span><span class="kc">None</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span>
+    <span class="n">wilks_p_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This can then be plotted with your usual plotting libraries:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;Model A weight&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;p-value&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">A_values</span><span class="p">,</span> <span class="n">p_values</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Profile plug-in&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">fine_A_values</span><span class="p">,</span> <span class="n">wilks_p_values</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Wilks&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">ret</span><span class="o">.</span><span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;solid&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mf">0.32</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;dashed&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">axhline</span><span class="p">(</span><span class="mf">0.05</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s1">&#39;dashed&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;best&#39;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;p-values.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/p-values.png" src="../../_images/p-values.png" />
+<p>The confidence interval is the region of the parameter space with a p-value
+over the desired test significance. The maximum likelihood solution is shown as
+vertical line. Please note that this assumes that the full hypothesis with no
+fixed parameters is true, i.e. that some combination of model A and model B
+templates actually describes reality.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../01/README.html" class="btn btn-neutral float-left" title="Example 01 – Building a response matrix" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../03/README.html" class="btn btn-neutral float-right" title="Example 03 – Detector uncertainties" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Lukas Koch.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

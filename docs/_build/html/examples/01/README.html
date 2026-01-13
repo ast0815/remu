@@ -1,0 +1,433 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Example 01 – Building a response matrix &mdash; ReMU  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Example 02 – Simple model fits" href="../02/README.html" />
+    <link rel="prev" title="Example 00 – Basic usage of binnings" href="../00/README.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/ReMU.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/README.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../README.html">An example analysis</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../README.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../README.html#the-experimental-setup">The experimental setup</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../README.html#example-steps">Example steps</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../00/README.html">Example 00 – Basic usage of binnings</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Example 01 – Building a response matrix</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#aims">Aims</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#instructions">Instructions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../02/README.html">Example 02 – Simple model fits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../03/README.html">Example 03 – Detector uncertainties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../04/README.html">Example 04 – Markov Chain Monte Carlo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../05/README.html">Example 05 – Backgrounds</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../06/README.html">Example 06 – Cross sections &amp; flux uncertainties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../PD/README.html">Example PD – Advanced data loading with pandas and ROOT</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/README.html">Module references</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ReMU</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../README.html">An example analysis</a></li>
+      <li class="breadcrumb-item active">Example 01 – Building a response matrix</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/examples/01/README.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="example-01-building-a-response-matrix">
+<span id="example01"></span><h1>Example 01 – Building a response matrix<a class="headerlink" href="#example-01-building-a-response-matrix" title="Link to this heading"></a></h1>
+<section id="aims">
+<h2>Aims<a class="headerlink" href="#aims" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Use simulated events to build detector response matrix</p></li>
+<li><p>Test the model-independence of the matrix</p></li>
+<li><p>Optimise the binning</p></li>
+</ul>
+</section>
+<section id="instructions">
+<h2>Instructions<a class="headerlink" href="#instructions" title="Link to this heading"></a></h2>
+<p>A response matrix describes the probabilities of true events to be
+reconstructed with different reconstructed properties. It is defined by the
+binning of events in truth and reco space, and the simulated events that are
+used to fill the matrix.</p>
+<p>Let us assume we would like to investigate the variable <code class="docutils literal notranslate"><span class="pre">x</span></code> of the example
+data. The files <code class="docutils literal notranslate"><span class="pre">reco-binning.yml</span></code> and <code class="docutils literal notranslate"><span class="pre">coarse-truth-binning.yml</span></code> contain
+the bin edges in <code class="docutils literal notranslate"><span class="pre">x</span></code> that we will use to build the response matrix. The
+response matrix object is created using the respective binning objects:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">binning</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">migration</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">plotting</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">matrix_utils</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;reco-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">reco_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;coarse-truth-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">truth_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+<span class="n">respA</span> <span class="o">=</span> <span class="n">migration</span><span class="o">.</span><span class="n">ResponseMatrix</span><span class="p">(</span><span class="n">reco_binning</span><span class="p">,</span> <span class="n">truth_binning</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This <code class="xref py py-class docutils literal notranslate"><span class="pre">ResponseMatrix</span></code> object provides methods to populate it with
+simulated events:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">respA</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelA_data.txt&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Often, the true distributions of the events before the selection are stored in
+a dedicated data set. To get the efficiencies right, the response matrix
+objects have a method to “top up” only the truth distributions:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">respA</span><span class="o">.</span><span class="n">fill_up_truth_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelA_truth.txt&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will not affect the reconstructed distributions. It is assumed that the
+reconstructed events are a subset of the truth events.</p>
+<p>We can now take a look at the matrix using the various plotting methods in the
+<code class="xref py py-mod docutils literal notranslate"><span class="pre">matrix_utils</span></code> and <code class="xref py py-mod docutils literal notranslate"><span class="pre">plotting</span></code> modules. The mean migration matrix
+(ignoring statistical uncertainties) can be plotted like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_mean_response_matrix</span><span class="p">(</span><span class="n">respA</span><span class="p">,</span> <span class="s2">&quot;response_matrix_A.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/response_matrix_A.png" src="../../_images/response_matrix_A.png" />
+<p>The sum of the matrix elements projected on the truth bins gives us the
+efficiencies of the respective bins in the mean matrix. The very low and very
+high bins seem to show a constant efficiency of exactly 0.5. This is caused by
+the prior assumption of the response matrix. Before adding any actual events,
+all efficiencies are considered to be equally likely and the mean of that flat
+prior is 0.5. The low and high bins indeed have only very few events in them:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">respA</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_entries</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;entries_A.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/entries_A.png" src="../../_images/entries_A.png" />
+<p>Note that the y-axis of this plot shows the <em>density</em> of events, i.e. the
+number of events in the bin divided by the relative bin width. This behaviour
+can be switched off with the <code class="docutils literal notranslate"><span class="pre">density</span></code> argument:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">respA</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_entries</span><span class="p">(</span><span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;abs_entries_A.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/abs_entries_A.png" src="../../_images/abs_entries_A.png" />
+<p>The efficiency of this matrix looks reasonably flat (within the statistical
+fluctuations). This would seem to make sense, since the efficiency of the
+example experiment does not depend on <code class="docutils literal notranslate"><span class="pre">x</span></code>. In fact, this is misleading
+though, since the plot implicitly integrates over <code class="docutils literal notranslate"><span class="pre">y</span></code> and its influence on
+the efficiency. This can be seen when repeating the previous steps with a
+different model (“model B”):</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">reco_binning</span> <span class="o">=</span> <span class="n">reco_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">truth_binning</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">reco_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">truth_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">respB</span> <span class="o">=</span> <span class="n">migration</span><span class="o">.</span><span class="n">ResponseMatrix</span><span class="p">(</span><span class="n">reco_binning</span><span class="p">,</span> <span class="n">truth_binning</span><span class="p">)</span>
+
+<span class="n">respB</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelB_data.txt&quot;</span><span class="p">)</span>
+<span class="n">respB</span><span class="o">.</span><span class="n">fill_up_truth_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelB_truth.txt&quot;</span><span class="p">)</span>
+
+<span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_mean_response_matrix</span><span class="p">(</span><span class="n">respB</span><span class="p">,</span> <span class="s2">&quot;response_matrix_B.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/response_matrix_B.png" src="../../_images/response_matrix_B.png" />
+<p>Here the efficiency clearly varies over <code class="docutils literal notranslate"><span class="pre">x</span></code>, despite the efficiency of the
+detector not actually depending on it. The reason for this is simple: In model
+B, <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">y</span></code> are correlated.</p>
+<p>This implicit dependency on a variable that is not part of the truth binning,
+leads to the two created response matrices being very different. We can see
+that explicitly when plotting the Mahalanobis distance (i.e. “chi-square”)
+between the two matrices:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_mahalanobis_distance</span><span class="p">(</span><span class="n">respA</span><span class="p">,</span> <span class="n">respB</span><span class="p">,</span> <span class="s2">&quot;mahalanobis_distance.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/mahalanobis_distance.png" src="../../_images/mahalanobis_distance.png" />
+<p>The differences are much larger than would be expected from purely statistical
+fluctuations. This is also reflected in the overall distance between the
+matrices, which can be used to define a compatibility score:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_compatibility</span><span class="p">(</span><span class="n">respA</span><span class="p">,</span> <span class="n">respB</span><span class="p">,</span> <span class="s2">&quot;compatibility.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/compatibility.png" src="../../_images/compatibility.png" />
+<p>The plot shows the expected distributions of distances according to the
+statistical uncertainties, if the matrices were describing identical responses.
+The vertical line shows the actual distance. The compatibility <code class="docutils literal notranslate"><span class="pre">C</span></code> is defined
+as the fraction of matrices in the distributions that have a larger distance
+than the actually measured one.</p>
+<p>It is obvious that the chosen binning is not sufficient to ensure a
+model-independent response matrix. We clearly need to bin the truth also in
+<code class="docutils literal notranslate"><span class="pre">y</span></code> to cover the differences in the detector response. It is important to
+keep in mind that in general, this kind of dependence might not show up clearly
+in all cases. If the models used to build the response matrix are too similar,
+the matrices might evaluate as compatible despite remaining model dependence in
+the binning. It is important to understand the detector and analysis from first
+principles and use that understanding to identify possible causes of varying
+responses.</p>
+<p>So let us re-do the previous steps with a finer truth-binning, also taking
+<code class="docutils literal notranslate"><span class="pre">y</span></code> into account:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;reco-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">reco_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;fine-truth-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">truth_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+<span class="n">respA</span> <span class="o">=</span> <span class="n">migration</span><span class="o">.</span><span class="n">ResponseMatrix</span><span class="p">(</span><span class="n">reco_binning</span><span class="p">,</span> <span class="n">truth_binning</span><span class="p">)</span>
+<span class="n">reco_binning</span> <span class="o">=</span> <span class="n">reco_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">truth_binning</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">respB</span> <span class="o">=</span> <span class="n">migration</span><span class="o">.</span><span class="n">ResponseMatrix</span><span class="p">(</span><span class="n">reco_binning</span><span class="p">,</span> <span class="n">truth_binning</span><span class="p">)</span>
+
+<span class="n">respA</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelA_data.txt&quot;</span><span class="p">)</span>
+<span class="n">respA</span><span class="o">.</span><span class="n">fill_up_truth_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelA_truth.txt&quot;</span><span class="p">)</span>
+
+<span class="n">respB</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelB_data.txt&quot;</span><span class="p">)</span>
+<span class="n">respB</span><span class="o">.</span><span class="n">fill_up_truth_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelB_truth.txt&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The correlation between <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">y</span></code> is now apparent in the plot of events
+in the truth binning of response matrix B:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">respB</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_entries</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;fine_entries_B.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/fine_entries_B.png" src="../../_images/fine_entries_B.png" />
+<p>Because of the fine 2D binning of the true events, the matrix itself has become
+a bit unwieldy:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_mean_response_matrix</span><span class="p">(</span><span class="n">respB</span><span class="p">,</span> <span class="s2">&quot;fine_response_matrix_A.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/fine_response_matrix_A.png" src="../../_images/fine_response_matrix_A.png" />
+<p>To get a better idea of how the mean efficiencies vary over the different truth
+variables, we can plot the projected minimum, maximum, and median of the mean
+(i.e. ignoring statistical uncertainties) efficiencies:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_mean_efficiency</span><span class="p">(</span><span class="n">respA</span><span class="p">,</span> <span class="s2">&quot;fine_efficiency_A.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/fine_efficiency_A.png" src="../../_images/fine_efficiency_A.png" />
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_mean_efficiency</span><span class="p">(</span><span class="n">respB</span><span class="p">,</span> <span class="s2">&quot;fine_efficiency_B.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/fine_efficiency_B.png" src="../../_images/fine_efficiency_B.png" />
+<p>The efficiencies of the two models are not identical, due to statistical
+fluctuations and different phase space coverage. The differences are very close
+to the expectations though:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_mahalanobis_distance</span><span class="p">(</span><span class="n">respA</span><span class="p">,</span> <span class="n">respB</span><span class="p">,</span> <span class="s2">&quot;fine_mahalanobis_distance.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/fine_mahalanobis_distance.png" src="../../_images/fine_mahalanobis_distance.png" />
+<p>In fact, the two matrices are perfectly compatible within the statistical
+uncertainties:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_compatibility</span><span class="p">(</span><span class="n">respA</span><span class="p">,</span> <span class="n">respB</span><span class="p">,</span> <span class="s2">&quot;fine_compatibility.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/fine_compatibility.png" src="../../_images/fine_compatibility.png" />
+<p>Since the two matrices are compatible with each other, and we are confident
+that the binning ensures a physics-model-independent matrix, we can use the
+simulated of both model A and model B to build the detector response matrix.
+This can be done by filling a new matrix with the data from all the available
+files:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">resp</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">([</span><span class="s2">&quot;../00/modelA_data.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;../00/modelB_data.txt&quot;</span><span class="p">])</span>
+<span class="n">resp</span><span class="o">.</span><span class="n">fill_up_truth_from_csv_file</span><span class="p">([</span><span class="s2">&quot;../00/modelA_truth.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;../00/modelB_truth.txt&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>But since we already have the two individual matrices, it is easier to just
+combine them:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">resp</span> <span class="o">=</span> <span class="n">respA</span> <span class="o">+</span> <span class="n">respB</span>
+</pre></div>
+</div>
+<p>Another quality criterion for response matrices is the variation of the detector response
+<em>within</em> a single bin. It is estimated from the differences between neighbouring bins and
+can be plotted like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_in_bin_variation</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="s2">&quot;fine_inbin_var.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/fine_inbin_var.png" src="../../_images/fine_inbin_var.png" />
+<p>It should be compared to the statistical uncertainty of the matrix elements:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_statistical_uncertainty</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="s2">&quot;fine_stat_var.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/fine_stat_var.png" src="../../_images/fine_stat_var.png" />
+<p>The easiest way to do that is by plotting the in-bin variance normalized by the
+statistical uncertainty. If the in-bin variation is much larger than the
+statistical uncertainty, this indicates that the bins are too wide to reflect a
+rapid change of detector response:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_relative_in_bin_variation</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="s2">&quot;fine_rel_inbin_var.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/fine_rel_inbin_var.png" src="../../_images/fine_rel_inbin_var.png" />
+<p>In this case, the in-bin variation is of the same order as the statistical uncertainty.</p>
+<p>The combined matrix still has lots of bins with very low statistics at the
+edges:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">resp</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_entries</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;fine_entries.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/fine_entries.png" src="../../_images/fine_entries.png" />
+<p>We can increase the statistics in the sparsely populated bins by increasing the
+size of those bins. This can be done manually by modifying the truth binning
+file. Alternatively, the <code class="xref py py-mod docutils literal notranslate"><span class="pre">matrix_utils</span></code> module offers a function to merge
+some bins to try to increase the minimum number of events per bin:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">entries</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">get_truth_entries_as_ndarray</span><span class="p">()</span>
+<span class="n">optimised</span> <span class="o">=</span> <span class="n">resp</span>
+<span class="k">while</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+    <span class="n">optimised</span> <span class="o">=</span> <span class="n">matrix_utils</span><span class="o">.</span><span class="n">improve_stats</span><span class="p">(</span><span class="n">optimised</span><span class="p">)</span>
+    <span class="n">entries</span> <span class="o">=</span> <span class="n">optimised</span><span class="o">.</span><span class="n">get_truth_entries_as_ndarray</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This will keep removing bin edges of the bins with the lowest number of events
+until the required minimum is reached. The result is a matrix with at least 10
+events in every single truth bin:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">optimised</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_entries</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;optimised_entries.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/optimised_entries.png" src="../../_images/optimised_entries.png" />
+<p>To see how the bins compare, it is useful to plot the entries without an area
+normalization:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">optimised</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_entries</span><span class="p">(</span><span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;min&quot;</span><span class="p">,</span> <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">margin_function</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_entries</span><span class="p">(</span><span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;max&quot;</span><span class="p">,</span> <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">margin_function</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_entries</span><span class="p">(</span><span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;median&quot;</span><span class="p">,</span> <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">margin_function</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;optimised_abs_entries.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/optimised_abs_entries.png" src="../../_images/optimised_abs_entries.png" />
+<p>Let us quickly check that the efficiencies of the resulting matrix behave as
+expected:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_mean_efficiency</span><span class="p">(</span><span class="n">optimised</span><span class="p">,</span> <span class="s2">&quot;optimised_efficiency.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/optimised_efficiency.png" src="../../_images/optimised_efficiency.png" />
+<p>As well as that the in-bin variation is reasonable:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_relative_in_bin_variation</span><span class="p">(</span><span class="n">optimised</span><span class="p">,</span> <span class="s2">&quot;optimised_rel_inbin_var.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/optimised_rel_inbin_var.png" src="../../_images/optimised_rel_inbin_var.png" />
+<p>And just to be sure, we can check again whether the matrices generated with the
+single models A and B are still compatible with the optimised truth binning:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">reco_binning</span> <span class="o">=</span> <span class="n">optimised</span><span class="o">.</span><span class="n">reco_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">reco_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">truth_binning</span> <span class="o">=</span> <span class="n">optimised</span><span class="o">.</span><span class="n">truth_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">truth_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+<span class="n">respA</span> <span class="o">=</span> <span class="n">migration</span><span class="o">.</span><span class="n">ResponseMatrix</span><span class="p">(</span><span class="n">reco_binning</span><span class="p">,</span> <span class="n">truth_binning</span><span class="p">)</span>
+<span class="n">reco_binning</span> <span class="o">=</span> <span class="n">reco_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">truth_binning</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">respB</span> <span class="o">=</span> <span class="n">migration</span><span class="o">.</span><span class="n">ResponseMatrix</span><span class="p">(</span><span class="n">reco_binning</span><span class="p">,</span> <span class="n">truth_binning</span><span class="p">)</span>
+<span class="n">respA</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelA_data.txt&quot;</span><span class="p">)</span>
+<span class="n">respA</span><span class="o">.</span><span class="n">fill_up_truth_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelA_truth.txt&quot;</span><span class="p">)</span>
+<span class="n">respB</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">([</span><span class="s2">&quot;../00/modelB_data.txt&quot;</span><span class="p">])</span>
+<span class="n">respB</span><span class="o">.</span><span class="n">fill_up_truth_from_csv_file</span><span class="p">([</span><span class="s2">&quot;../00/modelB_truth.txt&quot;</span><span class="p">])</span>
+<span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_mahalanobis_distance</span><span class="p">(</span><span class="n">respA</span><span class="p">,</span> <span class="n">respB</span><span class="p">,</span> <span class="s2">&quot;optimised_mahalanobis_distance.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/optimised_mahalanobis_distance.png" src="../../_images/optimised_mahalanobis_distance.png" />
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_compatibility</span><span class="p">(</span><span class="n">respA</span><span class="p">,</span> <span class="n">respB</span><span class="p">,</span> <span class="s2">&quot;optimised_compatibility.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/optimised_compatibility.png" src="../../_images/optimised_compatibility.png" />
+<p>Now that that we are confident in the quality of the final response matrix, we
+must save the necessary information for the model comparisons in later example
+steps:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;optimised-truth-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">optimised</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+
+<span class="n">optimised</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="s2">&quot;response_matrix.npz&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This will export the mean response matrix, as well as some auxiliary
+information that is required for the calculation of likelihoods and hypothesis
+tests.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../00/README.html" class="btn btn-neutral float-left" title="Example 00 – Basic usage of binnings" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../02/README.html" class="btn btn-neutral float-right" title="Example 02 – Simple model fits" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Lukas Koch.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

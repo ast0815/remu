@@ -1,0 +1,1374 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>remu.matrix_utils &mdash; ReMU  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/ReMU.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/README.html">An example analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/README.html">Module references</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ReMU</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">remu.matrix_utils</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for remu.matrix_utils</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Utility functions for the work with response matrices.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="kn">import</span> <span class="n">stats</span>
+
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">binning</span><span class="p">,</span> <span class="n">migration</span><span class="p">,</span> <span class="n">plotting</span>
+
+
+<span class="k">def</span> <span class="nf">_block_mahalanobis2</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">mu</span><span class="p">,</span> <span class="n">inv_cov</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Efficiently calculate squared Mahalanobis distance for diagonal block matrix covariances.</span>
+
+<span class="sd">    It returns the squared Mahalanobis distance of each block separately.</span>
+<span class="sd">    To get the total distance, one must sum over these numbers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    X : array_like</span>
+<span class="sd">        The objects of which the Mahalanobis distance will be calculated.</span>
+<span class="sd">        Must be of shape ``(n, a, b)``.</span>
+
+<span class="sd">    mu : array_like</span>
+<span class="sd">        The mean values of the distribution. The Mahalanobis distance is</span>
+<span class="sd">        calculated with respect to these.</span>
+<span class="sd">        Must be of shape ``(a, b)``.</span>
+
+<span class="sd">    inv_cov : array_like</span>
+<span class="sd">        The inverse of the covariance matrix of the distribution.</span>
+<span class="sd">        It must be a diagonal block matrix of ``a`` blocks with each block</span>
+<span class="sd">        of the shape ``(b, b)``. To save space, the off-diagonal 0s are not stored.</span>
+<span class="sd">        Must be of shape ``(a, b, b)``.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    D_M : ndarray</span>
+<span class="sd">        The array of squared Mahalanobis distances of shape ``(n, a)``.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">diff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">inv_cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">inv_cov</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="n">D_M</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">einsum</span><span class="p">(</span><span class="s2">&quot;...b,...bc,...c&quot;</span><span class="p">,</span> <span class="n">diff</span><span class="p">,</span> <span class="n">inv_cov</span><span class="p">,</span> <span class="n">diff</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">D_M</span>
+
+
+<div class="viewcode-block" id="mahalanobis_distance">
+<a class="viewcode-back" href="../../modules/matrix_utils.html#remu.matrix_utils.mahalanobis_distance">[docs]</a>
+<span class="k">def</span> <span class="nf">mahalanobis_distance</span><span class="p">(</span>
+    <span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">N</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">return_distances_from_mean</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the squared Mahalanobis distance of the two matrices for each truth bin.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    first, second : ResponseMatrix</span>
+<span class="sd">        The second ResponseMatrix for the comparison.</span>
+
+<span class="sd">    shape : tuple of ints, optional</span>
+<span class="sd">        The shape of the returned matrix.</span>
+<span class="sd">        Defaults to ``(#(truth bins),)``.</span>
+
+<span class="sd">    N : int, optional</span>
+<span class="sd">        Number of random matrices to be generated for the calculation.</span>
+<span class="sd">        This number must be larger than the number of *reco* bins!</span>
+<span class="sd">        Otherwise the covariances cannot be calculated correctly.</span>
+<span class="sd">        Defaults to ``#(reco bins) + 100)``.</span>
+
+<span class="sd">    return_distances_from_mean : bool, optional</span>
+<span class="sd">        Also return the ndarray ``distances_from_mean``.</span>
+
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Additional keyword arguments are passed through to</span>
+<span class="sd">        :meth:`generate_random_response_matrices`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    distance : ndarray</span>
+<span class="sd">        Array of shape `shape` with the squared Mahalanobis distance</span>
+<span class="sd">        of the mean difference between the matrices for each truth bin::</span>
+
+<span class="sd">            D_M^2( mean(first.random_matrices - second.random_matrices) )</span>
+
+<span class="sd">    distances_from_mean : ndarray, optional</span>
+<span class="sd">        Array of shape ``(N,)+shape`` with the squared Mahalanobis</span>
+<span class="sd">        distances between the randomly generated matrix differences</span>
+<span class="sd">        and the mean matrix difference for each truth bin::</span>
+
+<span class="sd">            D_M^2( (first.random_matrices - second.random_matrices)</span>
+<span class="sd">                 - mean(first.random_matrices - second.random_matrices) )</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    compatibility</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n_reco</span> <span class="o">=</span> <span class="n">first</span><span class="o">.</span><span class="n">reco_binning</span><span class="o">.</span><span class="n">data_size</span>
+    <span class="n">truth_indices</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span>
+        <span class="s2">&quot;truth_indices&quot;</span><span class="p">,</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">first</span><span class="o">.</span><span class="n">truth_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">))</span>
+    <span class="p">)</span>
+    <span class="c1"># n_truth = len(truth_indices)</span>
+    <span class="c1"># n_bins = n_truth * n_reco</span>
+    <span class="k">if</span> <span class="n">N</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">N</span> <span class="o">=</span> <span class="n">n_reco</span> <span class="o">+</span> <span class="mi">100</span>
+
+    <span class="c1"># Since the detector response is handled completely independently for each truth index,</span>
+    <span class="c1"># we can calculate the covariance matrices and distances for each one individually.</span>
+    <span class="n">distance</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">distances_from_mean</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">truth_indices</span><span class="p">:</span>  <span class="c1"># TODO: Chunk this when number of reco bins allows it</span>
+        <span class="n">indices</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="c1"># Get the *transposed* set of matrices</span>
+        <span class="n">first_matrices</span> <span class="o">=</span> <span class="n">first</span><span class="o">.</span><span class="n">generate_random_response_matrices</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">N</span><span class="p">,</span> <span class="n">truth_indices</span><span class="o">=</span><span class="n">indices</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="n">second_matrices</span> <span class="o">=</span> <span class="n">second</span><span class="o">.</span><span class="n">generate_random_response_matrices</span><span class="p">(</span>
+            <span class="n">size</span><span class="o">=</span><span class="n">N</span><span class="p">,</span> <span class="n">truth_indices</span><span class="o">=</span><span class="n">indices</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="n">differences</span> <span class="o">=</span> <span class="n">first_matrices</span> <span class="o">-</span> <span class="n">second_matrices</span>
+
+        <span class="n">inv_cov_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Actually calculate the inverse covariances</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">)):</span>
+            <span class="n">cov</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">cov</span><span class="p">(</span><span class="n">differences</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
+            <span class="n">inv_cov_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">inv</span><span class="p">(</span><span class="n">cov</span><span class="p">))</span>
+
+        <span class="n">null</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="nb">len</span><span class="p">(</span><span class="n">indices</span><span class="p">),</span> <span class="n">n_reco</span><span class="p">))</span>
+        <span class="n">mean</span> <span class="o">=</span> <span class="p">(</span>
+            <span class="n">first</span><span class="o">.</span><span class="n">get_mean_response_matrix_as_ndarray</span><span class="p">(</span><span class="n">truth_indices</span><span class="o">=</span><span class="n">indices</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="o">-</span> <span class="n">second</span><span class="o">.</span><span class="n">get_mean_response_matrix_as_ndarray</span><span class="p">(</span>
+                <span class="n">truth_indices</span><span class="o">=</span><span class="n">indices</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+            <span class="p">)</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="c1"># Append the distances of the current truth bins to the total</span>
+        <span class="n">distance</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">_block_mahalanobis2</span><span class="p">([</span><span class="n">null</span><span class="p">],</span> <span class="n">mean</span><span class="p">,</span> <span class="n">inv_cov_list</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+        <span class="c1"># Calculate distances of throws</span>
+        <span class="k">if</span> <span class="n">return_distances_from_mean</span><span class="p">:</span>
+            <span class="n">differences</span> <span class="o">=</span> <span class="n">differences</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span>
+                <span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="p">)</span>  <span class="c1"># (truth, reco, N) -&gt; (N, truth, reco)</span>
+            <span class="n">distances_from_mean_temp</span> <span class="o">=</span> <span class="n">_block_mahalanobis2</span><span class="p">(</span>
+                <span class="n">differences</span><span class="p">,</span> <span class="n">mean</span><span class="p">,</span> <span class="n">inv_cov_list</span>
+            <span class="p">)</span>
+            <span class="n">distances_from_mean_temp</span> <span class="o">=</span> <span class="p">(</span>
+                <span class="n">distances_from_mean_temp</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+            <span class="p">)</span>  <span class="c1"># (N, truth) -&gt; (truth, N)</span>
+            <span class="n">distances_from_mean</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">distances_from_mean_temp</span><span class="p">)</span>
+
+    <span class="c1"># Reshape if asked for</span>
+    <span class="n">distance</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">distance</span><span class="p">)</span>
+    <span class="n">distances_from_mean</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">distances_from_mean</span><span class="p">)</span><span class="o">.</span><span class="n">transpose</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">shape</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">distance</span> <span class="o">=</span> <span class="n">distance</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">shape</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">return_distances_from_mean</span><span class="p">:</span>
+            <span class="n">distances_from_mean</span> <span class="o">=</span> <span class="n">distances_from_mean</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">N</span> <span class="o">+</span> <span class="n">shape</span><span class="p">,</span> <span class="n">order</span><span class="o">=</span><span class="s2">&quot;C&quot;</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">return_distances_from_mean</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">distance</span><span class="p">,</span> <span class="n">distances_from_mean</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">distance</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_expected_mahalanobis_distance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return the expected mahalanobis distance between two matrices.</span>
+
+<span class="sd">    Takes shared prior into account.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    The expectation for bins with no true events in either matrix is 0,</span>
+<span class="sd">    as their prior means are identical.</span>
+
+<span class="sd">    When there are no reconstructed events, or no lost events (i.e. 0% or 100%</span>
+<span class="sd">    efficiency), the difference between the mean efficiency values depends on</span>
+<span class="sd">    the number of truth events. Depending on how the two matrices are</span>
+<span class="sd">    generated, this isn&#39;t really a random variable.</span>
+
+<span class="sd">    The efficiency prior is equivalent to adding two &quot;pseudo observations&quot;.</span>
+
+<span class="sd">    The smearing prior is kinda equivalent to adding</span>
+<span class="sd">    min(n_reco_bins, 3**n_reco_variables) events.</span>
+
+<span class="sd">    The expectation for bins with lots of reconstructed events in both matrices</span>
+<span class="sd">    is the number of reconstructed bins, as their priors are negligible.</span>
+
+<span class="sd">    We can assume that the priors start losing influence once the number of</span>
+<span class="sd">    real events is equal to the number of prior events.</span>
+
+<span class="sd">    This seems to work reasonably well::</span>
+
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">first</span><span class="o">.</span><span class="n">response_binning</span><span class="o">.</span><span class="n">bins_shape</span>
+    <span class="n">n_reco_bins</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">n_reco_vars</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">first</span><span class="o">.</span><span class="n">reco_binning</span><span class="o">.</span><span class="n">phasespace</span><span class="p">)</span>
+
+    <span class="n">n_reco_events_1</span> <span class="o">=</span> <span class="n">first</span><span class="o">.</span><span class="n">get_response_entries_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># n_truth_events_1 = first.get_truth_entries_as_ndarray()</span>
+    <span class="c1"># n_lost_events_1 = n_truth_events_1 - n_reco_events_1</span>
+    <span class="n">n_reco_events_2</span> <span class="o">=</span> <span class="n">second</span><span class="o">.</span><span class="n">get_response_entries_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="c1"># n_truth_events_2 = second.get_truth_entries_as_ndarray()</span>
+    <span class="c1"># n_lost_events_2 = n_truth_events_2 - n_reco_events_2</span>
+
+    <span class="n">prior_events</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">n_reco_bins</span><span class="p">,</span> <span class="mi">3</span><span class="o">**</span><span class="n">n_reco_vars</span><span class="p">)</span>
+    <span class="n">n_reco_events</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span><span class="n">n_reco_events_1</span><span class="p">,</span> <span class="n">n_reco_events_2</span><span class="p">)</span>
+    <span class="n">expectation</span> <span class="o">=</span> <span class="n">n_reco_bins</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">minimum</span><span class="p">(</span>
+        <span class="mf">1.0</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">n_reco_events</span> <span class="o">/</span> <span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">prior_events</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+    <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">expectation</span>
+
+
+<div class="viewcode-block" id="plot_mahalanobis_distance">
+<a class="viewcode-back" href="../../modules/matrix_utils.html#remu.matrix_utils.plot_mahalanobis_distance">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_mahalanobis_distance</span><span class="p">(</span>
+    <span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">plot_expectation</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot the squared Mahalanobis distance ``D_M^2`` between two matrices.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    first, second : ResponseMatrix</span>
+<span class="sd">        The two response matrices for the comparison.</span>
+<span class="sd">    plot_expectation : bool</span>
+<span class="sd">        Also plot the expected distance.</span>
+<span class="sd">    filename :  str, optional</span>
+<span class="sd">        Save the plot to this location</span>
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Additional keyword arguments are passed to the plotting function.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    fig : Figure</span>
+<span class="sd">        The figure that has been plotted on.</span>
+<span class="sd">    ax : Axes</span>
+<span class="sd">        The axes that have been plotted into.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    The expected distance is only an estimate based on the statistics in the</span>
+<span class="sd">    bins. It is not exact and should be treated as a rough guide rather than a</span>
+<span class="sd">    hard compatibility criterion.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    mahalanobis_distance</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">plotting</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">first</span><span class="o">.</span><span class="n">truth_binning</span><span class="o">.</span><span class="n">subbinnings</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Do fancy plots only if there are no subbinnings</span>
+        <span class="c1"># These mess up the efficiency during subbinning marginalization</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">first</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Otherwise plot bin by bin</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">BinningPlotter</span><span class="p">(</span><span class="n">first</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;hatch&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;density&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">&quot;margin_function&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="n">dist</span> <span class="o">=</span> <span class="n">mahalanobis_distance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">plot_expectation</span><span class="p">:</span>
+        <span class="n">exp</span> <span class="o">=</span> <span class="n">_expected_mahalanobis_distance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">exp</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;dashed&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;expected&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;$D_M^2$&quot;</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">plot_expectation</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">plt</span><span class="o">.</span><span class="n">figax</span></div>
+
+
+
+<div class="viewcode-block" id="compatibility">
+<a class="viewcode-back" href="../../modules/matrix_utils.html#remu.matrix_utils.compatibility">[docs]</a>
+<span class="k">def</span> <span class="nf">compatibility</span><span class="p">(</span>
+    <span class="n">first</span><span class="p">,</span>
+    <span class="n">second</span><span class="p">,</span>
+    <span class="n">N</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">return_all</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">truth_indices</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+    <span class="n">min_quality</span><span class="o">=</span><span class="mf">0.95</span><span class="p">,</span>
+    <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+<span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Calculate the compatibility between this and another response matrix.</span>
+
+<span class="sd">    Basically, this checks whether the point of &quot;the matrices are</span>
+<span class="sd">    identical&quot; is an outlier in the distribution of matrix differences as</span>
+<span class="sd">    defined by the statistical uncertainties of the matrix elements. This</span>
+<span class="sd">    is done using the Mahalanobis distance as the test statistic. If the</span>
+<span class="sd">    point &quot;the matrices are identical&quot; is not a reasonable part of the</span>
+<span class="sd">    distribution, it is not reasonable to assume that the true matrices are</span>
+<span class="sd">    identical.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    second : ResponseMatrix</span>
+<span class="sd">        The second response matrix.</span>
+
+<span class="sd">    N : int, optional</span>
+<span class="sd">        Number of random matrices to be generated for the calculation.</span>
+<span class="sd">        This number must be larger than the number of *reco* bins!</span>
+<span class="sd">        Otherwise the covariances cannot be calculated correctly.</span>
+<span class="sd">        Defaults to ``#(reco bins) + 100)``.</span>
+
+<span class="sd">    return_all : bool, optional</span>
+<span class="sd">        If ``False``, return only `null_prob_count`, and `null_prob_chi2`.</span>
+
+<span class="sd">    truth_indices : list of ints, optional</span>
+<span class="sd">        Only use the given truth indices to calculate the compatibility. If</span>
+<span class="sd">        this is not specified, only indices with a minimum &quot;quality&quot; are used.</span>
+<span class="sd">        This quality requires enough statistics in the bins to make the</span>
+<span class="sd">        difference between the mean matrices not be dominated by the shared</span>
+<span class="sd">        prior.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    null_prob_count : float</span>
+<span class="sd">        The Bayesian p-value evaluated by counting the expected number of</span>
+<span class="sd">        random matrix differences more extreme than the mean difference.</span>
+
+<span class="sd">    null_prob_chi2 : float</span>
+<span class="sd">        The Bayesian p-value evaluated by assuming a chi-square distribution</span>
+<span class="sd">        of the squares of Mahalanobis distances.</span>
+
+<span class="sd">    null_distance : float, optional</span>
+<span class="sd">        The squared Mahalanobis distance of the mean differences between the</span>
+<span class="sd">        two matrices::</span>
+
+<span class="sd">            D_M^2( mean(first.random_matrices - second.random_matrices) )</span>
+
+<span class="sd">    distances : ndarray, optional</span>
+<span class="sd">        The set of squared Mahalanobis distances between randomly generated</span>
+<span class="sd">        matrix differences and the mean matrix difference::</span>
+
+<span class="sd">            D_M^2( (first.random_matrices - second.random_matrices)</span>
+<span class="sd">                 - mean(first.random_matrices - second.random_matrices) )</span>
+
+<span class="sd">    df : int, optional</span>
+<span class="sd">        Degrees of freedom of the assumed chi-squared distribution of the</span>
+<span class="sd">        squared Mahalanobis distances. This is equal to the number of matrix</span>
+<span class="sd">        elements that are considered for the calculation::</span>
+
+<span class="sd">            df = len(truth_indices) * #(reco_bins in matrix)</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    The distribution of matrix differences is evaluated by generating ``N``</span>
+<span class="sd">    random response matrices from both compared matrices and calculating</span>
+<span class="sd">    the (n-dimensional) differences. The resulting set of matrix</span>
+<span class="sd">    differences defines the mean ``mean(differences)`` and the covariance</span>
+<span class="sd">    matrix ``cov(differences)``. The covariance in turn defines a metric</span>
+<span class="sd">    for the Mahalanobis distance ``D_M(x)`` on the space of matrix</span>
+<span class="sd">    differences, where ``x`` is a set of matrix element differences.</span>
+
+<span class="sd">    The distance between the mean difference and the Null hypothesis, that</span>
+<span class="sd">    the two true matrices are identical, is the ``null_distance``::</span>
+
+<span class="sd">        null_distance = D_M(0 - mean(differences)) = D_M(mean(differences))</span>
+
+<span class="sd">    The compatibility between the matrices is now defined as the Bayesian</span>
+<span class="sd">    probability that the true difference between the matrices is more</span>
+<span class="sd">    extreme (has a larger distance from the mean difference) than the</span>
+<span class="sd">    Null hypothesis. For this, we can just evaluate the set of</span>
+<span class="sd">    matrix differences that was used to calculate the covariance matrix::</span>
+
+<span class="sd">        distances = D_M(differences - mean(differences))</span>
+<span class="sd">        null_prob_count = np.sum(distances &gt;= null_distance) / distances.size</span>
+
+<span class="sd">    It will be 1 if the mean difference between the matrices is 0, and tend</span>
+<span class="sd">    to 0 when the mean difference between the matrices is far from 0. &quot;Far&quot;</span>
+<span class="sd">    in this case is determined by the uncertainty, i.e. the covariance, of</span>
+<span class="sd">    the difference determination.</span>
+
+<span class="sd">    In the case of normal distributed differences, the distribution of</span>
+<span class="sd">    squared Mahalanobis distances becomes chi-squared distributed. The</span>
+<span class="sd">    numbers of degrees of freedom of that distribution is the number of</span>
+<span class="sd">    variates, i.e. the number of response matrix elements that are being</span>
+<span class="sd">    considered. This can be used to calculate a theoretical value for the</span>
+<span class="sd">    compatibility::</span>
+
+<span class="sd">        df = len(truth_indices) * #(reco_bins)</span>
+<span class="sd">        null_prob_chi2 = chi2.sf(null_distance**2, df)</span>
+
+<span class="sd">    Since the distribution of differences is not necessarily Gaussian, this</span>
+<span class="sd">    is only an estimate. Its advantage is that it is less dependent on the</span>
+<span class="sd">    number of randomly drawn matrices.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    mahalanobis_distance</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">n_reco</span> <span class="o">=</span> <span class="n">first</span><span class="o">.</span><span class="n">reco_binning</span><span class="o">.</span><span class="n">data_size</span>
+
+    <span class="k">if</span> <span class="n">truth_indices</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># If nothing else is specified, only consider truth bins that</span>
+        <span class="c1"># are considered high enough quality, i.e. the expectation value</span>
+        <span class="c1"># is close to the high stats limit.</span>
+
+        <span class="n">exp</span> <span class="o">=</span> <span class="n">_expected_mahalanobis_distance</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">)</span>
+        <span class="n">truth_indices</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">argwhere</span><span class="p">(</span><span class="n">exp</span> <span class="o">&gt;=</span> <span class="n">min_quality</span> <span class="o">*</span> <span class="n">n_reco</span><span class="p">)</span><span class="o">.</span><span class="n">flat</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">truth_indices</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;No bins with required quality!&quot;</span><span class="p">)</span>
+
+    <span class="n">n_truth</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">truth_indices</span><span class="p">)</span>
+    <span class="n">n_bins</span> <span class="o">=</span> <span class="n">n_truth</span> <span class="o">*</span> <span class="n">n_reco</span>
+
+    <span class="c1"># Get the distances for all truth bins</span>
+    <span class="n">null_distance</span><span class="p">,</span> <span class="n">distances</span> <span class="o">=</span> <span class="n">mahalanobis_distance</span><span class="p">(</span>
+        <span class="n">first</span><span class="p">,</span>
+        <span class="n">second</span><span class="p">,</span>
+        <span class="n">N</span><span class="o">=</span><span class="n">N</span><span class="p">,</span>
+        <span class="n">truth_indices</span><span class="o">=</span><span class="n">truth_indices</span><span class="p">,</span>
+        <span class="n">return_distances_from_mean</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">)</span>
+
+    <span class="c1"># Sum up truth bins to total distance</span>
+    <span class="n">null_distance</span> <span class="o">=</span> <span class="n">null_distance</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">distances</span> <span class="o">=</span> <span class="n">distances</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+
+    <span class="c1"># Calculate theoretical p-value</span>
+    <span class="n">null_prob_chi2</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">chi2</span><span class="o">.</span><span class="n">sf</span><span class="p">(</span><span class="n">null_distance</span><span class="p">,</span> <span class="n">n_bins</span><span class="p">)</span>
+    <span class="c1"># Calculate MC p-value</span>
+    <span class="n">null_prob_count</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">distances</span> <span class="o">&gt;=</span> <span class="n">null_distance</span><span class="p">))</span> <span class="o">/</span> <span class="n">distances</span><span class="o">.</span><span class="n">size</span>
+
+    <span class="k">if</span> <span class="n">return_all</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">null_prob_count</span><span class="p">,</span> <span class="n">null_prob_chi2</span><span class="p">,</span> <span class="n">null_distance</span><span class="p">,</span> <span class="n">distances</span><span class="p">,</span> <span class="n">n_bins</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">null_prob_count</span><span class="p">,</span> <span class="n">null_prob_chi2</span></div>
+
+
+
+<div class="viewcode-block" id="plot_compatibility">
+<a class="viewcode-back" href="../../modules/matrix_utils.html#remu.matrix_utils.plot_compatibility">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_compatibility</span><span class="p">(</span><span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot the compatibility of the two matrices.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    first, second : ResponseMatrix</span>
+<span class="sd">        Two instances of :class:`.ResponseMatrix` for comparison.</span>
+<span class="sd">    filename : string : optional</span>
+<span class="sd">        The filename where the plot will be saved.</span>
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Additional keyword arguments are passed to :func:`compatibility`.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    fig : Figure</span>
+<span class="sd">        The figure that was used for plotting.</span>
+<span class="sd">    ax : Axis</span>
+<span class="sd">        The axis that was used for plotting.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    compatibility</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">prob_count</span><span class="p">,</span> <span class="n">prob_chi2</span><span class="p">,</span> <span class="n">dist</span><span class="p">,</span> <span class="n">distances</span><span class="p">,</span> <span class="n">df</span> <span class="o">=</span> <span class="n">compatibility</span><span class="p">(</span>
+        <span class="n">first</span><span class="p">,</span> <span class="n">second</span><span class="p">,</span> <span class="n">return_all</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span>
+    <span class="p">)</span>
+
+    <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;$D_M^2$&quot;</span><span class="p">)</span>
+    <span class="n">nbins</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">min</span><span class="p">(</span><span class="n">distances</span><span class="o">.</span><span class="n">size</span> <span class="o">//</span> <span class="mi">100</span><span class="p">,</span> <span class="mi">100</span><span class="p">),</span> <span class="mi">5</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span>
+        <span class="n">distances</span><span class="p">,</span>
+        <span class="n">nbins</span><span class="p">,</span>
+        <span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">histtype</span><span class="o">=</span><span class="s2">&quot;stepfilled&quot;</span><span class="p">,</span>
+        <span class="n">label</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;actual distribution, C=</span><span class="si">{</span><span class="n">prob_count</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">df</span> <span class="o">-</span> <span class="mi">3</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">df</span><span class="p">),</span> <span class="n">df</span> <span class="o">+</span> <span class="mi">5</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span> <span class="o">*</span> <span class="n">df</span><span class="p">),</span> <span class="mi">50</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span>
+        <span class="n">x</span><span class="p">,</span>
+        <span class="n">stats</span><span class="o">.</span><span class="n">chi2</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">df</span><span class="p">),</span>
+        <span class="n">label</span><span class="o">=</span><span class="sa">rf</span><span class="s2">&quot;$\chi^2$ distribution, C=</span><span class="si">{</span><span class="n">prob_chi2</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">axvline</span><span class="p">(</span><span class="n">dist</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;null distance&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;k&quot;</span><span class="p">,</span> <span class="n">linestyle</span><span class="o">=</span><span class="s2">&quot;dashed&quot;</span><span class="p">)</span>
+    <span class="n">ax</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s2">&quot;best&quot;</span><span class="p">,</span> <span class="n">framealpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span></div>
+
+
+
+<span class="k">def</span> <span class="nf">_merge_suggestions</span><span class="p">(</span><span class="n">binning</span><span class="p">,</span> <span class="n">data_index</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Suggest possible bin mergers to improve binning statistics.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    suggestions : list of dict</span>
+<span class="sd">        Each suggestion is a dict of the form::</span>
+
+<span class="sd">            {</span>
+<span class="sd">            &#39;first_indices&#39;: [int, ...],</span>
+<span class="sd">            &#39;second_indices&#39;: [int, ...],</span>
+<span class="sd">            &#39;binning&#39;: Binning,</span>
+<span class="sd">            &#39;function&#39;: function,</span>
+<span class="sd">            }</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Each suggestions includes a modified Binning, as well as two lists of data</span>
+<span class="sd">    indices. These are the bins that were merged one-to-one. The returned</span>
+<span class="sd">    function can do the same merging on an array.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="n">data_index</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="c1"># Get data index with lowest number of entries</span>
+        <span class="n">data_index</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">entries_array</span><span class="p">)</span>
+
+    <span class="n">i_bin_min</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">get_data_bin_index</span><span class="p">(</span><span class="n">data_index</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="n">i_bin_min</span> <span class="ow">in</span> <span class="n">binning</span><span class="o">.</span><span class="n">subbinnings</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_merge_suggestions_from_subbinnings</span><span class="p">(</span><span class="n">binning</span><span class="p">,</span> <span class="n">i_bin_min</span><span class="p">,</span> <span class="n">data_index</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">subbinnings</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">_merge_suggestions_without_subbinnings</span><span class="p">(</span><span class="n">binning</span><span class="p">,</span> <span class="n">i_bin_min</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span>
+            <span class="s2">&quot;Lowest statistics entry is in bin </span><span class="si">%d</span><span class="s2"> of Binning with subbinnings: </span><span class="si">%r</span><span class="s2">&quot;</span>
+            <span class="o">%</span> <span class="p">(</span><span class="n">i_bin_min</span><span class="p">,</span> <span class="n">binning</span><span class="p">)</span>
+        <span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">_merge_suggestions_from_subbinnings</span><span class="p">(</span><span class="n">binning</span><span class="p">,</span> <span class="n">i_bin</span><span class="p">,</span> <span class="n">i_data</span><span class="p">):</span>
+    <span class="n">subbinning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">subbinnings</span><span class="p">[</span><span class="n">i_bin</span><span class="p">]</span>
+    <span class="n">data_offset</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">get_bin_data_index</span><span class="p">(</span><span class="n">i_bin</span><span class="p">)</span>
+    <span class="n">data_size</span> <span class="o">=</span> <span class="n">subbinning</span><span class="o">.</span><span class="n">data_size</span>
+    <span class="n">subsuggestions</span> <span class="o">=</span> <span class="n">_merge_suggestions</span><span class="p">(</span><span class="n">subbinning</span><span class="p">,</span> <span class="n">i_data</span> <span class="o">-</span> <span class="n">data_offset</span><span class="p">)</span>
+    <span class="n">suggestions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">sug</span> <span class="ow">in</span> <span class="n">subsuggestions</span><span class="p">:</span>
+        <span class="c1"># Fix bin numbers</span>
+        <span class="n">first</span> <span class="o">=</span> <span class="p">[</span><span class="n">data_offset</span> <span class="o">+</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">sug</span><span class="p">[</span><span class="s2">&quot;first_indices&quot;</span><span class="p">]]</span>
+        <span class="n">second</span> <span class="o">=</span> <span class="p">[</span><span class="n">data_offset</span> <span class="o">+</span> <span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">sug</span><span class="p">[</span><span class="s2">&quot;second_indices&quot;</span><span class="p">]]</span>
+        <span class="n">new_subbinning</span> <span class="o">=</span> <span class="n">sug</span><span class="p">[</span><span class="s2">&quot;binning&quot;</span><span class="p">]</span>
+        <span class="c1"># Create a new binning</span>
+        <span class="n">marginalized_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">marginalize_subbinnings</span><span class="p">([</span><span class="n">i_bin</span><span class="p">])</span>
+        <span class="k">if</span> <span class="n">new_subbinning</span><span class="o">.</span><span class="n">data_size</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># No need to re-add the subbinning</span>
+            <span class="n">new_binning</span> <span class="o">=</span> <span class="n">marginalized_binning</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">new_binning</span> <span class="o">=</span> <span class="n">marginalized_binning</span><span class="o">.</span><span class="n">insert_subbinning</span><span class="p">(</span>
+                <span class="n">i_bin</span><span class="p">,</span> <span class="n">new_subbinning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            <span class="p">)</span>
+        <span class="c1"># Wrap the merging function</span>
+        <span class="n">fun0</span> <span class="o">=</span> <span class="n">sug</span><span class="p">[</span><span class="s2">&quot;function&quot;</span><span class="p">]</span>
+
+        <span class="k">def</span> <span class="nf">fun</span><span class="p">(</span>
+            <span class="n">array</span><span class="p">,</span>
+            <span class="n">binning</span><span class="o">=</span><span class="n">binning</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">dummy</span><span class="o">=</span><span class="kc">True</span><span class="p">),</span>  <span class="c1"># noqa: B008</span>
+            <span class="n">marginalized_binning</span><span class="o">=</span><span class="n">marginalized_binning</span><span class="p">,</span>
+            <span class="n">fun0</span><span class="o">=</span><span class="n">fun0</span><span class="p">,</span>
+            <span class="n">data_offset</span><span class="o">=</span><span class="n">data_offset</span><span class="p">,</span>
+            <span class="n">data_size</span><span class="o">=</span><span class="n">data_size</span><span class="p">,</span>
+        <span class="p">):</span>
+            <span class="n">new_array</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">marginalize_subbinnings_on_ndarray</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+            <span class="n">ins</span> <span class="o">=</span> <span class="n">fun0</span><span class="p">(</span><span class="n">array</span><span class="p">[</span><span class="n">data_offset</span> <span class="p">:</span> <span class="n">data_offset</span> <span class="o">+</span> <span class="n">data_size</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">marginalized_binning</span><span class="o">.</span><span class="n">insert_subbinning_on_ndarray</span><span class="p">(</span>
+                <span class="n">new_array</span><span class="p">,</span> <span class="n">i_bin</span><span class="p">,</span> <span class="n">ins</span>
+            <span class="p">)</span>
+
+        <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;first_indices&quot;</span><span class="p">:</span> <span class="n">first</span><span class="p">,</span>
+                <span class="s2">&quot;second_indices&quot;</span><span class="p">:</span> <span class="n">second</span><span class="p">,</span>
+                <span class="s2">&quot;binning&quot;</span><span class="p">:</span> <span class="n">new_binning</span><span class="p">,</span>
+                <span class="s2">&quot;function&quot;</span><span class="p">:</span> <span class="n">fun</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">suggestions</span>
+
+
+<span class="k">def</span> <span class="nf">_merge_suggestions_without_subbinnings</span><span class="p">(</span><span class="n">bng</span><span class="p">,</span> <span class="n">i_bin</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bng</span><span class="p">,</span> <span class="n">binning</span><span class="o">.</span><span class="n">LinearBinning</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_linear_binning_merge_suggestions</span><span class="p">(</span><span class="n">bng</span><span class="p">,</span> <span class="n">i_bin</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">bng</span><span class="p">,</span> <span class="n">binning</span><span class="o">.</span><span class="n">RectilinearBinning</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_rectilinear_binning_merge_suggestions</span><span class="p">(</span><span class="n">bng</span><span class="p">,</span> <span class="n">i_bin</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">RuntimeError</span><span class="p">(</span><span class="s2">&quot;Not able to suggest bin merging for Binning: </span><span class="si">%r</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">bng</span><span class="p">))</span>
+
+
+<span class="k">def</span> <span class="nf">_linear_binning_merge_suggestions</span><span class="p">(</span><span class="n">binning</span><span class="p">,</span> <span class="n">i_bin</span><span class="p">):</span>
+    <span class="c1"># Suggest merging with the left or right neighbouring bins</span>
+    <span class="n">suggestions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">if</span> <span class="n">i_bin</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+
+        <span class="k">def</span> <span class="nf">fun</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">i_bin</span><span class="o">=</span><span class="n">i_bin</span><span class="p">):</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="n">i_bin</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">arr</span><span class="p">[</span><span class="n">i_bin</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+=</span> <span class="n">array</span><span class="p">[</span><span class="n">i_bin</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">arr</span>
+
+        <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;first_indices&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="n">i_bin</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="p">],</span>
+                <span class="s2">&quot;second_indices&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="n">i_bin</span><span class="p">,</span>
+                <span class="p">],</span>
+                <span class="s2">&quot;binning&quot;</span><span class="p">:</span> <span class="n">binning</span><span class="o">.</span><span class="n">remove_bin_edges</span><span class="p">([</span><span class="n">i_bin</span><span class="p">]),</span>
+                <span class="s2">&quot;function&quot;</span><span class="p">:</span> <span class="n">fun</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+    <span class="k">if</span> <span class="n">i_bin</span> <span class="o">&lt;</span> <span class="n">binning</span><span class="o">.</span><span class="n">nbins</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+
+        <span class="k">def</span> <span class="nf">fun</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">i_bin</span><span class="o">=</span><span class="n">i_bin</span><span class="p">):</span>
+            <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="n">i_bin</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">arr</span><span class="p">[</span><span class="n">i_bin</span><span class="p">]</span> <span class="o">+=</span> <span class="n">array</span><span class="p">[</span><span class="n">i_bin</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">arr</span>
+
+        <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+            <span class="p">{</span>
+                <span class="s2">&quot;first_indices&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="n">i_bin</span><span class="p">,</span>
+                <span class="p">],</span>
+                <span class="s2">&quot;second_indices&quot;</span><span class="p">:</span> <span class="p">[</span>
+                    <span class="n">i_bin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="p">],</span>
+                <span class="s2">&quot;binning&quot;</span><span class="p">:</span> <span class="n">binning</span><span class="o">.</span><span class="n">remove_bin_edges</span><span class="p">([</span><span class="n">i_bin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]),</span>
+                <span class="s2">&quot;function&quot;</span><span class="p">:</span> <span class="n">fun</span><span class="p">,</span>
+            <span class="p">}</span>
+        <span class="p">)</span>
+    <span class="k">return</span> <span class="n">suggestions</span>
+
+
+<span class="k">def</span> <span class="nf">_all_bin_numbers</span><span class="p">(</span><span class="n">binning</span><span class="p">,</span> <span class="n">i_var</span><span class="p">,</span> <span class="n">i_bin</span><span class="p">):</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">nbins</span><span class="p">)</span>
+    <span class="n">ret</span><span class="o">.</span><span class="n">shape</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">bins_shape</span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),)</span> <span class="o">*</span> <span class="n">i_var</span> <span class="o">+</span> <span class="p">(</span><span class="n">i_bin</span><span class="p">,</span> <span class="bp">Ellipsis</span><span class="p">)]</span>
+    <span class="k">return</span> <span class="n">ret</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+
+
+<span class="k">def</span> <span class="nf">_rectilinear_binning_merge_suggestions</span><span class="p">(</span><span class="n">binning</span><span class="p">,</span> <span class="n">i_bin</span><span class="p">):</span>
+    <span class="c1"># Suggest merging with the neighbouring bins in all directions</span>
+    <span class="n">suggestions</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">bin_tuple</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">get_bin_index_tuple</span><span class="p">(</span><span class="n">i_bin</span><span class="p">)</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">bins_shape</span>
+
+    <span class="k">for</span> <span class="n">i_var</span><span class="p">,</span> <span class="n">j_bin</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">bin_tuple</span><span class="p">):</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="n">shape</span><span class="p">[</span><span class="n">i_var</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">j_bin</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Merge with lower bin</span>
+            <span class="k">def</span> <span class="nf">fun</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">i_var</span><span class="o">=</span><span class="n">i_var</span><span class="p">,</span> <span class="n">j_bin</span><span class="o">=</span><span class="n">j_bin</span><span class="p">):</span>
+                <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">shape</span> <span class="o">+</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+                <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="n">j_bin</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="n">i_var</span><span class="p">)</span>
+                <span class="n">arr</span><span class="p">[(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),)</span> <span class="o">*</span> <span class="p">(</span><span class="n">i_var</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">j_bin</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="bp">Ellipsis</span><span class="p">)]</span> <span class="o">+=</span> <span class="n">array</span><span class="p">[</span>
+                    <span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),)</span> <span class="o">*</span> <span class="p">(</span><span class="n">i_var</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">j_bin</span><span class="p">,</span> <span class="bp">Ellipsis</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="k">return</span> <span class="n">arr</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)]),)</span> <span class="o">+</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="p">:]</span>
+                <span class="p">)</span>
+
+            <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;first_indices&quot;</span><span class="p">:</span> <span class="n">_all_bin_numbers</span><span class="p">(</span><span class="n">binning</span><span class="p">,</span> <span class="n">i_var</span><span class="p">,</span> <span class="n">j_bin</span> <span class="o">-</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="s2">&quot;second_indices&quot;</span><span class="p">:</span> <span class="n">_all_bin_numbers</span><span class="p">(</span><span class="n">binning</span><span class="p">,</span> <span class="n">i_var</span><span class="p">,</span> <span class="n">j_bin</span><span class="p">),</span>
+                    <span class="s2">&quot;binning&quot;</span><span class="p">:</span> <span class="n">binning</span><span class="o">.</span><span class="n">remove_bin_edges</span><span class="p">(</span>
+                        <span class="p">{</span><span class="n">binning</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">i_var</span><span class="p">]:</span> <span class="p">[</span><span class="n">j_bin</span><span class="p">]}</span>
+                    <span class="p">),</span>
+                    <span class="s2">&quot;function&quot;</span><span class="p">:</span> <span class="n">fun</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+        <span class="k">if</span> <span class="n">j_bin</span> <span class="o">&lt;</span> <span class="n">size</span> <span class="o">-</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># Merge with higher bin</span>
+            <span class="k">def</span> <span class="nf">fun</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">i_var</span><span class="o">=</span><span class="n">i_var</span><span class="p">,</span> <span class="n">j_bin</span><span class="o">=</span><span class="n">j_bin</span><span class="p">):</span>
+                <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="n">shape</span> <span class="o">+</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+                <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">array</span><span class="p">,</span> <span class="p">[</span><span class="n">j_bin</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="n">i_var</span><span class="p">)</span>
+                <span class="n">arr</span><span class="p">[(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),)</span> <span class="o">*</span> <span class="p">(</span><span class="n">i_var</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">j_bin</span><span class="p">,</span> <span class="bp">Ellipsis</span><span class="p">)]</span> <span class="o">+=</span> <span class="n">array</span><span class="p">[</span>
+                    <span class="p">(</span><span class="nb">slice</span><span class="p">(</span><span class="kc">None</span><span class="p">),)</span> <span class="o">*</span> <span class="p">(</span><span class="n">i_var</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">j_bin</span><span class="p">,</span> <span class="bp">Ellipsis</span><span class="p">)</span>
+                <span class="p">]</span>
+                <span class="k">return</span> <span class="n">arr</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span>
+                    <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span> <span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)]),)</span> <span class="o">+</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span> <span class="p">:]</span>
+                <span class="p">)</span>
+
+            <span class="n">suggestions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="p">{</span>
+                    <span class="s2">&quot;first_indices&quot;</span><span class="p">:</span> <span class="n">_all_bin_numbers</span><span class="p">(</span><span class="n">binning</span><span class="p">,</span> <span class="n">i_var</span><span class="p">,</span> <span class="n">j_bin</span><span class="p">),</span>
+                    <span class="s2">&quot;second_indices&quot;</span><span class="p">:</span> <span class="n">_all_bin_numbers</span><span class="p">(</span><span class="n">binning</span><span class="p">,</span> <span class="n">i_var</span><span class="p">,</span> <span class="n">j_bin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span>
+                    <span class="s2">&quot;binning&quot;</span><span class="p">:</span> <span class="n">binning</span><span class="o">.</span><span class="n">remove_bin_edges</span><span class="p">(</span>
+                        <span class="p">{</span><span class="n">binning</span><span class="o">.</span><span class="n">variables</span><span class="p">[</span><span class="n">i_var</span><span class="p">]:</span> <span class="p">[</span><span class="n">j_bin</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]}</span>
+                    <span class="p">),</span>
+                    <span class="s2">&quot;function&quot;</span><span class="p">:</span> <span class="n">fun</span><span class="p">,</span>
+                <span class="p">}</span>
+            <span class="p">)</span>
+    <span class="k">return</span> <span class="n">suggestions</span>
+
+
+<div class="viewcode-block" id="improve_stats">
+<a class="viewcode-back" href="../../modules/matrix_utils.html#remu.matrix_utils.improve_stats">[docs]</a>
+<span class="k">def</span> <span class="nf">improve_stats</span><span class="p">(</span><span class="n">response_matrix</span><span class="p">,</span> <span class="n">data_index</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Reduce the statistical uncertainty by merging some bins in the truth binning.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    response_matrix : ResponseMatrix</span>
+<span class="sd">    data_index : int, optional</span>
+<span class="sd">        Improve the stats at this truth binning data index. Defaults to lowest</span>
+<span class="sd">        entries bin.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    new_response_matrix : ResponseMatrix</span>
+
+<span class="sd">    Warnings</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    The resulting matrix will have the nuisance/impossible indices set to</span>
+<span class="sd">    ``[]``!</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    Depending on the truth binning, one or more bins will be merged. The bin</span>
+<span class="sd">    corresponding to `data_index` will be among them. The &quot;direction&quot; of the</span>
+<span class="sd">    merge (i.e. which neighbouring bin to merge it with) is decided by the</span>
+<span class="sd">    compatibility of the sets of to-be-merged bins. I.e. the algorithm tries to</span>
+<span class="sd">    minimize the response difference between the merged bins.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">truth_binning</span> <span class="o">=</span> <span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span>
+
+    <span class="c1"># Get merge suggestions</span>
+    <span class="n">suggestions</span> <span class="o">=</span> <span class="n">_merge_suggestions</span><span class="p">(</span><span class="n">truth_binning</span><span class="p">,</span> <span class="n">data_index</span><span class="p">)</span>
+
+    <span class="c1"># Judge merge suggestions by compatibility of merged bins</span>
+    <span class="n">comp</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">sug</span> <span class="ow">in</span> <span class="n">suggestions</span><span class="p">:</span>
+        <span class="n">first_indices</span> <span class="o">=</span> <span class="n">sug</span><span class="p">[</span><span class="s2">&quot;first_indices&quot;</span><span class="p">]</span>
+        <span class="n">second_indices</span> <span class="o">=</span> <span class="n">sug</span><span class="p">[</span><span class="s2">&quot;second_indices&quot;</span><span class="p">]</span>
+
+        <span class="c1"># Create temporary ResponseMatrix objects,</span>
+        <span class="c1"># consisting only of the bins that are to be merged</span>
+
+        <span class="c1"># Need a dummy truth binning for this</span>
+        <span class="n">n_bins</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">first_indices</span><span class="p">)</span>
+        <span class="n">temp_truth_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">LinearBinning</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">n_bins</span> <span class="o">+</span> <span class="mi">1</span><span class="p">))</span>
+
+        <span class="n">temp_reco_binning</span> <span class="o">=</span> <span class="n">response_matrix</span><span class="o">.</span><span class="n">reco_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="n">temp_reco_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+
+        <span class="n">response_matrix_1</span> <span class="o">=</span> <span class="n">migration</span><span class="o">.</span><span class="n">ResponseMatrix</span><span class="p">(</span>
+            <span class="n">temp_reco_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">temp_truth_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_2</span> <span class="o">=</span> <span class="n">migration</span><span class="o">.</span><span class="n">ResponseMatrix</span><span class="p">(</span>
+            <span class="n">temp_reco_binning</span><span class="p">,</span> <span class="n">temp_truth_binning</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Set truth and response values to the bin values</span>
+        <span class="n">shape</span> <span class="o">=</span> <span class="n">response_matrix</span><span class="o">.</span><span class="n">response_binning</span><span class="o">.</span><span class="n">bins_shape</span>
+
+        <span class="n">response_matrix_1</span><span class="o">.</span><span class="n">set_truth_values_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_truth_values_as_ndarray</span><span class="p">()[</span><span class="n">first_indices</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_1</span><span class="o">.</span><span class="n">set_truth_entries_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_truth_entries_as_ndarray</span><span class="p">()[</span><span class="n">first_indices</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_1</span><span class="o">.</span><span class="n">set_truth_sumw2_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_truth_sumw2_as_ndarray</span><span class="p">()[</span><span class="n">first_indices</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_1</span><span class="o">.</span><span class="n">set_response_values_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_values_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)[</span>
+                <span class="p">:,</span> <span class="n">first_indices</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_1</span><span class="o">.</span><span class="n">set_response_entries_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_entries_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)[</span>
+                <span class="p">:,</span> <span class="n">first_indices</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_1</span><span class="o">.</span><span class="n">set_response_sumw2_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_sumw2_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)[:,</span> <span class="n">first_indices</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_1</span><span class="o">.</span><span class="n">set_reco_values_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_values_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)[</span>
+                <span class="p">:,</span> <span class="n">first_indices</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_1</span><span class="o">.</span><span class="n">set_reco_entries_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_entries_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)[</span>
+                <span class="p">:,</span> <span class="n">first_indices</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_1</span><span class="o">.</span><span class="n">set_reco_sumw2_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_sumw2_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)[</span>
+                <span class="p">:,</span> <span class="n">first_indices</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="n">response_matrix_2</span><span class="o">.</span><span class="n">set_truth_values_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_truth_values_as_ndarray</span><span class="p">()[</span><span class="n">second_indices</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_2</span><span class="o">.</span><span class="n">set_truth_entries_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_truth_entries_as_ndarray</span><span class="p">()[</span><span class="n">second_indices</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_2</span><span class="o">.</span><span class="n">set_truth_sumw2_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_truth_sumw2_as_ndarray</span><span class="p">()[</span><span class="n">second_indices</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_2</span><span class="o">.</span><span class="n">set_response_values_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_values_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)[</span>
+                <span class="p">:,</span> <span class="n">second_indices</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_2</span><span class="o">.</span><span class="n">set_response_entries_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_entries_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)[</span>
+                <span class="p">:,</span> <span class="n">second_indices</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_2</span><span class="o">.</span><span class="n">set_response_sumw2_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_sumw2_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)[</span>
+                <span class="p">:,</span> <span class="n">second_indices</span>
+            <span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_2</span><span class="o">.</span><span class="n">set_reco_values_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_values_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)[</span>
+                <span class="p">:,</span> <span class="n">second_indices</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_2</span><span class="o">.</span><span class="n">set_reco_entries_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_entries_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)[</span>
+                <span class="p">:,</span> <span class="n">second_indices</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+        <span class="n">response_matrix_2</span><span class="o">.</span><span class="n">set_reco_sumw2_from_ndarray</span><span class="p">(</span>
+            <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_sumw2_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)[</span>
+                <span class="p">:,</span> <span class="n">second_indices</span>
+            <span class="p">]</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">axis</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">)</span>
+
+        <span class="c1"># Calculate the mahalanobis distance</span>
+        <span class="n">D</span> <span class="o">=</span> <span class="n">mahalanobis_distance</span><span class="p">(</span><span class="n">response_matrix_1</span><span class="p">,</span> <span class="n">response_matrix_2</span><span class="p">)</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span>
+        <span class="n">comp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">D</span><span class="p">)</span>
+
+    <span class="c1"># Choose the suggestion with the highest compatibility</span>
+    <span class="n">choice</span> <span class="o">=</span> <span class="n">suggestions</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">comp</span><span class="p">)]</span>
+
+    <span class="c1"># Create the new ResponseMatrix</span>
+    <span class="n">new_response_matrix</span> <span class="o">=</span> <span class="n">migration</span><span class="o">.</span><span class="n">ResponseMatrix</span><span class="p">(</span>
+        <span class="n">response_matrix</span><span class="o">.</span><span class="n">reco_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">(),</span> <span class="n">choice</span><span class="p">[</span><span class="s2">&quot;binning&quot;</span><span class="p">]</span>
+    <span class="p">)</span>
+    <span class="c1"># Reco and truth values are already set from the binnings</span>
+    <span class="c1"># Now need to merge the right response values</span>
+    <span class="n">fun</span> <span class="o">=</span> <span class="n">choice</span><span class="p">[</span><span class="s2">&quot;function&quot;</span><span class="p">]</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_values_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">fun</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+    <span class="n">new_response_matrix</span><span class="o">.</span><span class="n">response_binning</span><span class="o">.</span><span class="n">set_values_from_ndarray</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_entries_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">fun</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+    <span class="n">new_response_matrix</span><span class="o">.</span><span class="n">response_binning</span><span class="o">.</span><span class="n">set_entries_from_ndarray</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_response_sumw2_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+    <span class="n">arr</span> <span class="o">=</span> <span class="n">fun</span><span class="p">(</span><span class="n">arr</span><span class="p">)</span>
+    <span class="n">new_response_matrix</span><span class="o">.</span><span class="n">response_binning</span><span class="o">.</span><span class="n">set_sumw2_from_ndarray</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">T</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">new_response_matrix</span></div>
+
+
+
+<span class="k">class</span> <span class="nc">_ResponsePlotter</span><span class="p">(</span><span class="n">plotting</span><span class="o">.</span><span class="n">CartesianProductBinningPlotter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Thin wrapper class that defines better axis labels.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    .CartesianProductBinningPlotter</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">get_axis_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">j_binning</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the default label for the axis.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">j_binning</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;Reco Bin #&quot;</span>
+        <span class="k">elif</span> <span class="n">j_binning</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;Truth Bin #&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="s2">&quot;Binning </span><span class="si">%d</span><span class="s2"> Bin #&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">j_binning</span><span class="p">,)</span>
+
+
+<div class="viewcode-block" id="plot_mean_response_matrix">
+<a class="viewcode-back" href="../../modules/matrix_utils.html#remu.matrix_utils.plot_mean_response_matrix">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_mean_response_matrix</span><span class="p">(</span><span class="n">response_matrix</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot the smearing and efficiency.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    response_matrix : ResponseMatrix</span>
+<span class="sd">        The thing to plot.</span>
+<span class="sd">    filename : string : optional</span>
+<span class="sd">        The filename where the plot will be saved.</span>
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Additional keyword arguments are passed to the plotting function.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    fig : Figure</span>
+<span class="sd">        The figure that was used for plotting.</span>
+<span class="sd">    ax : Axis</span>
+<span class="sd">        The axis that was used for plotting.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_mean_response_matrix_as_ndarray</span><span class="p">()</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+    <span class="n">plt</span> <span class="o">=</span> <span class="n">_ResponsePlotter</span><span class="p">(</span>
+        <span class="n">response_matrix</span><span class="o">.</span><span class="n">response_binning</span><span class="p">,</span> <span class="n">x_axis_binnings</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">y_axis_binnings</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="p">)</span>
+
+    <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s2">&quot;hatch&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+        <span class="s2">&quot;density&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="s2">&quot;margin_function&quot;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">,</span>
+    <span class="p">}</span>
+    <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">plt</span><span class="o">.</span><span class="n">figax</span></div>
+
+
+
+<div class="viewcode-block" id="plot_in_bin_variation">
+<a class="viewcode-back" href="../../modules/matrix_utils.html#remu.matrix_utils.plot_in_bin_variation">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_in_bin_variation</span><span class="p">(</span><span class="n">response_matrix</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot the maximum in-bin variation vor each truth bin.</span>
+
+<span class="sd">    This plots will contain the minimum, maximum, and median marginalization of</span>
+<span class="sd">    these maximum numbers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    response_matrix : ResponseMatrix</span>
+<span class="sd">        The thing to plot.</span>
+<span class="sd">    filename : string : optional</span>
+<span class="sd">        The filename where the plot will be saved.</span>
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Additional keyword arguments are passed to the plotting function.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    fig : Figure</span>
+<span class="sd">        The figure that was used for plotting.</span>
+<span class="sd">    ax : Axis</span>
+<span class="sd">        The axis that was used for plotting.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    .ResponseMatrix.get_in_bin_variation_as_ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">response_matrix</span><span class="o">.</span><span class="n">reco_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">,</span>
+        <span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">inbin</span> <span class="o">=</span> <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_in_bin_variation_as_ndarray</span><span class="p">(</span>
+        <span class="n">normalize</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span>
+    <span class="p">)</span>
+    <span class="n">inbin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">inbin</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="o">.</span><span class="n">subbinnings</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Do fancy plots only if there are no subbinnings</span>
+        <span class="c1"># These mess up the efficiency during subbinning marginalization</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+        <span class="n">funlabs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="s2">&quot;min&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">,</span> <span class="s2">&quot;median&quot;</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Otherwise plot bin by bin</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">BinningPlotter</span><span class="p">(</span><span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+        <span class="n">funlabs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">fun</span><span class="p">,</span> <span class="n">lab</span> <span class="ow">in</span> <span class="n">funlabs</span><span class="p">:</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;hatch&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;density&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;margin_function&quot;</span><span class="p">:</span> <span class="n">fun</span><span class="p">,</span>
+            <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">lab</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">inbin</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">plt</span><span class="o">.</span><span class="n">figax</span></div>
+
+
+
+<div class="viewcode-block" id="plot_relative_in_bin_variation">
+<a class="viewcode-back" href="../../modules/matrix_utils.html#remu.matrix_utils.plot_relative_in_bin_variation">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_relative_in_bin_variation</span><span class="p">(</span><span class="n">response_matrix</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot the maximum in-bin variation relative to statistical uncertainty.</span>
+
+<span class="sd">    This plots will contain the minimum, maximum, and median marginalization of</span>
+<span class="sd">    these maximum numbers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    response_matrix : ResponseMatrix</span>
+<span class="sd">        The thing to plot.</span>
+<span class="sd">    filename : string : optional</span>
+<span class="sd">        The filename where the plot will be saved.</span>
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Additional keyword arguments are passed to the plotting function.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    fig : Figure</span>
+<span class="sd">        The figure that was used for plotting.</span>
+<span class="sd">    ax : Axis</span>
+<span class="sd">        The axis that was used for plotting.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    .ResponseMatrix.get_in_bin_variation_as_ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">response_matrix</span><span class="o">.</span><span class="n">reco_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">,</span>
+        <span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">inbin</span> <span class="o">=</span> <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_in_bin_variation_as_ndarray</span><span class="p">(</span><span class="n">normalize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">inbin</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">inbin</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="o">.</span><span class="n">subbinnings</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Do fancy plots only if there are no subbinnings</span>
+        <span class="c1"># These mess up the efficiency during subbinning marginalization</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+        <span class="n">funlabs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="s2">&quot;min&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">,</span> <span class="s2">&quot;median&quot;</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Otherwise plot bin by bin</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">BinningPlotter</span><span class="p">(</span><span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+        <span class="n">funlabs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">fun</span><span class="p">,</span> <span class="n">lab</span> <span class="ow">in</span> <span class="n">funlabs</span><span class="p">:</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;hatch&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;density&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;margin_function&quot;</span><span class="p">:</span> <span class="n">fun</span><span class="p">,</span>
+            <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">lab</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">inbin</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">plt</span><span class="o">.</span><span class="n">figax</span></div>
+
+
+
+<div class="viewcode-block" id="plot_statistical_uncertainty">
+<a class="viewcode-back" href="../../modules/matrix_utils.html#remu.matrix_utils.plot_statistical_uncertainty">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_statistical_uncertainty</span><span class="p">(</span><span class="n">response_matrix</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot the maximum sqrt(statistical variance) of each truth bin.</span>
+
+<span class="sd">    This plots will contain the minimum, maximum, and median marginalization of</span>
+<span class="sd">    these maximum numbers.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    response_matrix : ResponseMatrix</span>
+<span class="sd">        The thing to plot.</span>
+<span class="sd">    filename : string : optional</span>
+<span class="sd">        The filename where the plot will be saved.</span>
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Additional keyword arguments are passed to the plotting function.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    fig : Figure</span>
+<span class="sd">        The figure that was used for plotting.</span>
+<span class="sd">    ax : Axis</span>
+<span class="sd">        The axis that was used for plotting.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    .ResponseMatrix.get_statistical_variance_as_ndarray</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">response_matrix</span><span class="o">.</span><span class="n">reco_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">,</span>
+        <span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">stat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="n">response_matrix</span><span class="o">.</span><span class="n">get_statistical_variance_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">))</span>
+    <span class="n">stat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">stat</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="o">.</span><span class="n">subbinnings</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Do fancy plots only if there are no subbinnings</span>
+        <span class="c1"># These mess up the efficiency during subbinning marginalization</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+        <span class="n">funlabs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="s2">&quot;min&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">,</span> <span class="s2">&quot;median&quot;</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Otherwise plot bin by bin</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">BinningPlotter</span><span class="p">(</span><span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+        <span class="n">funlabs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">fun</span><span class="p">,</span> <span class="n">lab</span> <span class="ow">in</span> <span class="n">funlabs</span><span class="p">:</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;hatch&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;density&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;margin_function&quot;</span><span class="p">:</span> <span class="n">fun</span><span class="p">,</span>
+            <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">lab</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">stat</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">plt</span><span class="o">.</span><span class="n">figax</span></div>
+
+
+
+<div class="viewcode-block" id="plot_mean_efficiency">
+<a class="viewcode-back" href="../../modules/matrix_utils.html#remu.matrix_utils.plot_mean_efficiency">[docs]</a>
+<span class="k">def</span> <span class="nf">plot_mean_efficiency</span><span class="p">(</span><span class="n">response_matrix</span><span class="p">,</span> <span class="n">filename</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">nuisance_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plot mean efficiencies for all truth bins.</span>
+
+<span class="sd">    This ignores the statistical uncertainties of the bin entries. The plot</span>
+<span class="sd">    will contain the minimum, maximum, and median marginalization of these</span>
+<span class="sd">    mean efficiencies.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    response_matrix : ResponseMatrix</span>
+<span class="sd">        The thing to plot.</span>
+<span class="sd">    filename : string : optional</span>
+<span class="sd">        The filename where the plot will be saved.</span>
+<span class="sd">    nuisance_value : float, optional</span>
+<span class="sd">        Nuisance bins are set to this value.</span>
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Additional keyword arguments are passed to the plotting function.</span>
+
+<span class="sd">    Returns</span>
+<span class="sd">    -------</span>
+
+<span class="sd">    fig : Figure</span>
+<span class="sd">        The figure that was used for plotting.</span>
+<span class="sd">    ax : Axis</span>
+<span class="sd">        The axis that was used for plotting.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">nuisance_indices</span> <span class="o">=</span> <span class="n">response_matrix</span><span class="o">.</span><span class="n">nuisance_indices</span>
+
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="n">response_matrix</span><span class="o">.</span><span class="n">reco_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">,</span>
+        <span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="o">.</span><span class="n">data_size</span><span class="p">,</span>
+    <span class="p">)</span>
+    <span class="n">eff</span> <span class="o">=</span> <span class="n">response_matrix</span><span class="o">.</span><span class="n">get_mean_response_matrix_as_ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="n">shape</span><span class="p">)</span>
+    <span class="n">eff</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">eff</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">eff</span><span class="p">[</span><span class="n">nuisance_indices</span><span class="p">]</span> <span class="o">=</span> <span class="n">nuisance_value</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="o">.</span><span class="n">subbinnings</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="c1"># Do fancy plots only if there are no subbinnings</span>
+        <span class="c1"># These mess up the efficiency during subbinning marginalization</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+        <span class="n">funlabs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">,</span> <span class="s2">&quot;min&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">),</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">,</span> <span class="s2">&quot;median&quot;</span><span class="p">),</span>
+        <span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1"># Otherwise plot bin by bin</span>
+        <span class="n">plt</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">BinningPlotter</span><span class="p">(</span><span class="n">response_matrix</span><span class="o">.</span><span class="n">truth_binning</span><span class="p">)</span>
+        <span class="n">funlabs</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">median</span><span class="p">,</span> <span class="kc">None</span><span class="p">),</span>
+        <span class="p">]</span>
+
+    <span class="k">for</span> <span class="n">fun</span><span class="p">,</span> <span class="n">lab</span> <span class="ow">in</span> <span class="n">funlabs</span><span class="p">:</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;hatch&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">,</span>
+            <span class="s2">&quot;density&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+            <span class="s2">&quot;margin_function&quot;</span><span class="p">:</span> <span class="n">fun</span><span class="p">,</span>
+            <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">lab</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">eff</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">filename</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">plt</span><span class="o">.</span><span class="n">figax</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Lukas Koch.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,223 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ReMU - Response Matrix Utilities &mdash; ReMU  documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Introduction" href="introduction/README.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="#">
+            
+              <img src="_static/ReMU.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction/README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="examples/README.html">An example analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="modules/README.html">Module references</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="#">ReMU</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="#" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">ReMU - Response Matrix Utilities</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/index.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="remu-response-matrix-utilities">
+<h1>ReMU - Response Matrix Utilities<a class="headerlink" href="#remu-response-matrix-utilities" title="Link to this heading"></a></h1>
+<section id="summary">
+<h2>Summary<a class="headerlink" href="#summary" title="Link to this heading"></a></h2>
+<p>A framework for likelihood calculations and hypothesis testing using binned events and response matrices.</p>
+<p><a class="reference external" href="https://remu.readthedocs.io/en/latest/"><img alt="[Documentation]" src="https://readthedocs.org/projects/remu/badge/?version=latest" /></a> <a class="reference external" href="https://coveralls.io/github/ast0815/remu?branch=master"><img alt="[Coverage]" src="https://coveralls.io/repos/github/ast0815/remu/badge.svg?branch=master" /></a> <a class="reference external" href="https://opensource.org/licenses/MIT"><img alt="[license: MIT]" src="https://img.shields.io/badge/license-MIT-yellow.svg" /></a> <a class="reference external" href="https://doi.org/10.5281/zenodo.1217572"><img alt="[DOI: 10.5281/zenodo.1217572]" src="https://zenodo.org/badge/DOI/10.5281/zenodo.1217572.svg" /></a></p>
+<section id="setup">
+<h3>Setup<a class="headerlink" href="#setup" title="Link to this heading"></a></h3>
+<section id="installing-development-version-from-source">
+<h4>Installing development version from source<a class="headerlink" href="#installing-development-version-from-source" title="Link to this heading"></a></h4>
+<p>It is recommended to run this software in a virtual Python environment
+(virtualenv). This ensures that all required packages are present in the tested
+version and do not interfere with other packages installed on the system. The
+easiest way to do so, is to simply source <code class="docutils literal notranslate"><span class="pre">setup.sh</span></code> after checking out the
+source code:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ . setup.sh
+</pre></div>
+</div>
+<p>This will automatically do something along these lines:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ # Create a new virtual environment
+$ virtualenv ENV
+$ # Activate the environment
+$ . ENV/bin/activate
+$ # Upgrade pip to the latest version (optional)
+$ pip install --upgrade pip
+$ # Install all required packages
+$ pip install -r requirements.txt
+$ # Install actual package
+$ pip install -e .
+</pre></div>
+</div>
+<p>It will only create a new virtual environment if one does not exist already.
+You can also specify which Python version to use by providing the respective
+<code class="docutils literal notranslate"><span class="pre">virtualenv</span></code> argument to <code class="docutils literal notranslate"><span class="pre">setup.sh</span></code>, e.g. <code class="docutils literal notranslate"><span class="pre">.</span> <span class="pre">setup.sh</span> <span class="pre">-p</span> <span class="pre">python3</span></code>. You
+might need to install additional system libraries to compile all packages.</p>
+<p>ReMU requires Python &gt;=3.8.</p>
+</section>
+<section id="installing-official-releases-with-pip">
+<h4>Installing official releases with <code class="docutils literal notranslate"><span class="pre">pip</span></code><a class="headerlink" href="#installing-official-releases-with-pip" title="Link to this heading"></a></h4>
+<p>Alternatively you can install official releases directly with <code class="docutils literal notranslate"><span class="pre">pip</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ # Create a new virtual environment
+$ virtualenv ENV
+$ # Activate the environment
+$ . ENV/bin/activate
+$ # Upgrade pip to the latest version (optional)
+$ pip install --upgrade pip
+$ # Install remu and its dependencies
+$ pip install remu==1.0.0
+</pre></div>
+</div>
+<p>If you want to make sure the optional dependencies are also installed,
+use pip’s ‘Extras’ syntax:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ # install remu including all optional dependencies
+$ pip install remu[mcmc]==1.0.0
+</pre></div>
+</div>
+</section>
+</section>
+<section id="tests">
+<h3>Tests<a class="headerlink" href="#tests" title="Link to this heading"></a></h3>
+<p>Run all test cases of the framework:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>$ pip install -r test-requirements.txt
+$ ./run_tests.sh
+</pre></div>
+</div>
+</section>
+<section id="online-documentation">
+<h3>Online documentation<a class="headerlink" href="#online-documentation" title="Link to this heading"></a></h3>
+<p>Online documentation including examples can be found on the project’s readthedocs page:</p>
+<blockquote>
+<div><p><a class="reference external" href="https://remu.readthedocs.io">https://remu.readthedocs.io</a></p>
+</div></blockquote>
+</section>
+<section id="citing">
+<h3>Citing<a class="headerlink" href="#citing" title="Link to this heading"></a></h3>
+<p>If you use ReMU in a publication, please cite it as follows:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">L</span><span class="o">.</span> <span class="n">Koch</span><span class="p">,</span> <span class="n">ReMU</span> <span class="o">-</span> <span class="n">Response</span> <span class="n">Matrix</span> <span class="n">Utilities</span><span class="p">,</span> <span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="n">github</span><span class="o">.</span><span class="n">com</span><span class="o">/</span><span class="n">ast0815</span><span class="o">/</span><span class="n">remu</span><span class="p">,</span> <span class="n">doi</span><span class="p">:</span><span class="mf">10.5281</span><span class="o">/</span><span class="n">zenodo</span><span class="mf">.1217572</span>
+</pre></div>
+</div>
+<p>Or just use the DOI and let your bibliography manager handle the rest for you.
+You can cite specific versions of the software too. Just follow the link
+behind the DOI badge and choose the DOI specific for the release.</p>
+</section>
+</section>
+<section id="documentation">
+<h2>Documentation<a class="headerlink" href="#documentation" title="Link to this heading"></a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="introduction/README.html">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="introduction/README.html#forward-folding">Forward folding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="introduction/README.html#building-the-response-matrix">Building the response matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="introduction/README.html#detector-uncertainties">Detector uncertainties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="introduction/README.html#frequentist-analyses">Frequentist analyses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="introduction/README.html#bayesian-analyses">Bayesian analyses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="introduction/README.html#backgrounds">Backgrounds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="introduction/README.html#flux-integration">Flux integration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples/README.html">An example analysis</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="examples/README.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/README.html#the-experimental-setup">The experimental setup</a></li>
+<li class="toctree-l2"><a class="reference internal" href="examples/README.html#example-steps">Example steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="modules/README.html">Module references</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="modules/binning.html">binning</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/migration.html">migration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/likelihood.html">likelihood</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/plotting.html">plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/matrix_utils.html">matrix_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="modules/likelihood_utils.html">likelihood_utils</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="introduction/README.html" class="btn btn-neutral float-right" title="Introduction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Lukas Koch.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

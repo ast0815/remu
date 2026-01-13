@@ -1,0 +1,400 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Introduction &mdash; ReMU  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="An example analysis" href="../examples/README.html" />
+    <link rel="prev" title="ReMU - Response Matrix Utilities" href="../index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html">
+            
+              <img src="../_static/ReMU.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#forward-folding">Forward folding</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#building-the-response-matrix">Building the response matrix</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#detector-uncertainties">Detector uncertainties</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#frequentist-analyses">Frequentist analyses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#bayesian-analyses">Bayesian analyses</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#backgrounds">Backgrounds</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#flux-integration">Flux integration</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../examples/README.html">An example analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../modules/README.html">Module references</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ReMU</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Introduction</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/introduction/README.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Link to this heading"></a></h1>
+<section id="forward-folding">
+<h2>Forward folding<a class="headerlink" href="#forward-folding" title="Link to this heading"></a></h2>
+<p>ReMU is a framework for statistical analyses of binned counting experiments. It
+follows a “forward-folding” approach to interpreting the data. To understand
+the principle of forward folding we must first understand how we interpret the
+process of measuring something:</p>
+<img alt="../_images/real.svg" src="../_images/real.svg" />
+<p>Nature provides certain expectation values for how many events with different
+properties will happen in the detector. These expectation values do not have to
+be integers, as they only describe the average number of events that would
+occur in each bin if you repeat the experiment many times. In the actual
+experiment, we only get a sample from these expectation values. Since these are
+actually occurring events, their numbers must be integers. They are randomly
+distributed around the expectation values.</p>
+<p>We cannot directly observe these events though. Depending on the properties of
+the events and the detector that is recording them, some events are missed
+(detection efficiency) and the reconstructed properties are not exactly the
+true properties of the events (smearing). The only information that is
+available to us is the reconstructed sample of events.</p>
+<p>In general, we are interested in the expectation values in the true properties
+space of the event (truth space), as the reconstructed properties depend on the
+specific experiment (reco space). The best way of checking whether a certain
+model prediction is compatible with the measured data, is to do a full detector
+simulation:</p>
+<img alt="../_images/fullsim.svg" src="../_images/fullsim.svg" />
+<p>By simulating a large number of events it is possible to calculate the
+expectation value in the reconstructed space. This can then be compared to the
+recorded data using Poissonian statistics.</p>
+<p>This is a very involved process that requires a lot of computing power and
+expert knowledge of the detector. It is usually only done within the
+experiments’ collaborations and only for a few select models. This process can
+be sped up though, if one can find a universal linear relation between the
+expectation values in truth <span class="math">(\mu_j)</span> and in reco space <span class="math">(\nu_i)</span>:</p>
+<div class="math">
+<p><span class="math">\nu_i = \sum_j P(\text{reco bin} = i \,|\, \text{truth bin} = j) \cdot \mu_j</span></p>
+</div><p>That relation is the detector response matrix <span class="math">R_{ij} = P(\text{reco bin}
+= i \,|\, \text{truth bin} = j)</span>:</p>
+<img alt="../_images/fold.svg" src="../_images/fold.svg" />
+<p>Multiplying a vector of truth expectation values with a matrix is a
+computationally simple task. And with the right tools it should be very easily
+done also by non-experts (of the detector). ReMU aims to be such a tool.
+With the tools, the detector response matrix, and the actual data, it should
+be possible to test many different models on short time scales:</p>
+<img alt="../_images/fasttest.svg" src="../_images/fasttest.svg" />
+<p>This multiplication of the model predictions with the response matrix is often
+called “forward folding”. It translates universal model predictions in truth
+space to experiment-specific model predictions in reco space. It can be seen
+as alternative (or complementary) approach to “unfolding”, where the measured
+experiment-specific data in reco space is translated to an unfolded universal
+spectrum in truth space.</p>
+</section>
+<section id="building-the-response-matrix">
+<h2>Building the response matrix<a class="headerlink" href="#building-the-response-matrix" title="Link to this heading"></a></h2>
+<p>Using a response matrix does not require expert knowledge of the detector it
+models. Creating the response matrix and making sure it has the desired
+properties does.</p>
+<p>The most important property of a “correct” response matrix is its
+model-independence. No matter what physics model you use to generate the
+truth-space expectation values <span class="math">\mu_j</span>, the linear coefficients
+<span class="math">R_{ij}</span> must stay unchanged (within their uncertainties, see below).
+Only then can you use the same matrix to test the many different models
+that you are interested in.</p>
+<p>In practice this usually means that the binning in truth space must be quite
+fine, and in more variables than one is interested in for the measurement. For
+example, if in a particle physics experiment one is interested in the momentum
+of a particle, but the detection efficiency depends on the particle’s
+direction, it is necessary to also distinguish events by (i.e. “to bin in”) the
+true direction of the particle. The binning in reco space does not have to be
+affected by this, and can be chosen by the physics aims and expected number of
+events. This can lead to very asymmetric response matrices:</p>
+<img alt="../_images/asym.svg" src="../_images/asym.svg" />
+<p>ReMU provides <code class="xref py py-class docutils literal notranslate"><span class="pre">Binning</span></code> classes to define the truth and reco binning:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;reco-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">reco_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+<span class="n">reco_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;real_data.txt&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>It also provides methods to plot the content of the bins:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">reco_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_values</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;modelA_data.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../_images/real_data.png" src="../_images/real_data.png" />
+<p>These are then combined into a <code class="xref py py-class docutils literal notranslate"><span class="pre">ResponseMatrix</span></code> object. The default
+method to populate the response matrix is by filling it event by event from a
+CSV file with the reconstructed and true properties of the events:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;reco-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">reco_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;coarse-truth-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">truth_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+<span class="n">respA</span> <span class="o">=</span> <span class="n">migration</span><span class="o">.</span><span class="n">ResponseMatrix</span><span class="p">(</span><span class="n">reco_binning</span><span class="p">,</span> <span class="n">truth_binning</span><span class="p">)</span>
+
+<span class="n">respA</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelA_data.txt&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="../examples/00/README.html#example00"><span class="std std-ref">Example 00 – Basic usage of binnings</span></a> and <a class="reference internal" href="../examples/01/README.html#example01"><span class="std std-ref">Example 01 – Building a response matrix</span></a> for details.</p>
+<p>ReMU also supports Panda’s <code class="xref py py-class docutils literal notranslate"><span class="pre">DataFrame</span></code> objects as input for filling
+the matrices. Together with the <cite>uproot</cite> package, this allows it to read
+in ROOT files. See <a class="reference internal" href="../examples/PD/README.html#examplepd"><span class="std std-ref">Example PD – Advanced data loading with pandas and ROOT</span></a>.</p>
+</section>
+<section id="detector-uncertainties">
+<h2>Detector uncertainties<a class="headerlink" href="#detector-uncertainties" title="Link to this heading"></a></h2>
+<p>ReMU bases all comparisons of data and model predictions on the Poissonian
+likelihood, i.e. the probability of measuring the given reconstructed data,
+assuming that the given model is true:</p>
+<div class="math">
+<p><span class="math">L(\mu) = \prod_i \frac{\nu_i^{n_i} \exp(-\nu_i)}{n_i!}
+       = \prod_i \frac{(R_{ij}\mu_j)^{n_i} \exp(-R_{ij}\mu_j)}{n_i!}</span></p>
+</div><p>Here we are using the Einstein summation convention and sum over all doubled
+indices, i.e. <span class="math">R_{ij}\mu_j = \sum_j R_{ij}\mu_j</span>.</p>
+<p>This likelihood assumes a perfect knowledge of the response matrix elements,
+i.e. the detector performance. This is rarely the case. Usually the detector
+properties (like resolutions and efficiencies) are only known within given
+uncertainties. This knowledge can be incorporated into the likelihood:</p>
+<div class="math">
+<p><span class="math">L(\mu) = \int_{\phi} P(\phi) \prod_i \frac{(R(\phi)_{ij}\mu_j)^{n_i} \exp(-R(\phi)_{ij}\mu_j)}{n_i!}</span></p>
+</div><p>The response matrix <span class="math">R(\phi)_{ij}</span> now depends on the detector parameters
+<span class="math">\phi</span>. The prior knowledge of these parameters lies in their probability
+distribution <span class="math">P(\phi)</span>.</p>
+<p>In practical terms it can be very hard to do the integration over all possible
+response matrices. ReMU thus replaces the infinite integral with a sum over a
+(sufficiently large) set of matrices sampled from <span class="math">P(\phi)</span>:</p>
+<div class="math">
+<p><span class="math">L(\mu) = \frac{1}{N_{\text{toys}}} \sum_{t}^{N_{\text{toys}}} \prod_i \frac{(R^t_{ij}\mu_j)^{n_i} \exp(-R^t_{ij}\mu_j)}{n_i!}</span></p>
+</div><p>It is common practice to do an analysis with many different assumed detector
+properties to evaluate systematic uncertainties. The single instances of the
+analysis are often called “universes” or “toys”. Each toy (with index
+<span class="math">t</span>) can be used to create its corresponding response matrix
+<span class="math">R^t_{ij}</span>. The set of all toy matrices will then include the expert
+knowledge of the detector uncertainties, and make it available for the use by
+non-experts.</p>
+<p>When testing models against the data, each toy matrix will yield its own reco
+expectation values and its own Poissonian likelihood. The average over all
+toy likelihoods yields the overall likelihood of the tested model:</p>
+<img alt="../_images/systematics.svg" src="../_images/systematics.svg" />
+<p>ReMU handles all of this in the background in the provided
+<code class="xref py py-class docutils literal notranslate"><span class="pre">LikelihoodCalculator</span></code> class. Its instances are created with the
+measured data and the toy response matrices provided by the detector experts.
+The user then only has to provide a model to be tested and it will return the
+total likelihood including all detector effects:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">data_model</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">PoissonData</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+<span class="n">matrix_predictor</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">ResponseMatrixPredictor</span><span class="p">(</span><span class="n">response_matrix</span><span class="p">)</span>
+<span class="n">calc</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">LikelihoodCalculator</span><span class="p">(</span><span class="n">data_model</span><span class="p">,</span> <span class="n">matrix_predictor</span><span class="p">)</span>
+
+<span class="n">log_likelihood</span> <span class="o">=</span> <span class="n">calc</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>See <a class="reference internal" href="../examples/02/README.html#example02"><span class="std std-ref">Example 02 – Simple model fits</span></a> and <a class="reference internal" href="../examples/03/README.html#example03"><span class="std std-ref">Example 03 – Detector uncertainties</span></a> for details.</p>
+</section>
+<section id="frequentist-analyses">
+<h2>Frequentist analyses<a class="headerlink" href="#frequentist-analyses" title="Link to this heading"></a></h2>
+<p>ReMU offers a couple of methods and classes to help with the statistical
+analysis and interpretation of the likelihood information obtained as described
+above. For example, the likelihood is only well defined if the model has no
+free parameters and all expectation values in truth space are known/predicted.</p>
+<p>To deal with models that are not fully constrained, ReMU offers the option to
+compose (or “chain”) <code class="xref py py-class docutils literal notranslate"><span class="pre">Predictor</span></code> objects. This way it is possible to
+create likelihood calculators that accept arbitrary model parameters, for
+example template weights:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">modelA_shape</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">([</span><span class="n">modelA</span><span class="p">])</span>
+<span class="n">modelA_reco_shape</span> <span class="o">=</span> <span class="n">matrix_predictor</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">modelA_shape</span><span class="p">)</span>
+<span class="n">calcA</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">LikelihoodCalculator</span><span class="p">(</span><span class="n">data_model</span><span class="p">,</span> <span class="n">modelA_reco_shape</span><span class="p">)</span>
+
+<span class="n">log_likelihood</span> <span class="o">=</span> <span class="n">calcA</span><span class="p">(</span><span class="n">template_weight</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To actually do hypothesis tests, ReMU provides the <code class="xref py py-class docutils literal notranslate"><span class="pre">HypothesisTester</span></code>
+class:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">testA</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">HypothesisTester</span><span class="p">(</span><span class="n">calcA</span><span class="p">)</span>
+<span class="n">testA</span><span class="o">.</span><span class="n">likelihood_p_value</span><span class="p">(</span><span class="n">template_weight</span><span class="p">)</span>
+<span class="n">testA</span><span class="o">.</span><span class="n">max_likelihood_p_value</span><span class="p">()</span>
+<span class="n">testA</span><span class="o">.</span><span class="n">max_likelihood_ratio_p_value</span><span class="p">(</span><span class="n">template_weight</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Likelihood ratio p-values are especially useful to construct confidence
+intervals for parameters of a model:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
+    <span class="n">p</span> <span class="o">=</span> <span class="n">testA</span><span class="o">.</span><span class="n">max_likelihood_ratio_p_value</span><span class="p">([</span><span class="n">v</span><span class="p">])</span>
+    <span class="n">p_values</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">p</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If multiple models share a parameter, this can be used to easily compare
+how the model assumptions influence the resulting confidence intervals.
+Here is a comparison of the total normalisation of two different templates,
+each with and without considering the detector systematics:</p>
+<img alt="../_images/ratio-p-values.png" src="../_images/ratio-p-values.png" />
+<p>See <a class="reference internal" href="../examples/02/README.html#example02"><span class="std std-ref">Example 02 – Simple model fits</span></a> and <a class="reference internal" href="../examples/03/README.html#example03"><span class="std std-ref">Example 03 – Detector uncertainties</span></a> for details.</p>
+</section>
+<section id="bayesian-analyses">
+<h2>Bayesian analyses<a class="headerlink" href="#bayesian-analyses" title="Link to this heading"></a></h2>
+<p>ReMU also offers methods for Bayesian analyses, especially to do a
+Markov Chain Monte Carlo (MCMC) sampling of the posterior probability
+distribution of hypothesis parameters:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">samplerA</span> <span class="o">=</span> <span class="n">likelihood_utils</span><span class="o">.</span><span class="n">emcee_sampler</span><span class="p">(</span><span class="n">calcA</span><span class="p">)</span>
+<span class="n">guessA</span> <span class="o">=</span> <span class="n">likelihood_utils</span><span class="o">.</span><span class="n">emcee_initial_guess</span><span class="p">(</span><span class="n">calcA</span><span class="p">)</span>
+
+<span class="n">state</span> <span class="o">=</span> <span class="n">samplerA</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="n">guessA</span><span class="p">,</span> <span class="mi">200</span><span class="o">*</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">chain</span> <span class="o">=</span> <span class="n">samplerA</span><span class="o">.</span><span class="n">get_chain</span><span class="p">(</span><span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">chain</span><span class="p">[:,</span><span class="mi">0</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;model A weight&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;burn_long.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../_images/burn_long.png" src="../_images/burn_long.png" />
+<p>This can easily handle many free parameters at once:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">combined</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">([</span><span class="n">modelA</span><span class="p">,</span> <span class="n">modelB</span><span class="p">])</span>
+<span class="n">calcC</span> <span class="o">=</span> <span class="n">calc</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">combined</span><span class="p">)</span>
+
+<span class="n">samplerC</span> <span class="o">=</span> <span class="n">likelihood_utils</span><span class="o">.</span><span class="n">emcee_sampler</span><span class="p">(</span><span class="n">calcC</span><span class="p">)</span>
+<span class="n">guessC</span> <span class="o">=</span> <span class="n">likelihood_utils</span><span class="o">.</span><span class="n">emcee_initial_guess</span><span class="p">(</span><span class="n">calcC</span><span class="p">)</span>
+
+<span class="n">state</span> <span class="o">=</span> <span class="n">samplerC</span><span class="o">.</span><span class="n">run_mcmc</span><span class="p">(</span><span class="n">guessC</span><span class="p">,</span> <span class="mi">200</span><span class="o">*</span><span class="mi">50</span><span class="p">)</span>
+<span class="n">chain</span> <span class="o">=</span> <span class="n">samplerC</span><span class="o">.</span><span class="n">get_chain</span><span class="p">(</span><span class="n">flat</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">hist2d</span><span class="p">(</span><span class="n">chain</span><span class="p">[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">chain</span><span class="p">[:,</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s2">&quot;model A weight&quot;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s2">&quot;model B weight&quot;</span><span class="p">)</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s2">&quot;combined.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../_images/combined.png" src="../_images/combined.png" />
+<p>See <a class="reference internal" href="../examples/04/README.html#example04"><span class="std std-ref">Example 04 – Markov Chain Monte Carlo</span></a> for details.</p>
+</section>
+<section id="backgrounds">
+<h2>Backgrounds<a class="headerlink" href="#backgrounds" title="Link to this heading"></a></h2>
+<p>Real experiments have to deal not only with the loss of events (efficiency) and
+the slight mis-reconstruction of event properties (smearing), but also with the
+erroneous inclusion of events in the data that are not actually part of the
+signal definition (background). ReMU is able to handle these events
+organically. For this, the response matrix must simply provide a set of truth
+bins that correspond to the background events:</p>
+<img alt="../_images/folded-BG.svg" src="../_images/folded-BG.svg" />
+<p>Depending on the type of background, the model builders might not be able to
+predict the expectation values of the background. In this case, the background
+expectation values can be left free-floating, as nuisance parameters
+in the <code class="xref py py-class docutils literal notranslate"><span class="pre">CompositeHypothesis</span></code>.</p>
+<p>This can lead to a high number of degrees of freedom that make likelihood fits
+very difficult, though. Also, the background could be such that the measured
+data is not good at constraining its contribution. To deal with that, the
+detector experts can provide one or many background templates that describe the
+background’s shape and/or strength in truth space. These can then be added to
+the signal predictions as is, or as part of a simultaneous fit:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">combined</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">([</span><span class="n">modelA</span><span class="p">,</span> <span class="n">modelB</span><span class="p">,</span> <span class="n">background</span><span class="p">])</span>
+<span class="n">calcC</span> <span class="o">=</span> <span class="n">calc</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">combined</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>For background that is detector specific and does not depend (much) on
+(interesting) physics-model parameters, the background templates could also be
+made a part of the response matrix:</p>
+<img alt="../_images/template-BG.svg" src="../_images/template-BG.svg" />
+<p>See <a class="reference internal" href="../examples/05/README.html#example05"><span class="std std-ref">Example 05 – Backgrounds</span></a> for details.</p>
+</section>
+<section id="flux-integration">
+<h2>Flux integration<a class="headerlink" href="#flux-integration" title="Link to this heading"></a></h2>
+<p>So far we have only talked about the translation of expectation values of true
+event numbers to expectation values of reconstructed event numbers. To
+calculate the expected number of true events, it is often necessary to assume a
+certain flux of incoming particles or exposure of an experiment. These
+exposures themselves are not certain though and it is usually undesirable to
+have the users of a data set deal with the flux uncertainties in their event
+predictions.</p>
+<p>In the forward-folding scheme, the flux uncertainties can naturally be
+incorporated into the detector uncertainties. To calculate event number in
+different true kinematic bins, a cross section matrix is multiplied with an
+exposure vector. Each row of the matrix corresponds to a true kinematic bin for
+which we want to calculate the event numbers, and each column  corresponds to
+one energy bin in the flux/exposure.</p>
+<p>Uncertainties are again handled by providing multiple varied exposure vectors,
+and those can then either be matched one-to-one or in a Cartesian product with
+the response matrix variations to calculate the varied reconstruction
+expectation values and likelihoods.</p>
+<img alt="../_images/flux-folding.svg" src="../_images/flux-folding.svg" />
+<p>See <a class="reference internal" href="../examples/06/README.html#example06"><span class="std std-ref">Example 06 – Cross sections &amp; flux uncertainties</span></a> for details.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../index.html" class="btn btn-neutral float-left" title="ReMU - Response Matrix Utilities" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../examples/README.html" class="btn btn-neutral float-right" title="An example analysis" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Lukas Koch.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

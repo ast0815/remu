@@ -1,0 +1,564 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Example 05 – Backgrounds &mdash; ReMU  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Example 06 – Cross sections &amp; flux uncertainties" href="../06/README.html" />
+    <link rel="prev" title="Example 04 – Markov Chain Monte Carlo" href="../04/README.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/ReMU.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/README.html">Introduction</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../README.html">An example analysis</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../README.html#overview">Overview</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../README.html#the-experimental-setup">The experimental setup</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../README.html#example-steps">Example steps</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../00/README.html">Example 00 – Basic usage of binnings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../01/README.html">Example 01 – Building a response matrix</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../02/README.html">Example 02 – Simple model fits</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../03/README.html">Example 03 – Detector uncertainties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../04/README.html">Example 04 – Markov Chain Monte Carlo</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Example 05 – Backgrounds</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#aims">Aims</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#instructions">Instructions</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../06/README.html">Example 06 – Cross sections &amp; flux uncertainties</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../PD/README.html">Example PD – Advanced data loading with pandas and ROOT</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/README.html">Module references</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ReMU</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../README.html">An example analysis</a></li>
+      <li class="breadcrumb-item active">Example 05 – Backgrounds</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/examples/05/README.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="example-05-backgrounds">
+<span id="example05"></span><h1>Example 05 – Backgrounds<a class="headerlink" href="#example-05-backgrounds" title="Link to this heading"></a></h1>
+<section id="aims">
+<h2>Aims<a class="headerlink" href="#aims" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p>Understand and deal with background events in measurements</p></li>
+</ul>
+</section>
+<section id="instructions">
+<h2>Instructions<a class="headerlink" href="#instructions" title="Link to this heading"></a></h2>
+<p>Real experiments will almost always include some sort of background or noise
+events in the recorded data. ReMU is well equipped to deal with those in a
+consistent fashion.</p>
+<p>Let us first create the noisy data as well as simulations of background and
+noise events:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="c1"># Create &quot;real&quot; data</span>
+<span class="o">../</span><span class="n">simple_experiment</span><span class="o">/</span><span class="n">run_experiment</span><span class="o">.</span><span class="n">py</span> <span class="mi">10</span> <span class="n">real_data</span><span class="o">.</span><span class="n">txt</span> <span class="o">--</span><span class="n">enable</span><span class="o">-</span><span class="n">background</span>
+
+<span class="c1"># Create BG simulation</span>
+<span class="o">../</span><span class="n">simple_experiment</span><span class="o">/</span><span class="n">simulate_experiment</span><span class="o">.</span><span class="n">py</span> <span class="mi">100</span> <span class="n">background</span> <span class="n">nominal_bg_data</span><span class="o">.</span><span class="n">txt</span> <span class="n">bg_truth</span><span class="o">.</span><span class="n">txt</span>
+
+<span class="c1"># Create Noise simulation</span>
+<span class="o">../</span><span class="n">simple_experiment</span><span class="o">/</span><span class="n">simulate_experiment</span><span class="o">.</span><span class="n">py</span> <span class="mi">100</span> <span class="n">noise</span> <span class="n">noise_data</span><span class="o">.</span><span class="n">txt</span> <span class="n">noise_truth</span><span class="o">.</span><span class="n">txt</span>
+
+<span class="c1"># Create Variations</span>
+<span class="o">../</span><span class="n">simple_experiment</span><span class="o">/</span><span class="n">vary_detector</span><span class="o">.</span><span class="n">py</span> <span class="n">nominal_bg_data</span><span class="o">.</span><span class="n">txt</span> <span class="n">bg_data</span><span class="o">.</span><span class="n">txt</span>
+</pre></div>
+</div>
+<p>In this context, we call “noise” events that are recorded, but that do not have
+a meaningful true information associated with them. “Background” on the other
+hand can be understood as regular events in the detector, but which we are not
+interested in (e.g. because they are created by a different process than our
+main subject of study).</p>
+<p>Background events can behave differently than signal events, but because they
+also have a defined true information, we can treat them just like signal. The
+only difference is that they will occupy different truth bins than the signal
+events.</p>
+<p>Noise events on the other hand do not have meaningful true properties, so we
+will just assign them all to a single truth bin. The content of that single bin
+will then determine the number of expected noise events in the reconstructed
+binnings.</p>
+<p>Starting from the truth binning we created for the signal models in a previous
+example, let us create a binning for the background events:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">binning</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">migration</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">matrix_utils</span>
+<span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">plotting</span>
+
+<span class="n">builder</span> <span class="o">=</span> <span class="n">migration</span><span class="o">.</span><span class="n">ResponseMatrixArrayBuilder</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;../01/reco-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">reco_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;../01/optimised-truth-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">signal_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+<span class="n">bg_binning</span> <span class="o">=</span> <span class="n">signal_binning</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+<span class="n">resp</span> <span class="o">=</span> <span class="n">migration</span><span class="o">.</span><span class="n">ResponseMatrix</span><span class="p">(</span><span class="n">reco_binning</span><span class="p">,</span> <span class="n">bg_binning</span><span class="p">)</span>
+<span class="n">i</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">resp</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;bg_data.txt&quot;</span><span class="p">,</span> <span class="n">weightfield</span><span class="o">=</span><span class="s1">&#39;weight_</span><span class="si">%i</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="p">,),</span>
+    <span class="n">rename</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;reco_x_</span><span class="si">%i</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="p">,):</span> <span class="s1">&#39;reco_x&#39;</span><span class="p">},</span> <span class="n">buffer_csv_files</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">resp</span><span class="o">.</span><span class="n">fill_up_truth_from_csv_file</span><span class="p">(</span><span class="s2">&quot;bg_truth.txt&quot;</span><span class="p">,</span> <span class="n">buffer_csv_files</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="n">entries</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">get_truth_entries_as_ndarray</span><span class="p">()</span>
+<span class="k">while</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">entries</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">10</span><span class="p">:</span>
+    <span class="n">resp</span> <span class="o">=</span> <span class="n">matrix_utils</span><span class="o">.</span><span class="n">improve_stats</span><span class="p">(</span><span class="n">resp</span><span class="p">)</span>
+    <span class="n">entries</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">get_truth_entries_as_ndarray</span><span class="p">()</span>
+<span class="n">bg_binning</span> <span class="o">=</span> <span class="n">resp</span><span class="o">.</span><span class="n">truth_binning</span>
+<span class="n">bg_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">reco_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This <code class="docutils literal notranslate"><span class="pre">bg_binning</span></code> will now include at least 10 events in each truth bin, when
+building the response matrix.</p>
+<p>Next we will create a binning that can distinguish between noise, background
+and signal events, according to a variable aptly called <code class="docutils literal notranslate"><span class="pre">event_type</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">truth_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">LinearBinning</span><span class="p">(</span>
+    <span class="n">variable</span> <span class="o">=</span> <span class="s1">&#39;event_type&#39;</span><span class="p">,</span>
+    <span class="n">bin_edges</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mf">1.5</span><span class="p">,</span> <span class="o">-</span><span class="mf">0.5</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">,</span> <span class="mf">1.5</span><span class="p">],</span>
+    <span class="n">subbinnings</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="mi">1</span><span class="p">:</span> <span class="n">bg_binning</span><span class="p">,</span>
+        <span class="mi">2</span><span class="p">:</span> <span class="n">signal_binning</span><span class="p">,</span>
+        <span class="p">}</span>
+    <span class="p">)</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;truth-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;wt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">truth_binning</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The <code class="xref py py-class docutils literal notranslate"><span class="pre">LinearBinning</span></code> would have only three bins, but we insert the
+previously created background and signal binnings as subbinnings into the
+second and third bin respectively. This means that events which would fall into
+those bins will get further subdivided by the subbinnings. We thus have a
+binning that puts noise events (<code class="docutils literal notranslate"><span class="pre">event_type</span> <span class="pre">==</span> <span class="pre">-1</span></code>) into a single bin, sorts
+background events (<code class="docutils literal notranslate"><span class="pre">event_type</span> <span class="pre">==</span> <span class="pre">0</span></code>) according to <code class="docutils literal notranslate"><span class="pre">bg_binning</span></code>, and sorts
+signal events (<code class="docutils literal notranslate"><span class="pre">event_type</span> <span class="pre">==</span> <span class="pre">1</span></code>) according to <code class="docutils literal notranslate"><span class="pre">signal_binning</span></code>.</p>
+<p>Now we create a <code class="xref py py-class docutils literal notranslate"><span class="pre">ResponseMatrix</span></code> with this binning, just like we did in
+previous examples:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">resp</span> <span class="o">=</span> <span class="n">migration</span><span class="o">.</span><span class="n">ResponseMatrix</span><span class="p">(</span><span class="n">reco_binning</span><span class="p">,</span> <span class="n">truth_binning</span><span class="p">,</span>
+                                <span class="n">nuisance_indices</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>To fill the matrix, we need to tell it which <code class="docutils literal notranslate"><span class="pre">event_type</span></code> each event is,
+though. This information might already be part of the simulated data, but
+in this case we have to add that variable by hand.</p>
+<p>For this we can use the <code class="docutils literal notranslate"><span class="pre">cut_function</span></code> parameter. A cut function takes the
+data (a structured numpy array) as its only argument and returns the data that
+should be filled into the binning:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">numpy.lib.recfunctions</span> <span class="k">as</span> <span class="nn">rfn</span>
+<span class="k">def</span> <span class="nf">set_signal</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">rfn</span><span class="o">.</span><span class="n">append_fields</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;event_type&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;true_x&#39;</span><span class="p">],</span> <span class="mf">1.</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">set_bg</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">rfn</span><span class="o">.</span><span class="n">append_fields</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;event_type&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;true_x&#39;</span><span class="p">],</span> <span class="mf">0.</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">set_noise</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">rfn</span><span class="o">.</span><span class="n">append_fields</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;event_type&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;reco_x&#39;</span><span class="p">],</span> <span class="o">-</span><span class="mf">1.</span><span class="p">))</span>
+
+<span class="n">n_toys</span> <span class="o">=</span> <span class="mi">100</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_toys</span><span class="p">):</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">([</span><span class="s2">&quot;../03/modelA_data.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;../03/modelB_data.txt&quot;</span><span class="p">],</span>
+        <span class="n">weightfield</span><span class="o">=</span><span class="s1">&#39;weight_</span><span class="si">%i</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="p">,),</span> <span class="n">rename</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;reco_x_</span><span class="si">%i</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="p">,):</span> <span class="s1">&#39;reco_x&#39;</span><span class="p">},</span>
+        <span class="n">cut_function</span><span class="o">=</span><span class="n">set_signal</span><span class="p">,</span> <span class="n">buffer_csv_files</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">fill_up_truth_from_csv_file</span><span class="p">(</span>
+        <span class="p">[</span><span class="s2">&quot;../00/modelA_truth.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;../00/modelB_truth.txt&quot;</span><span class="p">],</span>
+        <span class="n">cut_function</span><span class="o">=</span><span class="n">set_signal</span><span class="p">,</span> <span class="n">buffer_csv_files</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;bg_data.txt&quot;</span><span class="p">,</span> <span class="n">weightfield</span><span class="o">=</span><span class="s1">&#39;weight_</span><span class="si">%i</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="p">,),</span>
+        <span class="n">rename</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;reco_x_</span><span class="si">%i</span><span class="s1">&#39;</span><span class="o">%</span><span class="p">(</span><span class="n">i</span><span class="p">,):</span> <span class="s1">&#39;reco_x&#39;</span><span class="p">},</span> <span class="n">cut_function</span><span class="o">=</span><span class="n">set_bg</span><span class="p">,</span>
+        <span class="n">buffer_csv_files</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">fill_up_truth_from_csv_file</span><span class="p">(</span><span class="s2">&quot;bg_truth.txt&quot;</span><span class="p">,</span> <span class="n">cut_function</span><span class="o">=</span><span class="n">set_bg</span><span class="p">,</span>
+        <span class="n">buffer_csv_files</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="c1"># Calling `fill_up_truth_from_csv` twice only works because</span>
+    <span class="c1"># the files fill completely different bins</span>
+    <span class="n">resp</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;noise_data.txt&quot;</span><span class="p">,</span> <span class="n">cut_function</span><span class="o">=</span><span class="n">set_noise</span><span class="p">,</span>
+        <span class="n">buffer_csv_files</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="n">builder</span><span class="o">.</span><span class="n">add_matrix</span><span class="p">(</span><span class="n">resp</span><span class="p">)</span>
+
+<span class="n">builder</span><span class="o">.</span><span class="n">export</span><span class="p">(</span><span class="s2">&quot;response_matrix.npz&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>We can take a look at the truth information that has been filled into the last
+of the matrices:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_values</span><span class="p">(</span><span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">&#39;truth.png&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/truth.png" src="../../_images/truth.png" />
+<p>The base binning is a <code class="xref py py-class docutils literal notranslate"><span class="pre">LinearBinning</span></code> with only three bins. The
+corresponding plotter does not know how to plot the subbinnings, so it just
+marginalizes them out. To plot the content of all truth bins, we can use the
+basic <code class="xref py py-class docutils literal notranslate"><span class="pre">BinningPlotter</span></code>, which simply plots the content of each bin:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">BinningPlotter</span><span class="p">(</span><span class="n">truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_values</span><span class="p">(</span><span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">&#39;all_truth.png&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/all_truth.png" src="../../_images/all_truth.png" />
+<p>We can look at the content of the subbinings directly for some nicer plots:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">signal_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_values</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">&#39;signal_truth.png&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/signal_truth.png" src="../../_images/signal_truth.png" />
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">bg_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_values</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">&#39;bg_truth.png&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/bg_truth.png" src="../../_images/bg_truth.png" />
+<p>And we can take a look at the efficiencies using the corresponding convenience
+function:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">matrix_utils</span><span class="o">.</span><span class="n">plot_mean_efficiency</span><span class="p">(</span><span class="n">resp</span><span class="p">,</span> <span class="s2">&quot;efficiency.png&quot;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/efficiency.png" src="../../_images/efficiency.png" />
+<p>Next we can use the response matrix for some hypothesis tests. First we need to
+create the <code class="xref py py-class docutils literal notranslate"><span class="pre">ResponseMatrixPredictor</span></code> and the templates to be used with
+the <code class="xref py py-class docutils literal notranslate"><span class="pre">TemplatePredictor</span></code>:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">remu</span> <span class="kn">import</span> <span class="n">likelihood</span>
+<span class="kn">from</span> <span class="nn">multiprocess</span> <span class="kn">import</span> <span class="n">Pool</span>
+<span class="n">pool</span> <span class="o">=</span> <span class="n">Pool</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">likelihood</span><span class="o">.</span><span class="n">mapper</span> <span class="o">=</span> <span class="n">pool</span><span class="o">.</span><span class="n">map</span>
+
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;../01/reco-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">reco_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;truth-binning.yml&quot;</span><span class="p">,</span> <span class="s1">&#39;rt&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+    <span class="n">truth_binning</span> <span class="o">=</span> <span class="n">binning</span><span class="o">.</span><span class="n">yaml</span><span class="o">.</span><span class="n">full_load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+<span class="n">reco_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;real_data.txt&quot;</span><span class="p">)</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">reco_binning</span><span class="o">.</span><span class="n">get_entries_as_ndarray</span><span class="p">()</span>
+<span class="n">data_model</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">PoissonData</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+<span class="n">response_matrix</span> <span class="o">=</span> <span class="s2">&quot;response_matrix.npz&quot;</span>
+<span class="n">matrix_predictor</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">ResponseMatrixPredictor</span><span class="p">(</span><span class="n">response_matrix</span><span class="p">)</span>
+
+<span class="n">calc</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">LikelihoodCalculator</span><span class="p">(</span><span class="n">data_model</span><span class="p">,</span> <span class="n">matrix_predictor</span><span class="p">)</span>
+<span class="n">maxi</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">BasinHoppingMaximizer</span><span class="p">()</span>
+
+<span class="kn">import</span> <span class="nn">numpy.lib.recfunctions</span> <span class="k">as</span> <span class="nn">rfn</span>
+<span class="k">def</span> <span class="nf">set_signal</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">rfn</span><span class="o">.</span><span class="n">append_fields</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;event_type&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;true_x&#39;</span><span class="p">],</span> <span class="mf">1.</span><span class="p">))</span>
+<span class="k">def</span> <span class="nf">set_bg</span><span class="p">(</span><span class="n">data</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">rfn</span><span class="o">.</span><span class="n">append_fields</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s1">&#39;event_type&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">full_like</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;true_x&#39;</span><span class="p">],</span> <span class="mf">0.</span><span class="p">))</span>
+
+<span class="n">truth_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelA_truth.txt&quot;</span><span class="p">,</span>
+                                 <span class="n">cut_function</span><span class="o">=</span><span class="n">set_signal</span><span class="p">)</span>
+<span class="n">modelA</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">get_values_as_ndarray</span><span class="p">()</span>
+<span class="n">modelA</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">modelA</span><span class="p">)</span>
+
+<span class="n">truth_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">truth_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;../00/modelB_truth.txt&quot;</span><span class="p">,</span>
+                                 <span class="n">cut_function</span><span class="o">=</span><span class="n">set_signal</span><span class="p">)</span>
+<span class="n">modelB</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">get_values_as_ndarray</span><span class="p">()</span>
+<span class="n">modelB</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">modelB</span><span class="p">)</span>
+
+<span class="n">truth_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">truth_binning</span><span class="o">.</span><span class="n">fill_from_csv_file</span><span class="p">(</span><span class="s2">&quot;bg_truth.txt&quot;</span><span class="p">,</span> <span class="n">cut_function</span><span class="o">=</span><span class="n">set_bg</span><span class="p">)</span>
+<span class="n">bg</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">get_values_as_ndarray</span><span class="p">()</span>
+<span class="n">bg</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">bg</span><span class="p">)</span>
+
+<span class="n">truth_binning</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<span class="n">noise</span> <span class="o">=</span> <span class="n">truth_binning</span><span class="o">.</span><span class="n">get_values_as_ndarray</span><span class="p">()</span>
+<span class="n">noise</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.</span>
+</pre></div>
+</div>
+<p>Since we put all noise events into the first truth bin, the noise template is
+just a value of 1 in that bin.</p>
+<p>Now we start by trying to fit the model A template without background or noise
+events:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">modelA_only</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">([</span><span class="n">modelA</span><span class="p">])</span>
+<span class="n">calcA_only</span> <span class="o">=</span> <span class="n">calc</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">modelA_only</span><span class="p">)</span>
+
+<span class="n">retA_only</span> <span class="o">=</span> <span class="n">maxi</span><span class="p">(</span><span class="n">calcA_only</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">retA_only</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>                        <span class="n">fun</span><span class="p">:</span> <span class="mf">38.52930140475345</span>
+             <span class="n">log_likelihood</span><span class="p">:</span> <span class="o">-</span><span class="mf">38.52930140475345</span>
+ <span class="n">lowest_optimization_result</span><span class="p">:</span>       <span class="n">fun</span><span class="p">:</span> <span class="mf">38.52930140475345</span>
+ <span class="n">hess_inv</span><span class="p">:</span> <span class="o">&lt;</span><span class="mi">1</span><span class="n">x1</span> <span class="n">LbfgsInvHessProduct</span> <span class="k">with</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float64</span><span class="o">&gt;</span>
+      <span class="n">jac</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">4.2633015e-06</span><span class="p">])</span>
+  <span class="n">message</span><span class="p">:</span> <span class="s1">&#39;CONVERGENCE: NORM_OF_PROJECTED_GRADIENT_&lt;=_PGTOL&#39;</span>
+     <span class="n">nfev</span><span class="p">:</span> <span class="mi">54</span>
+      <span class="n">nit</span><span class="p">:</span> <span class="mi">24</span>
+     <span class="n">njev</span><span class="p">:</span> <span class="mi">27</span>
+   <span class="n">status</span><span class="p">:</span> <span class="mi">0</span>
+  <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">1682.32663089</span><span class="p">])</span>
+                    <span class="n">message</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;requested number of basinhopping iterations completed successfully&#39;</span><span class="p">]</span>
+      <span class="n">minimization_failures</span><span class="p">:</span> <span class="mi">0</span>
+                       <span class="n">nfev</span><span class="p">:</span> <span class="mi">92</span>
+                        <span class="n">nit</span><span class="p">:</span> <span class="mi">10</span>
+                       <span class="n">njev</span><span class="p">:</span> <span class="mi">46</span>
+                    <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+                          <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">1682.32663089</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>To judge how well the result actually fit, we can consult the results p-value:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">testA_only</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">HypothesisTester</span><span class="p">(</span><span class="n">calcA_only</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">testA_only</span><span class="o">.</span><span class="n">likelihood_p_value</span><span class="p">(</span><span class="n">retA_only</span><span class="o">.</span><span class="n">x</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">0.0024</span>
+</pre></div>
+</div>
+<p>It clearly is a very bad fit, which is reflected in the maximum likelihood
+p-value as well:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">testA_only</span><span class="o">.</span><span class="n">max_likelihood_p_value</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">0.0</span>
+</pre></div>
+</div>
+<p>So the signal-only model A hypothesis can be excluded. Now let us try again
+with background and noise templates added in:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">modelA_bg</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">([</span><span class="n">noise</span><span class="p">,</span> <span class="n">bg</span><span class="p">,</span> <span class="n">modelA</span><span class="p">])</span>
+<span class="n">calcA_bg</span> <span class="o">=</span> <span class="n">calc</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">modelA_bg</span><span class="p">)</span>
+
+<span class="n">retA_bg</span> <span class="o">=</span> <span class="n">maxi</span><span class="p">(</span><span class="n">calcA_bg</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">retA_bg</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>                        <span class="n">fun</span><span class="p">:</span> <span class="mf">28.30046763136394</span>
+             <span class="n">log_likelihood</span><span class="p">:</span> <span class="o">-</span><span class="mf">28.30046763136394</span>
+ <span class="n">lowest_optimization_result</span><span class="p">:</span>       <span class="n">fun</span><span class="p">:</span> <span class="mf">28.30046763136394</span>
+ <span class="n">hess_inv</span><span class="p">:</span> <span class="o">&lt;</span><span class="mi">3</span><span class="n">x3</span> <span class="n">LbfgsInvHessProduct</span> <span class="k">with</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float64</span><span class="o">&gt;</span>
+      <span class="n">jac</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">3.90798750e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">5.68433738e-06</span><span class="p">,</span> <span class="o">-</span><span class="mf">3.19743977e-06</span><span class="p">])</span>
+  <span class="n">message</span><span class="p">:</span> <span class="s1">&#39;CONVERGENCE: NORM_OF_PROJECTED_GRADIENT_&lt;=_PGTOL&#39;</span>
+     <span class="n">nfev</span><span class="p">:</span> <span class="mi">124</span>
+      <span class="n">nit</span><span class="p">:</span> <span class="mi">30</span>
+     <span class="n">njev</span><span class="p">:</span> <span class="mi">31</span>
+   <span class="n">status</span><span class="p">:</span> <span class="mi">0</span>
+  <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span> <span class="mf">99.5327942</span> <span class="p">,</span> <span class="mf">476.05489184</span><span class="p">,</span> <span class="mf">791.38644159</span><span class="p">])</span>
+                    <span class="n">message</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;requested number of basinhopping iterations completed successfully&#39;</span><span class="p">]</span>
+      <span class="n">minimization_failures</span><span class="p">:</span> <span class="mi">0</span>
+                       <span class="n">nfev</span><span class="p">:</span> <span class="mi">264</span>
+                        <span class="n">nit</span><span class="p">:</span> <span class="mi">10</span>
+                       <span class="n">njev</span><span class="p">:</span> <span class="mi">66</span>
+                    <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+                          <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span> <span class="mf">99.5327942</span> <span class="p">,</span> <span class="mf">476.05489184</span><span class="p">,</span> <span class="mf">791.38644159</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">testA_bg</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">HypothesisTester</span><span class="p">(</span><span class="n">calcA_bg</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">testA_bg</span><span class="o">.</span><span class="n">likelihood_p_value</span><span class="p">(</span><span class="n">retA_bg</span><span class="o">.</span><span class="n">x</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">0.9012</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">testA_bg</span><span class="o">.</span><span class="n">max_likelihood_p_value</span><span class="p">(),</span> <span class="n">file</span><span class="o">=</span><span class="n">f</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">0.62</span>
+</pre></div>
+</div>
+<p>This fit is clearly much better. We can repeat the same with model B:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">modelB_only</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">([</span><span class="n">modelB</span><span class="p">])</span>
+<span class="n">calcB_only</span> <span class="o">=</span> <span class="n">calc</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">modelB_only</span><span class="p">)</span>
+
+<span class="n">retB_only</span> <span class="o">=</span> <span class="n">maxi</span><span class="p">(</span><span class="n">calcB_only</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">retB_only</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>                        <span class="n">fun</span><span class="p">:</span> <span class="mf">37.51360728486539</span>
+             <span class="n">log_likelihood</span><span class="p">:</span> <span class="o">-</span><span class="mf">37.51360728486539</span>
+ <span class="n">lowest_optimization_result</span><span class="p">:</span>       <span class="n">fun</span><span class="p">:</span> <span class="mf">37.51360728486539</span>
+ <span class="n">hess_inv</span><span class="p">:</span> <span class="o">&lt;</span><span class="mi">1</span><span class="n">x1</span> <span class="n">LbfgsInvHessProduct</span> <span class="k">with</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float64</span><span class="o">&gt;</span>
+      <span class="n">jac</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="o">-</span><span class="mf">4.2633015e-06</span><span class="p">])</span>
+  <span class="n">message</span><span class="p">:</span> <span class="s1">&#39;CONVERGENCE: NORM_OF_PROJECTED_GRADIENT_&lt;=_PGTOL&#39;</span>
+     <span class="n">nfev</span><span class="p">:</span> <span class="mi">78</span>
+      <span class="n">nit</span><span class="p">:</span> <span class="mi">22</span>
+     <span class="n">njev</span><span class="p">:</span> <span class="mi">39</span>
+   <span class="n">status</span><span class="p">:</span> <span class="mi">0</span>
+  <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">1866.10415724</span><span class="p">])</span>
+                    <span class="n">message</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;requested number of basinhopping iterations completed successfully&#39;</span><span class="p">]</span>
+      <span class="n">minimization_failures</span><span class="p">:</span> <span class="mi">0</span>
+                       <span class="n">nfev</span><span class="p">:</span> <span class="mi">124</span>
+                        <span class="n">nit</span><span class="p">:</span> <span class="mi">10</span>
+                       <span class="n">njev</span><span class="p">:</span> <span class="mi">62</span>
+                    <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+                          <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">1866.10415724</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">testB_only</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">HypothesisTester</span><span class="p">(</span><span class="n">calcB_only</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">testB_only</span><span class="o">.</span><span class="n">likelihood_p_value</span><span class="p">(</span><span class="n">retB_only</span><span class="o">.</span><span class="n">x</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">0.002</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">testB_only</span><span class="o">.</span><span class="n">max_likelihood_p_value</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">0.004</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">modelB_bg</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">TemplatePredictor</span><span class="p">([</span><span class="n">noise</span><span class="p">,</span> <span class="n">bg</span><span class="p">,</span> <span class="n">modelB</span><span class="p">])</span>
+<span class="n">calcB_bg</span> <span class="o">=</span> <span class="n">calc</span><span class="o">.</span><span class="n">compose</span><span class="p">(</span><span class="n">modelB_bg</span><span class="p">)</span>
+
+<span class="n">retB_bg</span> <span class="o">=</span> <span class="n">maxi</span><span class="p">(</span><span class="n">calcB_bg</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">retB_bg</span><span class="p">)</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>                        <span class="n">fun</span><span class="p">:</span> <span class="mf">27.239578250837532</span>
+             <span class="n">log_likelihood</span><span class="p">:</span> <span class="o">-</span><span class="mf">27.239578250837532</span>
+ <span class="n">lowest_optimization_result</span><span class="p">:</span>       <span class="n">fun</span><span class="p">:</span> <span class="mf">27.239578250837532</span>
+ <span class="n">hess_inv</span><span class="p">:</span> <span class="o">&lt;</span><span class="mi">3</span><span class="n">x3</span> <span class="n">LbfgsInvHessProduct</span> <span class="k">with</span> <span class="n">dtype</span><span class="o">=</span><span class="n">float64</span><span class="o">&gt;</span>
+      <span class="n">jac</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span><span class="mf">7.10542172e-06</span><span class="p">,</span> <span class="mf">1.42108434e-06</span><span class="p">,</span> <span class="mf">2.13165075e-06</span><span class="p">])</span>
+  <span class="n">message</span><span class="p">:</span> <span class="s1">&#39;CONVERGENCE: NORM_OF_PROJECTED_GRADIENT_&lt;=_PGTOL&#39;</span>
+     <span class="n">nfev</span><span class="p">:</span> <span class="mi">48</span>
+      <span class="n">nit</span><span class="p">:</span> <span class="mi">7</span>
+     <span class="n">njev</span><span class="p">:</span> <span class="mi">12</span>
+   <span class="n">status</span><span class="p">:</span> <span class="mi">0</span>
+  <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+        <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span> <span class="mf">210.20797605</span><span class="p">,</span>  <span class="mf">188.07865899</span><span class="p">,</span> <span class="mf">1044.45892048</span><span class="p">])</span>
+                    <span class="n">message</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;requested number of basinhopping iterations completed successfully&#39;</span><span class="p">]</span>
+      <span class="n">minimization_failures</span><span class="p">:</span> <span class="mi">0</span>
+                       <span class="n">nfev</span><span class="p">:</span> <span class="mi">336</span>
+                        <span class="n">nit</span><span class="p">:</span> <span class="mi">10</span>
+                       <span class="n">njev</span><span class="p">:</span> <span class="mi">84</span>
+                    <span class="n">success</span><span class="p">:</span> <span class="kc">True</span>
+                          <span class="n">x</span><span class="p">:</span> <span class="n">array</span><span class="p">([</span> <span class="mf">210.20797605</span><span class="p">,</span>  <span class="mf">188.07865899</span><span class="p">,</span> <span class="mf">1044.45892048</span><span class="p">])</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">testB_bg</span> <span class="o">=</span> <span class="n">likelihood</span><span class="o">.</span><span class="n">HypothesisTester</span><span class="p">(</span><span class="n">calcB_bg</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">testB_bg</span><span class="o">.</span><span class="n">likelihood_p_value</span><span class="p">(</span><span class="n">retB_bg</span><span class="o">.</span><span class="n">x</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">0.98</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="n">testB_bg</span><span class="o">.</span><span class="n">max_likelihood_p_value</span><span class="p">())</span>
+</pre></div>
+</div>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="mf">0.796</span>
+</pre></div>
+</div>
+<p>We can also take a qualitative look at the results by plotting the maximum
+likelihood predictions in reco and truth space:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">reco_binning</span><span class="p">)</span>
+<span class="n">modelA_reco</span><span class="p">,</span> <span class="n">modelA_weights</span> <span class="o">=</span> <span class="n">calcA_only</span><span class="o">.</span><span class="n">predictor</span><span class="p">(</span><span class="n">retA_only</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+<span class="n">modelB_reco</span><span class="p">,</span> <span class="n">modelB_weights</span> <span class="o">=</span> <span class="n">calcB_only</span><span class="o">.</span><span class="n">predictor</span><span class="p">(</span><span class="n">retB_only</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+<span class="n">modelA_bg_reco</span><span class="p">,</span> <span class="n">modelA_bg_weights</span> <span class="o">=</span> <span class="n">calcA_bg</span><span class="o">.</span><span class="n">predictor</span><span class="p">(</span><span class="n">retA_bg</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+<span class="n">modelB_bg_reco</span><span class="p">,</span> <span class="n">modelB_bg_weights</span> <span class="o">=</span> <span class="n">calcB_bg</span><span class="o">.</span><span class="n">predictor</span><span class="p">(</span><span class="n">retB_bg</span><span class="o">.</span><span class="n">x</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">modelA_reco</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;model A only&#39;</span><span class="p">,</span> <span class="n">stack_function</span><span class="o">=</span><span class="mf">0.68</span><span class="p">,</span>
+                <span class="n">hatch</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;//&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;C1&#39;</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">modelA_bg_reco</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;model A + bg&#39;</span><span class="p">,</span> <span class="n">stack_function</span><span class="o">=</span><span class="mf">0.68</span><span class="p">,</span>
+                <span class="n">hatch</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;C1&#39;</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">modelB_reco</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;model B only&#39;</span><span class="p">,</span> <span class="n">stack_function</span><span class="o">=</span><span class="mf">0.68</span><span class="p">,</span>
+                <span class="n">hatch</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;C2&#39;</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">modelB_bg_reco</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;model B + bg&#39;</span><span class="p">,</span> <span class="n">stack_function</span><span class="o">=</span><span class="mf">0.68</span><span class="p">,</span>
+                <span class="n">hatch</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;O&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;C2&#39;</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_entries</span><span class="p">(</span><span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;C0&#39;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;data&#39;</span><span class="p">,</span> <span class="n">hatch</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">linewidth</span><span class="o">=</span><span class="mf">2.</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">&#39;reco-comparison.png&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/reco-comparison2.png" src="../../_images/reco-comparison2.png" />
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">pltr</span> <span class="o">=</span> <span class="n">plotting</span><span class="o">.</span><span class="n">get_plotter</span><span class="p">(</span><span class="n">truth_binning</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">modelA_only</span><span class="p">(</span><span class="n">retA_only</span><span class="o">.</span><span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;model A only&#39;</span><span class="p">,</span>
+                <span class="n">hatch</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;//&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;C1&#39;</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">modelA_bg</span><span class="p">(</span><span class="n">retA_bg</span><span class="o">.</span><span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;model A + bg&#39;</span><span class="p">,</span>
+                <span class="n">hatch</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;C1&#39;</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">modelB_only</span><span class="p">(</span><span class="n">retB_only</span><span class="o">.</span><span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;model B only&#39;</span><span class="p">,</span>
+                <span class="n">hatch</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;C2&#39;</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">modelB_bg</span><span class="p">(</span><span class="n">retB_bg</span><span class="o">.</span><span class="n">x</span><span class="p">)[</span><span class="mi">0</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;model B + bg&#39;</span><span class="p">,</span>
+                <span class="n">hatch</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;O&#39;</span><span class="p">,</span> <span class="n">edgecolor</span><span class="o">=</span><span class="s1">&#39;C2&#39;</span><span class="p">,</span> <span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s1">&#39;upper left&#39;</span><span class="p">)</span>
+<span class="n">pltr</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="s1">&#39;truth-comparison.png&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<img alt="../../_images/truth-comparison.png" src="../../_images/truth-comparison.png" />
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../04/README.html" class="btn btn-neutral float-left" title="Example 04 – Markov Chain Monte Carlo" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../06/README.html" class="btn btn-neutral float-right" title="Example 06 – Cross sections &amp; flux uncertainties" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Lukas Koch.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

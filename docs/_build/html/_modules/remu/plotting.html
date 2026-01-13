@@ -1,0 +1,1095 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>remu.plotting &mdash; ReMU  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/ReMU.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/README.html">An example analysis</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../modules/README.html">Module references</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ReMU</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">remu.plotting</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for remu.plotting</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Module for handling plotting functions</span>
+
+<span class="sd">This module contains plotting classes to plot :class:`.Binning` objects.</span>
+
+<span class="sd">Examples</span>
+<span class="sd">--------</span>
+
+<span class="sd">::</span>
+
+<span class="sd">    plt = plotting.get_plotter(binning)</span>
+<span class="sd">    plt.plot_values()</span>
+<span class="sd">    plt.savefig(&#39;output.png&#39;)</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">cycle</span>
+
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+<span class="kn">from</span> <span class="nn">matplotlib</span> <span class="kn">import</span> <span class="n">ticker</span>
+
+<span class="kn">from</span> <span class="nn">.</span> <span class="kn">import</span> <span class="n">binning</span>
+
+
+<div class="viewcode-block" id="get_plotter">
+<a class="viewcode-back" href="../../modules/plotting.html#remu.plotting.get_plotter">[docs]</a>
+<span class="k">def</span> <span class="nf">get_plotter</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Return a suitable plotting class instance for the object.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    obj : object</span>
+<span class="sd">        The object for which a plotter should be returned.</span>
+<span class="sd">    *args : optional</span>
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Additional arguments are passed to the init method of the plotter.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">binning</span><span class="o">.</span><span class="n">RectilinearBinning</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">RectilinearBinningPlotter</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">binning</span><span class="o">.</span><span class="n">LinearBinning</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">LinearBinningPlotter</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">binning</span><span class="o">.</span><span class="n">CartesianProductBinning</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">CartesianProductBinningPlotter</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">binning</span><span class="o">.</span><span class="n">Binning</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">BinningPlotter</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">ArrayPlotter</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;No known Plotter class for type </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">obj</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+
+<div class="viewcode-block" id="Plotter">
+<a class="viewcode-back" href="../../modules/plotting/Plotter.html#remu.plotting.Plotter">[docs]</a>
+<span class="k">class</span> <span class="nc">Plotter</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plotting base class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    figax : (Figure, Axes), optional</span>
+<span class="sd">        The figure and axis to plot in.</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    figax : (Figure, [[Axes, ...], ...])</span>
+<span class="sd">        The figure and axes that are used for the plotting.</span>
+<span class="sd">    color : cycle of str</span>
+<span class="sd">        Cycler that determines the color of plotting commands.</span>
+<span class="sd">    hatch : cycle of str</span>
+<span class="sd">        Cycler that determines the hatching style of plotting commands.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">figax</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">figax</span> <span class="o">=</span> <span class="n">figax</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">color</span> <span class="o">=</span> <span class="n">cycle</span><span class="p">(</span><span class="s2">&quot;C</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">i</span><span class="p">,)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hatch</span> <span class="o">=</span> <span class="n">cycle</span><span class="p">([</span><span class="sa">r</span><span class="s2">&quot;//&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;</span><span class="se">\\</span><span class="s2">&quot;</span><span class="p">,</span> <span class="sa">r</span><span class="s2">&quot;O&quot;</span><span class="p">,</span> <span class="s2">&quot;*&quot;</span><span class="p">])</span>
+
+    <span class="k">def</span> <span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Clean up figures.&quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">figax</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">plt</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">plt</span><span class="o">.</span><span class="n">close</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">figax</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+<div class="viewcode-block" id="Plotter.subplots">
+<a class="viewcode-back" href="../../modules/plotting/Plotter.html#remu.plotting.Plotter.subplots">[docs]</a>
+    <span class="k">def</span> <span class="nf">subplots</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the ``(Figure, Axes)`` tuple of the binning.</span>
+
+<span class="sd">        Creates one using Matplotlib&#39;s ``subplots``, if necessary.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">figax</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">figax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">figax</span></div>
+
+
+<div class="viewcode-block" id="Plotter.savefig">
+<a class="viewcode-back" href="../../modules/plotting/Plotter.html#remu.plotting.Plotter.savefig">[docs]</a>
+    <span class="k">def</span> <span class="nf">savefig</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Save the figure.&quot;&quot;&quot;</span>
+        <span class="n">kwargs2</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;bbox_inches&quot;</span><span class="p">:</span> <span class="s2">&quot;tight&quot;</span><span class="p">}</span>
+        <span class="n">kwargs2</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">figax</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs2</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="ArrayPlotter">
+<a class="viewcode-back" href="../../modules/plotting/ArrayPlotter.html#remu.plotting.ArrayPlotter">[docs]</a>
+<span class="k">class</span> <span class="nc">ArrayPlotter</span><span class="p">(</span><span class="n">Plotter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plotting class for numpy arrays.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    array : ndarray</span>
+<span class="sd">        The ndarray to be plotted.</span>
+<span class="sd">    bins_per_row : int, optional</span>
+<span class="sd">        How many bins are going to be plotted per row.</span>
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Addittional keyword arguments are passed to :class:`Plotter`.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    Plotter</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    figax : (Figure, [[Axes, ...], ...])</span>
+<span class="sd">        The figure and axes that are used for the plotting.</span>
+<span class="sd">    color : cycle of str</span>
+<span class="sd">        Cycler that determines the color of plotting commands.</span>
+<span class="sd">    hatch : cycle of str</span>
+<span class="sd">        Cycler that determines the hatching style of plotting commands.</span>
+<span class="sd">    array : ndarray</span>
+<span class="sd">        The ndarray to be plotted.</span>
+<span class="sd">    bins_per_row : int, optional</span>
+<span class="sd">        How many bins are going to be plotted per row.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="n">bins_per_row</span><span class="o">=</span><span class="mi">25</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">array</span> <span class="o">=</span> <span class="n">array</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bins_per_row</span> <span class="o">=</span> <span class="n">bins_per_row</span>
+        <span class="n">Plotter</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">array</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">array</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Array must be of equal shape as the initial one.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">array</span>
+
+    <span class="k">def</span> <span class="nf">_get_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">arrays</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_array</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">arrays</span><span class="p">]</span>
+        <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">IndexError</span><span class="p">):</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_array</span><span class="p">(</span><span class="n">arrays</span><span class="p">)]</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ArrayPlotter.get_bin_edges">
+<a class="viewcode-back" href="../../modules/plotting/ArrayPlotter.html#remu.plotting.ArrayPlotter.get_bin_edges">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_bin_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i_min</span><span class="p">,</span> <span class="n">i_max</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the bin edges corresponding to bins i_min to i_max.&quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">i_min</span><span class="p">,</span> <span class="n">i_max</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>  <span class="c1"># Bins centred on integers</span></div>
+
+
+<div class="viewcode-block" id="ArrayPlotter.get_axis_label">
+<a class="viewcode-back" href="../../modules/plotting/ArrayPlotter.html#remu.plotting.ArrayPlotter.get_axis_label">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_axis_label</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the default label for the axis.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;Bin #&quot;</span></div>
+
+
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">_get_stack_functions</span><span class="p">(</span><span class="n">stack_function</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># A number?</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">stack_function</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="c1"># Nope</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># A number.</span>
+            <span class="n">lobound</span> <span class="o">=</span> <span class="p">(</span><span class="mf">1.0</span> <span class="o">-</span> <span class="n">stack_function</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span>
+            <span class="n">hibound</span> <span class="o">=</span> <span class="mf">1.0</span> <span class="o">-</span> <span class="n">lobound</span>
+
+            <span class="k">def</span> <span class="nf">lower</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">lobound</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">bound</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">upper</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">bound</span><span class="o">=</span><span class="n">hibound</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">quantile</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">bound</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span>
+
+        <span class="c1"># No number</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="c1"># Tuple of functions?</span>
+            <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span> <span class="o">=</span> <span class="n">stack_function</span>
+        <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+            <span class="c1"># Nope</span>
+            <span class="k">def</span> <span class="nf">lower</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+                <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">zeros_like</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">)</span>
+
+            <span class="n">upper</span> <span class="o">=</span> <span class="n">stack_function</span>
+        <span class="k">return</span> <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span>
+
+<div class="viewcode-block" id="ArrayPlotter.plot_array">
+<a class="viewcode-back" href="../../modules/plotting/ArrayPlotter.html#remu.plotting.ArrayPlotter.plot_array">[docs]</a>
+    <span class="k">def</span> <span class="nf">plot_array</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">array</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="n">stack_function</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">,</span>
+        <span class="n">margin_function</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot an array.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        array : ndarray</span>
+<span class="sd">            The thing to plot.</span>
+<span class="sd">        density : bool, optional</span>
+<span class="sd">            Divide the data by the relative bin width: ``width / total_plot_range``.</span>
+<span class="sd">        stack_function : float or function or (lower_function, function)</span>
+<span class="sd">            How to deal with multiple arrays.</span>
+<span class="sd">            When `float`, plot the respective quantile as equal-tailed interval.</span>
+<span class="sd">            When `function`, apply this function to the stack after marginalisation.</span>
+<span class="sd">            When `(function, function)`, use these functions to calculate lower and</span>
+<span class="sd">            upper bounds of the area to be plotted respectively.</span>
+<span class="sd">            Functions must accept ``axis`` keyword argument.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># The `margin_function` parameter is only here so it can be</span>
+        <span class="c1"># safely used with all plotting methods</span>
+
+        <span class="n">arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_arrays</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+        <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_stack_functions</span><span class="p">(</span><span class="n">stack_function</span><span class="p">)</span>
+
+        <span class="n">bins_per_row</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bins_per_row</span>
+        <span class="k">if</span> <span class="n">bins_per_row</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">n_rows</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">arrays</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">bins_per_row</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">n_rows</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">bins_per_row</span> <span class="o">=</span> <span class="n">arrays</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">figax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span>
+            <span class="n">nrows</span><span class="o">=</span><span class="n">n_rows</span><span class="p">,</span>
+            <span class="n">sharey</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mf">6.4</span><span class="p">,</span> <span class="nb">max</span><span class="p">(</span><span class="mf">2.4</span> <span class="o">*</span> <span class="n">n_rows</span><span class="p">,</span> <span class="mf">4.8</span><span class="p">)),</span>
+            <span class="n">squeeze</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">color</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">))</span>
+        <span class="n">hatch</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hatch&quot;</span><span class="p">,</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hatch</span><span class="p">))</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ax</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">figax</span><span class="p">[</span><span class="mi">1</span><span class="p">][:,</span> <span class="mi">0</span><span class="p">]):</span>
+            <span class="n">i_min</span> <span class="o">=</span> <span class="n">i</span> <span class="o">*</span> <span class="n">bins_per_row</span>
+            <span class="n">i_max</span> <span class="o">=</span> <span class="nb">min</span><span class="p">((</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">bins_per_row</span><span class="p">,</span> <span class="n">arrays</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">y_hi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">upper</span><span class="p">(</span><span class="n">arrays</span><span class="p">[:,</span> <span class="n">i_min</span><span class="p">:</span><span class="n">i_max</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">y_lo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">lower</span><span class="p">(</span><span class="n">arrays</span><span class="p">[:,</span> <span class="n">i_min</span><span class="p">:</span><span class="n">i_max</span><span class="p">],</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_bin_edges</span><span class="p">(</span><span class="n">i_min</span><span class="p">,</span> <span class="n">i_max</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+            <span class="c1"># Divide by relative bin widths</span>
+            <span class="k">if</span> <span class="n">density</span><span class="p">:</span>
+                <span class="n">total_width</span> <span class="o">=</span> <span class="n">bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">rel_widths</span> <span class="o">=</span> <span class="p">(</span><span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">bins</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="n">total_width</span>
+                <span class="n">y_hi</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rel_widths</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+                <span class="n">y_lo</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">rel_widths</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+
+            <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="s2">&quot;post&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;edgecolor&quot;</span><span class="p">:</span> <span class="n">color</span><span class="p">,</span>
+                <span class="s2">&quot;hatch&quot;</span><span class="p">:</span> <span class="n">hatch</span><span class="p">,</span>
+                <span class="s2">&quot;facecolor&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">y_lo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y_lo</span><span class="p">,</span> <span class="n">y_lo</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">y_hi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">y_hi</span><span class="p">,</span> <span class="n">y_hi</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">poly</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">bins</span><span class="p">,</span> <span class="n">y_hi</span><span class="p">,</span> <span class="n">y_lo</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span>
+
+            <span class="c1"># Add sticky y edge so histograms get plotted more beautifully</span>
+            <span class="n">poly</span><span class="o">.</span><span class="n">sticky_edges</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">y_lo</span><span class="p">))</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">autoscale_view</span><span class="p">()</span>
+
+            <span class="n">ax</span><span class="o">.</span><span class="n">get_xaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">ticker</span><span class="o">.</span><span class="n">MaxNLocator</span><span class="p">(</span><span class="n">integer</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+        <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_axis_label</span><span class="p">())</span></div>
+
+
+<div class="viewcode-block" id="ArrayPlotter.legend">
+<a class="viewcode-back" href="../../modules/plotting/ArrayPlotter.html#remu.plotting.ArrayPlotter.legend">[docs]</a>
+    <span class="k">def</span> <span class="nf">legend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Draw a legend in the first axis.&quot;&quot;&quot;</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;loc&quot;</span><span class="p">:</span> <span class="s2">&quot;best&quot;</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">figax</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="o">**</span><span class="n">args</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="BinningPlotter">
+<a class="viewcode-back" href="../../modules/plotting/BinningPlotter.html#remu.plotting.BinningPlotter">[docs]</a>
+<span class="k">class</span> <span class="nc">BinningPlotter</span><span class="p">(</span><span class="n">ArrayPlotter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plotting class for the simplest :class:`.Binning` class.</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    binning : Binning</span>
+<span class="sd">        The binning to be plotted.</span>
+<span class="sd">    marginalize_subbinnings : bool, optional</span>
+<span class="sd">        Plot the contents of subbinnings as a single bin.</span>
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Addittional keyword arguments are passed to :class:`ArrayPlotter`.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    ArrayPlotter</span>
+<span class="sd">    .Binning</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    figax : (Figure, [[Axes, ...], ...])</span>
+<span class="sd">        The figure and axes that are used for the plotting.</span>
+<span class="sd">    color : cycle of str</span>
+<span class="sd">        Cycler that determines the color of plotting commands.</span>
+<span class="sd">    hatch : cycle of str</span>
+<span class="sd">        Cycler that determines the hatching style of plotting commands.</span>
+<span class="sd">    binning : Binning</span>
+<span class="sd">        The binning defining what will be plotted.</span>
+<span class="sd">    marginalize_subbinnings : bool</span>
+<span class="sd">        Whether or not subbinnings will be marginalized before plotting.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binning</span><span class="p">,</span> <span class="n">marginalize_subbinnings</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">binning</span> <span class="o">=</span> <span class="n">binning</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">marginalize_subbinnings</span> <span class="o">=</span> <span class="n">marginalize_subbinnings</span>
+        <span class="n">array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binning</span><span class="o">.</span><span class="n">value_array</span>
+        <span class="k">if</span> <span class="n">marginalize_subbinnings</span><span class="p">:</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binning</span><span class="o">.</span><span class="n">marginalize_subbinnings_on_ndarray</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+        <span class="n">ArrayPlotter</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_get_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">array</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">array</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">array</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+
+        <span class="c1"># Marginalize subbinnings if necessary</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">marginalize_subbinnings</span> <span class="ow">and</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="n">array</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binning</span><span class="o">.</span><span class="n">marginalize_subbinnings_on_ndarray</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">array</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">array</span><span class="o">.</span><span class="n">shape</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Array must be of equal shape as the initial one.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">array</span>
+
+    <span class="k">def</span> <span class="nf">_get_binning</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binning</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">binning</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">binning</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binning</span>
+        <span class="k">return</span> <span class="n">binning</span>
+
+<div class="viewcode-block" id="BinningPlotter.plot_values">
+<a class="viewcode-back" href="../../modules/plotting/BinningPlotter.html#remu.plotting.BinningPlotter.plot_values">[docs]</a>
+    <span class="k">def</span> <span class="nf">plot_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binning</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot the values of a Binning.&quot;&quot;&quot;</span>
+
+        <span class="n">binning</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_binning</span><span class="p">(</span><span class="n">binning</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">value_array</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BinningPlotter.plot_entries">
+<a class="viewcode-back" href="../../modules/plotting/BinningPlotter.html#remu.plotting.BinningPlotter.plot_entries">[docs]</a>
+    <span class="k">def</span> <span class="nf">plot_entries</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binning</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot the entries of a Binning.&quot;&quot;&quot;</span>
+
+        <span class="n">binning</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_binning</span><span class="p">(</span><span class="n">binning</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">entries_array</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="BinningPlotter.plot_sumw2">
+<a class="viewcode-back" href="../../modules/plotting/BinningPlotter.html#remu.plotting.BinningPlotter.plot_sumw2">[docs]</a>
+    <span class="k">def</span> <span class="nf">plot_sumw2</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binning</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot the sumw2 of a Binning.&quot;&quot;&quot;</span>
+
+        <span class="n">binning</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_binning</span><span class="p">(</span><span class="n">binning</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">sumw2_array</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="CartesianProductBinningPlotter">
+<a class="viewcode-back" href="../../modules/plotting/CartesianProductBinningPlotter.html#remu.plotting.CartesianProductBinningPlotter">[docs]</a>
+<span class="k">class</span> <span class="nc">CartesianProductBinningPlotter</span><span class="p">(</span><span class="n">BinningPlotter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plotting class for :class:`.CartesianProductBinning`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    binning : CartesianProductBinning</span>
+<span class="sd">        The binning to be plottet</span>
+<span class="sd">    x_axis_binnings : list of int, optional</span>
+<span class="sd">        The indices of binnings to be plotted on the x-axis.</span>
+<span class="sd">    y_axis_binnings : list of int, optional</span>
+<span class="sd">        The indices of binnings to be plotted on the y-axis.</span>
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Additional keyword arguments are passed to :class:`BinningPlotter`.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    This plotter does always marginalize the subbinnings.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    BinningPlotter</span>
+<span class="sd">    .CartesianProductBinning</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    figax : (Figure, [[Axes, ...], ...])</span>
+<span class="sd">        The figure and axes that are used for the plotting.</span>
+<span class="sd">    color : cycle of str</span>
+<span class="sd">        Cycler that determines the color of plotting commands.</span>
+<span class="sd">    hatch : cycle of str</span>
+<span class="sd">        Cycler that determines the hatching style of plotting commands.</span>
+<span class="sd">    binning : CartesianProductBinning</span>
+<span class="sd">        The binning defining what will be plotted.</span>
+<span class="sd">    marginalize_subbinnings : bool</span>
+<span class="sd">        Whether or not subbinnings will be marginalized before plotting.</span>
+<span class="sd">    x_axis_binnings : list of int</span>
+<span class="sd">        The indices of binnings to be plotted on the x-axis.</span>
+<span class="sd">    y_axis_binnings : list of int</span>
+<span class="sd">        The indices of binnings to be plotted on the y-axis.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binning</span><span class="p">,</span> <span class="n">x_axis_binnings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_axis_binnings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x_axis_binnings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x_axis_binnings</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">binnings</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">))))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">x_axis_binnings</span> <span class="o">=</span> <span class="n">x_axis_binnings</span>
+        <span class="k">if</span> <span class="n">y_axis_binnings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">y_axis_binnings</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">binnings</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)),</span> <span class="nb">len</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">binnings</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">y_axis_binnings</span> <span class="o">=</span> <span class="n">y_axis_binnings</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;marginalize_subbinnings&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;bins_per_row&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">BinningPlotter</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binning</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="CartesianProductBinningPlotter.get_bin_edges">
+<a class="viewcode-back" href="../../modules/plotting/CartesianProductBinningPlotter.html#remu.plotting.CartesianProductBinningPlotter.get_bin_edges">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_bin_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i_min</span><span class="p">,</span> <span class="n">i_max</span><span class="p">,</span> <span class="n">j_binning</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the bin edges corresponding to bins i_min to i_max.&quot;&quot;&quot;</span>
+        <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="n">i_min</span><span class="p">,</span> <span class="n">i_max</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">x</span> <span class="o">-</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">x</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="mf">0.5</span><span class="p">)</span>  <span class="c1"># Bins centred on integers</span></div>
+
+
+<div class="viewcode-block" id="CartesianProductBinningPlotter.get_axis_label">
+<a class="viewcode-back" href="../../modules/plotting/CartesianProductBinningPlotter.html#remu.plotting.CartesianProductBinningPlotter.get_axis_label">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_axis_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">j_binning</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return the default label for the axis.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="s2">&quot;Binning </span><span class="si">%d</span><span class="s2"> Bin #&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">j_binning</span><span class="p">,)</span></div>
+
+
+<div class="viewcode-block" id="CartesianProductBinningPlotter.plot_array">
+<a class="viewcode-back" href="../../modules/plotting/CartesianProductBinningPlotter.html#remu.plotting.CartesianProductBinningPlotter.plot_array">[docs]</a>
+    <span class="k">def</span> <span class="nf">plot_array</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">array</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+        <span class="n">density</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="n">stack_function</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">,</span>
+        <span class="n">margin_function</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">,</span>
+        <span class="n">scatter</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="o">**</span><span class="n">kwargs</span><span class="p">,</span>
+    <span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot an array.</span>
+
+<span class="sd">        Parameters</span>
+<span class="sd">        ----------</span>
+
+<span class="sd">        array : ndarray, optional</span>
+<span class="sd">            The data to be plotted.</span>
+<span class="sd">        density : bool or list of int, optional</span>
+<span class="sd">            Divide the data by the relative bin width: ``width / total_plot_range``.</span>
+<span class="sd">            Dividing by the relative bin width, rather than the bin width directly,</span>
+<span class="sd">            ensures that the maximum values in all 1D projections are comparable.</span>
+<span class="sd">            If a list of ints, only the bin widths in the respective binnings will</span>
+<span class="sd">            be used for the division.</span>
+<span class="sd">        stack_function : float or function or (lower_function, function)</span>
+<span class="sd">            How to deal with multiple arrays.</span>
+<span class="sd">            When `float`, plot the respective quantile as equal-tailed interval.</span>
+<span class="sd">            When `function`, apply this function to the stack after marginalisation.</span>
+<span class="sd">            When `(function, function)`, use these functions to calculate lower and</span>
+<span class="sd">            upper bounds of the area to be plotted respectively.</span>
+<span class="sd">            Functions must accept ``axis`` keyword argument.</span>
+<span class="sd">        margin_function : function, optional</span>
+<span class="sd">            The function used to marginalize the data.</span>
+<span class="sd">        scatter : int, optional</span>
+<span class="sd">            Use a pseudo scatter plot with `scatter` number of points instead</span>
+<span class="sd">            of a 2D histogram. Allows to draw multiple sets of 2D data in the</span>
+<span class="sd">            same plot. The number of points in each cell is proportional to</span>
+<span class="sd">            the value being plotted. Using the `scatter` option is thus</span>
+<span class="sd">            implicitly replicating the behaviour of the `density` option for</span>
+<span class="sd">            the 2D plots. The `density` argument has no effect on the scatter</span>
+<span class="sd">            plots.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_arrays</span><span class="p">(</span><span class="n">array</span><span class="p">)</span>
+        <span class="n">lower</span><span class="p">,</span> <span class="n">upper</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_stack_functions</span><span class="p">(</span><span class="n">stack_function</span><span class="p">)</span>
+
+        <span class="n">shape</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binning</span><span class="o">.</span><span class="n">bins_shape</span>
+        <span class="n">arrays</span> <span class="o">=</span> <span class="n">arrays</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">arrays</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">shape</span><span class="p">)</span>
+
+        <span class="n">n_col</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_axis_binnings</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>  <span class="c1"># &quot;+1&quot; for the 1D projections</span>
+        <span class="n">n_row</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_axis_binnings</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="c1"># Widths and heights according to number of bins,</span>
+        <span class="c1"># 10 px (= 0.1&quot;) per bin</span>
+        <span class="n">widths</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="mf">0.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">binning</span><span class="o">.</span><span class="n">binnings</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">data_size</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">x_axis_binnings</span>
+        <span class="p">]</span>
+        <span class="n">heights</span> <span class="o">=</span> <span class="p">[</span>
+            <span class="mf">0.1</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">binning</span><span class="o">.</span><span class="n">binnings</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">data_size</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">y_axis_binnings</span>
+        <span class="p">]</span>
+        <span class="c1"># Axes are counted top to bottom, but we want binnings bottom to top</span>
+        <span class="n">heights</span><span class="o">.</span><span class="n">reverse</span><span class="p">()</span>
+
+        <span class="c1"># Total figure size</span>
+        <span class="n">total_width</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">widths</span><span class="p">)</span>
+        <span class="n">total_height</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">heights</span><span class="p">)</span>
+        <span class="n">scale</span> <span class="o">=</span> <span class="mf">4.0</span> <span class="o">/</span> <span class="nb">min</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="n">total_width</span><span class="p">,</span> <span class="n">total_height</span><span class="p">),</span> <span class="mf">4.0</span><span class="p">)</span>
+
+        <span class="c1"># Room for the 1D histograms</span>
+        <span class="k">if</span> <span class="n">total_width</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">widths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">6</span> <span class="o">/</span> <span class="n">scale</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">widths</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mf">1.5</span> <span class="o">/</span> <span class="n">scale</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">total_height</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+            <span class="n">heights</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">4</span> <span class="o">/</span> <span class="n">scale</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">heights</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mf">1.5</span> <span class="o">/</span> <span class="n">scale</span><span class="p">)</span>
+
+        <span class="c1"># Update total sizes</span>
+        <span class="n">total_width</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">widths</span><span class="p">)</span>
+        <span class="n">total_height</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">heights</span><span class="p">)</span>
+
+        <span class="n">fig_x</span> <span class="o">=</span> <span class="n">total_width</span> <span class="o">*</span> <span class="n">scale</span>
+        <span class="n">fig_y</span> <span class="o">=</span> <span class="n">total_height</span> <span class="o">*</span> <span class="n">scale</span>
+
+        <span class="c1"># Subplot spacing is specified as multiple of average axis size</span>
+        <span class="c1"># We want it to be relative to the 1D projections</span>
+        <span class="n">wspace</span> <span class="o">=</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">widths</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">total_width</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">widths</span><span class="p">))</span>
+        <span class="n">hspace</span> <span class="o">=</span> <span class="mf">0.1</span> <span class="o">*</span> <span class="n">heights</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="p">(</span><span class="n">total_height</span> <span class="o">/</span> <span class="nb">len</span><span class="p">(</span><span class="n">heights</span><span class="p">))</span>
+
+        <span class="n">figax</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span>
+            <span class="n">nrows</span><span class="o">=</span><span class="n">n_row</span><span class="p">,</span>
+            <span class="n">ncols</span><span class="o">=</span><span class="n">n_col</span><span class="p">,</span>
+            <span class="n">sharex</span><span class="o">=</span><span class="s2">&quot;col&quot;</span><span class="p">,</span>
+            <span class="n">sharey</span><span class="o">=</span><span class="s2">&quot;row&quot;</span><span class="p">,</span>
+            <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="n">fig_x</span><span class="p">,</span> <span class="n">fig_y</span><span class="p">),</span>
+            <span class="n">gridspec_kw</span><span class="o">=</span><span class="p">{</span>
+                <span class="s2">&quot;width_ratios&quot;</span><span class="p">:</span> <span class="n">widths</span><span class="p">,</span>
+                <span class="s2">&quot;height_ratios&quot;</span><span class="p">:</span> <span class="n">heights</span><span class="p">,</span>
+                <span class="s2">&quot;wspace&quot;</span><span class="p">:</span> <span class="n">wspace</span><span class="p">,</span>
+                <span class="s2">&quot;hspace&quot;</span><span class="p">:</span> <span class="n">hspace</span><span class="p">,</span>
+            <span class="p">},</span>
+            <span class="n">squeeze</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="n">color</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">color</span><span class="p">))</span>
+        <span class="n">hatch</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;hatch&quot;</span><span class="p">,</span> <span class="nb">next</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hatch</span><span class="p">))</span>
+
+        <span class="c1"># 2D histograms</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_axis_binnings</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">y</span><span class="p">,</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_axis_binnings</span><span class="p">):</span>
+                <span class="c1"># Get axis to plot in</span>
+                <span class="n">ax</span> <span class="o">=</span> <span class="n">figax</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="n">y</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">]</span>  <span class="c1"># rows are counted top to bottom</span>
+
+                <span class="c1"># Project array</span>
+                <span class="n">axis</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">arrays</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># -1 because of stack axis 0</span>
+                <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">((</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">),</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                    <span class="k">del</span> <span class="n">axis</span><span class="p">[</span><span class="n">k</span><span class="p">]</span>
+                <span class="n">axis</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">axis</span><span class="p">)</span>  <span class="c1"># +1 because of stack axis 0</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">margin_function</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+                <span class="c1"># 2D plots only show upper limit of stack</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="n">upper</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+                <span class="c1"># Flip axes if necessary</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="n">j</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="o">.</span><span class="n">T</span>
+
+                <span class="c1"># Bin edges</span>
+                <span class="n">x_edg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bin_edges</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">i</span><span class="p">)</span>
+                <span class="n">y_edg</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_bin_edges</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">j</span><span class="p">)</span>
+
+                <span class="c1"># Plot the data</span>
+                <span class="k">if</span> <span class="n">scatter</span> <span class="o">&gt;=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># Draw a set of random points and plot these</span>
+
+                    <span class="c1"># Get bin numbers</span>
+                    <span class="n">csum</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">cumsum</span><span class="p">(),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+                    <span class="n">csum</span> <span class="o">/=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">csum</span><span class="p">)</span>
+                    <span class="n">indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">digitize</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">size</span><span class="o">=</span><span class="n">scatter</span><span class="p">),</span> <span class="n">csum</span><span class="p">)</span>
+
+                    <span class="c1"># Get x and y bin numbers</span>
+                    <span class="n">x_indices</span> <span class="o">=</span> <span class="n">indices</span> <span class="o">%</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+                    <span class="n">y_indices</span> <span class="o">=</span> <span class="n">indices</span> <span class="o">//</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+
+                    <span class="c1"># Throw X and Y for each event</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="n">y</span> <span class="o">=</span> <span class="p">[]</span>
+                    <span class="k">for</span> <span class="n">ix</span><span class="p">,</span> <span class="n">iy</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">x_indices</span><span class="p">,</span> <span class="n">y_indices</span><span class="p">):</span>
+                        <span class="n">x_min</span> <span class="o">=</span> <span class="n">x_edg</span><span class="p">[</span><span class="n">ix</span><span class="p">]</span>
+                        <span class="n">x_max</span> <span class="o">=</span> <span class="n">x_edg</span><span class="p">[</span><span class="n">ix</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                        <span class="n">y_min</span> <span class="o">=</span> <span class="n">y_edg</span><span class="p">[</span><span class="n">iy</span><span class="p">]</span>
+                        <span class="n">y_max</span> <span class="o">=</span> <span class="n">y_edg</span><span class="p">[</span><span class="n">iy</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+                        <span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">x_min</span><span class="p">,</span> <span class="n">x_max</span><span class="p">))</span>
+                        <span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">y_min</span><span class="p">,</span> <span class="n">y_max</span><span class="p">))</span>
+
+                    <span class="c1"># Plot the points</span>
+                    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># Only actually draw something if we have some events</span>
+                        <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="n">color</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s2">&quot;,&quot;</span><span class="p">)</span>
+
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Plot a regular 2D histogram</span>
+
+                    <span class="c1"># Bin centres</span>
+                    <span class="n">x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="n">x_edg</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;valid&quot;</span><span class="p">)</span>
+                    <span class="n">y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">convolve</span><span class="p">(</span><span class="n">y_edg</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s2">&quot;valid&quot;</span><span class="p">)</span>
+                    <span class="n">xx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">broadcast_to</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">y</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span><span class="o">.</span><span class="n">flatten</span><span class="p">()</span>
+                    <span class="n">yy</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+
+                    <span class="c1"># Deal with density in both directions explicitly</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">divide</span> <span class="o">=</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">density</span>
+                    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                        <span class="n">divide</span> <span class="o">=</span> <span class="n">density</span>
+                    <span class="k">if</span> <span class="n">divide</span><span class="p">:</span>
+                        <span class="n">data</span> <span class="o">/=</span> <span class="p">(</span><span class="n">x_edg</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">x_edg</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">,</span> <span class="p">:]</span>
+                        <span class="n">data</span> <span class="o">*=</span> <span class="p">(</span>
+                            <span class="n">x_edg</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">x_edg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="p">)</span>  <span class="c1"># Only divide by relative bin width</span>
+                    <span class="k">try</span><span class="p">:</span>
+                        <span class="n">divide</span> <span class="o">=</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">density</span>
+                    <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                        <span class="n">divide</span> <span class="o">=</span> <span class="n">density</span>
+                    <span class="k">if</span> <span class="n">divide</span><span class="p">:</span>
+                        <span class="n">data</span> <span class="o">/=</span> <span class="p">(</span><span class="n">y_edg</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">y_edg</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span>
+                        <span class="n">data</span> <span class="o">*=</span> <span class="p">(</span>
+                            <span class="n">y_edg</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">y_edg</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                        <span class="p">)</span>  <span class="c1"># Only divide by relative bin width</span>
+
+                    <span class="c1"># Plot it</span>
+                    <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">sum</span><span class="p">()</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="c1"># Empty data messes with the normalisation</span>
+                        <span class="n">data</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="mf">0.001</span><span class="p">)</span>
+                    <span class="n">ax</span><span class="o">.</span><span class="n">hist2d</span><span class="p">(</span>
+                        <span class="n">xx</span><span class="p">,</span> <span class="n">yy</span><span class="p">,</span> <span class="n">weights</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">flat</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">(</span><span class="n">x_edg</span><span class="p">,</span> <span class="n">y_edg</span><span class="p">),</span> <span class="n">density</span><span class="o">=</span><span class="kc">False</span>
+                    <span class="p">)</span>
+
+        <span class="c1"># 1D vertical histograms</span>
+        <span class="k">for</span> <span class="n">x</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">x_axis_binnings</span><span class="p">):</span>
+            <span class="c1"># Get axis to plot in</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">figax</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="n">x</span><span class="p">]</span>
+
+            <span class="c1"># Project array</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">arrays</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># -1 because of stack axis 0</span>
+            <span class="k">del</span> <span class="n">axis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">axis</span><span class="p">)</span>  <span class="c1"># +1 because of stack axis 0</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">margin_function</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="c1"># Upper and lower limit of area</span>
+            <span class="n">data_hi</span> <span class="o">=</span> <span class="n">upper</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">data_lo</span> <span class="o">=</span> <span class="n">lower</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># Divide by relative bin widths</span>
+            <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_bin_edges</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">i</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">divide</span> <span class="o">=</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">density</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="n">divide</span> <span class="o">=</span> <span class="n">density</span>
+            <span class="k">if</span> <span class="n">divide</span><span class="p">:</span>
+                <span class="n">total_width</span> <span class="o">=</span> <span class="n">bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">rel_widths</span> <span class="o">=</span> <span class="p">(</span><span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">bins</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="n">total_width</span>
+                <span class="n">data_hi</span> <span class="o">/=</span> <span class="n">rel_widths</span>
+                <span class="n">data_lo</span> <span class="o">/=</span> <span class="n">rel_widths</span>
+
+            <span class="c1"># Plot the data</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="s2">&quot;post&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;edgecolor&quot;</span><span class="p">:</span> <span class="n">color</span><span class="p">,</span>
+                <span class="s2">&quot;hatch&quot;</span><span class="p">:</span> <span class="n">hatch</span><span class="p">,</span>
+                <span class="s2">&quot;facecolor&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">data_lo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data_lo</span><span class="p">,</span> <span class="n">data_lo</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">data_hi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data_hi</span><span class="p">,</span> <span class="n">data_hi</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">poly</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">fill_between</span><span class="p">(</span><span class="n">bins</span><span class="p">,</span> <span class="n">data_hi</span><span class="p">,</span> <span class="n">data_lo</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span>
+
+            <span class="c1"># Add sticky y edge so histograms get plotted more beautifully</span>
+            <span class="n">poly</span><span class="o">.</span><span class="n">sticky_edges</span><span class="o">.</span><span class="n">y</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">data_lo</span><span class="p">))</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">autoscale_view</span><span class="p">()</span>
+
+            <span class="c1"># Only int tick label</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">get_xaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">ticker</span><span class="o">.</span><span class="n">MaxNLocator</span><span class="p">(</span><span class="n">integer</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+            <span class="c1"># Add labels at the appropriate axes</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">figax</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">x</span><span class="p">]</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_axis_label</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+
+        <span class="c1"># 1D horizontal histograms</span>
+        <span class="k">for</span> <span class="n">y</span><span class="p">,</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">y_axis_binnings</span><span class="p">):</span>
+            <span class="c1"># Get axis to plot in</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">figax</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="n">y</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span>  <span class="c1"># Rows are counted top to bottom</span>
+
+            <span class="c1"># Project array</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">arrays</span><span class="o">.</span><span class="n">ndim</span> <span class="o">-</span> <span class="mi">1</span><span class="p">))</span>  <span class="c1"># -1 because of stack axis 0</span>
+            <span class="k">del</span> <span class="n">axis</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">axis</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">x</span> <span class="o">+</span> <span class="mi">1</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">axis</span><span class="p">)</span>  <span class="c1"># +1 because of stack axis 0</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">margin_function</span><span class="p">(</span><span class="n">arrays</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="n">axis</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="c1"># Upper and lower limit of area</span>
+            <span class="n">data_hi</span> <span class="o">=</span> <span class="n">upper</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+            <span class="n">data_lo</span> <span class="o">=</span> <span class="n">lower</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+            <span class="c1"># Divide by relative bin widths</span>
+            <span class="n">bins</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_bin_edges</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">i</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">divide</span> <span class="o">=</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">density</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span>
+                <span class="n">divide</span> <span class="o">=</span> <span class="n">density</span>
+            <span class="k">if</span> <span class="n">divide</span><span class="p">:</span>
+                <span class="n">total_width</span> <span class="o">=</span> <span class="n">bins</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">bins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">rel_widths</span> <span class="o">=</span> <span class="p">(</span><span class="n">bins</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span> <span class="o">-</span> <span class="n">bins</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="n">total_width</span>
+                <span class="n">data_hi</span> <span class="o">/=</span> <span class="n">rel_widths</span>
+                <span class="n">data_lo</span> <span class="o">/=</span> <span class="n">rel_widths</span>
+
+            <span class="c1"># Plot the data</span>
+            <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="s2">&quot;post&quot;</span><span class="p">,</span>
+                <span class="s2">&quot;edgecolor&quot;</span><span class="p">:</span> <span class="n">color</span><span class="p">,</span>
+                <span class="s2">&quot;hatch&quot;</span><span class="p">:</span> <span class="n">hatch</span><span class="p">,</span>
+                <span class="s2">&quot;facecolor&quot;</span><span class="p">:</span> <span class="s2">&quot;none&quot;</span><span class="p">,</span>
+            <span class="p">}</span>
+            <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+            <span class="n">data_lo</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data_lo</span><span class="p">,</span> <span class="n">data_lo</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">data_hi</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data_hi</span><span class="p">,</span> <span class="n">data_hi</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="n">poly</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">fill_betweenx</span><span class="p">(</span><span class="n">bins</span><span class="p">,</span> <span class="n">data_hi</span><span class="p">,</span> <span class="n">data_lo</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span>
+
+            <span class="c1"># Add sticky x edge so histograms get plotted more beautifully</span>
+            <span class="n">poly</span><span class="o">.</span><span class="n">sticky_edges</span><span class="o">.</span><span class="n">x</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">data_lo</span><span class="p">))</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">autoscale_view</span><span class="p">()</span>
+
+            <span class="c1"># Only int tick label</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">get_yaxis</span><span class="p">()</span><span class="o">.</span><span class="n">set_major_locator</span><span class="p">(</span><span class="n">ticker</span><span class="o">.</span><span class="n">MaxNLocator</span><span class="p">(</span><span class="n">integer</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+
+            <span class="c1"># Add labels at the appropriate axes</span>
+            <span class="n">ax</span> <span class="o">=</span> <span class="n">figax</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="o">-</span><span class="n">y</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>  <span class="c1"># Rows are counted top to bottom</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_axis_label</span><span class="p">(</span><span class="n">i</span><span class="p">))</span>
+
+        <span class="c1"># Hide empty axes</span>
+        <span class="n">figax</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">set_axis_off</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="CartesianProductBinningPlotter.legend">
+<a class="viewcode-back" href="../../modules/plotting/CartesianProductBinningPlotter.html#remu.plotting.CartesianProductBinningPlotter.legend">[docs]</a>
+    <span class="k">def</span> <span class="nf">legend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Draw a legend in the upper right corner of the plot.&quot;&quot;&quot;</span>
+        <span class="n">handles</span><span class="p">,</span> <span class="n">labels</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">figax</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get_legend_handles_labels</span><span class="p">()</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;loc&quot;</span><span class="p">:</span> <span class="s2">&quot;center&quot;</span><span class="p">,</span>
+            <span class="s2">&quot;borderaxespad&quot;</span><span class="p">:</span> <span class="mf">0.0</span><span class="p">,</span>
+            <span class="s2">&quot;frameon&quot;</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">figax</span><span class="p">[</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">legend</span><span class="p">(</span><span class="n">handles</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="LinearBinningPlotter">
+<a class="viewcode-back" href="../../modules/plotting/LinearBinningPlotter.html#remu.plotting.LinearBinningPlotter">[docs]</a>
+<span class="k">class</span> <span class="nc">LinearBinningPlotter</span><span class="p">(</span><span class="n">BinningPlotter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plotting class for :class:`.LinearBinning`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    binning : LinearBinning</span>
+<span class="sd">        The binning to be plottet</span>
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Additional keyword arguments are passed to :class:`BinningPlotter`.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    This plotter does always marginalize the subbinnings.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    BinningPlotter</span>
+<span class="sd">    .LinearBinning</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    figax : (Figure, [[Axes, ...], ...])</span>
+<span class="sd">        The figure and axes that are used for the plotting.</span>
+<span class="sd">    color : cycle of str</span>
+<span class="sd">        Cycler that determines the color of plotting commands.</span>
+<span class="sd">    hatch : cycle of str</span>
+<span class="sd">        Cycler that determines the hatching style of plotting commands.</span>
+<span class="sd">    binning : LinearBinning</span>
+<span class="sd">        The binning defining what will be plotted.</span>
+<span class="sd">    marginalize_subbinnings : bool</span>
+<span class="sd">        Whether or not subbinnings will be marginalized before plotting.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binning</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;marginalize_subbinnings&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">args</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s2">&quot;bins_per_row&quot;</span><span class="p">:</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="n">args</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="n">BinningPlotter</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binning</span><span class="p">,</span> <span class="o">**</span><span class="n">args</span><span class="p">)</span>
+
+<div class="viewcode-block" id="LinearBinningPlotter.plot_array">
+<a class="viewcode-back" href="../../modules/plotting/LinearBinningPlotter.html#remu.plotting.LinearBinningPlotter.plot_array">[docs]</a>
+    <span class="k">def</span> <span class="nf">plot_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Plot an array.</span>
+
+<span class="sd">        See :meth:`ArrayPlotter.plot_array`.</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Change default behaviour of `density`</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;density&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;density&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ArrayPlotter</span><span class="o">.</span><span class="n">plot_array</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LinearBinningPlotter.get_bin_edges">
+<a class="viewcode-back" href="../../modules/plotting/LinearBinningPlotter.html#remu.plotting.LinearBinningPlotter.get_bin_edges">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_bin_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i_min</span><span class="p">,</span> <span class="n">i_max</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the finite bin edges.&quot;&quot;&quot;</span>
+
+        <span class="n">bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binning</span><span class="o">.</span><span class="n">bin_edges</span><span class="p">[</span><span class="n">i_min</span> <span class="p">:</span> <span class="n">i_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">ret</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+                <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">ret</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]):</span>
+                <span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="LinearBinningPlotter.get_axis_label">
+<a class="viewcode-back" href="../../modules/plotting/LinearBinningPlotter.html#remu.plotting.LinearBinningPlotter.get_axis_label">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_axis_label</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return variable name.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">binning</span><span class="o">.</span><span class="n">variable</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="RectilinearBinningPlotter">
+<a class="viewcode-back" href="../../modules/plotting/RectilinearBinningPlotter.html#remu.plotting.RectilinearBinningPlotter">[docs]</a>
+<span class="k">class</span> <span class="nc">RectilinearBinningPlotter</span><span class="p">(</span><span class="n">CartesianProductBinningPlotter</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Plotting class for :class:`.RectilinearBinning`</span>
+
+<span class="sd">    Parameters</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    binning : RectilinearBinning</span>
+<span class="sd">        The binning to be plottet</span>
+<span class="sd">    x_axis_binnings : list of int/str, optional</span>
+<span class="sd">        The indices of binnings to be plotted on the x-axis.</span>
+<span class="sd">    y_axis_binnings : list of int/str, optional</span>
+<span class="sd">        The indices of binnings to be plotted on the y-axis.</span>
+<span class="sd">    **kwargs : optional</span>
+<span class="sd">        Additional keyword arguments are passed to :class:`CartesianProductBinningPlotter`.</span>
+
+<span class="sd">    Notes</span>
+<span class="sd">    -----</span>
+
+<span class="sd">    This plotter does always marginalize the subbinnings.</span>
+
+<span class="sd">    See also</span>
+<span class="sd">    --------</span>
+
+<span class="sd">    CartesianProductBinningPlotter</span>
+<span class="sd">    .RectilinearBinning</span>
+
+<span class="sd">    Attributes</span>
+<span class="sd">    ----------</span>
+
+<span class="sd">    figax : (Figure, [[Axes, ...], ...])</span>
+<span class="sd">        The figure and axes that are used for the plotting.</span>
+<span class="sd">    color : cycle of str</span>
+<span class="sd">        Cycler that determines the color of plotting commands.</span>
+<span class="sd">    hatch : cycle of str</span>
+<span class="sd">        Cycler that determines the hatching style of plotting commands.</span>
+<span class="sd">    binning : RectilinearBinning</span>
+<span class="sd">        The binning defining what will be plotted.</span>
+<span class="sd">    marginalize_subbinnings : bool</span>
+<span class="sd">        Whether or not subbinnings will be marginalized before plotting.</span>
+<span class="sd">    x_axis_binnings : list of int or str</span>
+<span class="sd">        The indices or variable names of to be plotted on the x-axis.</span>
+<span class="sd">    y_axis_binnings : list of int or str</span>
+<span class="sd">        The indices or variable names to be plotted on the y-axis.</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binning</span><span class="p">,</span> <span class="n">x_axis_binnings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">y_axis_binnings</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">x_axis_binnings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">x_axis_binnings</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">binnings</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">))))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">x_axis_binnings</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">get_variable_index</span><span class="p">,</span> <span class="n">x_axis_binnings</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">y_axis_binnings</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">y_axis_binnings</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span>
+                <span class="nb">range</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">binnings</span><span class="p">)</span> <span class="o">/</span> <span class="mf">2.0</span><span class="p">)),</span> <span class="nb">len</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">binnings</span><span class="p">))</span>
+            <span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">y_axis_binnings</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">binning</span><span class="o">.</span><span class="n">get_variable_index</span><span class="p">,</span> <span class="n">y_axis_binnings</span><span class="p">))</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;x_axis_binnings&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">x_axis_binnings</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;y_axis_binnings&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">y_axis_binnings</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;marginalize_subbinnings&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">kwargs</span><span class="p">[</span><span class="s2">&quot;bins_per_row&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="n">CartesianProductBinningPlotter</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">binning</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RectilinearBinningPlotter.get_bin_edges">
+<a class="viewcode-back" href="../../modules/plotting/RectilinearBinningPlotter.html#remu.plotting.RectilinearBinningPlotter.get_bin_edges">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_bin_edges</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i_min</span><span class="p">,</span> <span class="n">i_max</span><span class="p">,</span> <span class="n">j_binning</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Get the finite bin edges.&quot;&quot;&quot;</span>
+
+        <span class="n">bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">binning</span><span class="o">.</span><span class="n">binnings</span><span class="p">[</span><span class="n">j_binning</span><span class="p">]</span><span class="o">.</span><span class="n">bin_edges</span><span class="p">[</span><span class="n">i_min</span> <span class="p">:</span> <span class="n">i_max</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+        <span class="n">ret</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">bins</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="mi">2</span><span class="p">]):</span>
+                <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">ret</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ret</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="o">-</span><span class="mf">0.5</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">3</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">]):</span>
+                <span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="p">(</span><span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">-</span> <span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">ret</span><span class="p">[</span><span class="o">-</span><span class="mi">2</span><span class="p">]</span> <span class="o">+</span> <span class="mi">1</span>
+
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">ret</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="RectilinearBinningPlotter.get_axis_label">
+<a class="viewcode-back" href="../../modules/plotting/RectilinearBinningPlotter.html#remu.plotting.RectilinearBinningPlotter.get_axis_label">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_axis_label</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">j_binning</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return variable name.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">binning</span><span class="o">.</span><span class="n">binnings</span><span class="p">[</span><span class="n">j_binning</span><span class="p">]</span><span class="o">.</span><span class="n">variable</span></div>
+</div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Lukas Koch.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

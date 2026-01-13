@@ -1,0 +1,768 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ResponseMatrix &mdash; ReMU  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="ResponseMatrixArrayBuilder" href="ResponseMatrixArrayBuilder.html" />
+    <link rel="prev" title="migration" href="../migration.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html">
+            
+              <img src="../../_static/ReMU.svg" class="logo" alt="Logo"/>
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../introduction/README.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../examples/README.html">An example analysis</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../README.html">Module references</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../binning.html">binning</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../migration.html">migration</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../migration.html#classes">Classes</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">ResponseMatrix</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ResponseMatrixArrayBuilder.html">ResponseMatrixArrayBuilder</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../likelihood.html">likelihood</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../plotting.html">plotting</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../matrix_utils.html">matrix_utils</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../likelihood_utils.html">likelihood_utils</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">ReMU</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../README.html">Module references</a></li>
+          <li class="breadcrumb-item"><a href="../migration.html">migration</a></li>
+      <li class="breadcrumb-item active">ResponseMatrix</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../../_sources/modules/migration/ResponseMatrix.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="responsematrix">
+<h1>ResponseMatrix<a class="headerlink" href="#responsematrix" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix">
+<span class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></span><span class="sig-prename descclassname"><span class="pre">remu.migration.</span></span><span class="sig-name descname"><span class="pre">ResponseMatrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">reco_binning</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">truth_binning</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nuisance_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">impossible_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">response_binning</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix" title="Link to this definition"></a></dt>
+<dd><p>Matrix that describes the detector response to true events.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>reco_binning</strong><span class="classifier">RectangularBinning</span></dt><dd><p>The Binning object describing the reco categorization.</p>
+</dd>
+<dt><strong>truth_binning</strong><span class="classifier">RectangularBinning</span></dt><dd><p>The Binning object describing the truth categorization.</p>
+</dd>
+<dt><strong>nuisance_indices</strong><span class="classifier">list of ints, optional</span></dt><dd><p>List of indices of nuisance truth bins.
+These are treated like their efficiency is exactly 1.</p>
+</dd>
+<dt><strong>impossible_indices :list of ints, optional</strong></dt><dd><p>List of indices of impossible reco bins.
+These are treated like their probability is exactly 0.</p>
+</dd>
+<dt><strong>response_binning</strong><span class="classifier">CartesianProductBinning, optional</span></dt><dd><p>The Binning object describing the reco and truth categorization.
+Usually this will be generated from the truth and reco binning.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<p class="rubric">Attributes</p>
+<table class="docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><strong>truth_binning</strong></p></td>
+<td><p>(Binning) The <a class="reference internal" href="../binning/Binning.html#remu.binning.Binning" title="remu.binning.Binning"><code class="xref py py-class docutils literal notranslate"><span class="pre">Binning</span></code></a> object for the truth information of the events.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>reco_binning</strong></p></td>
+<td><p>(Binning) The <a class="reference internal" href="../binning/Binning.html#remu.binning.Binning" title="remu.binning.Binning"><code class="xref py py-class docutils literal notranslate"><span class="pre">Binning</span></code></a> object for the reco information of the events.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>response_binning</strong></p></td>
+<td><p>(CartesianProductBinning) The <a class="reference internal" href="../binning/CartesianProductBinning.html#remu.binning.CartesianProductBinning" title="remu.binning.CartesianProductBinning"><code class="xref py py-class docutils literal notranslate"><span class="pre">CartesianProductBinning</span></code></a> of reco and truth binning.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>nuisance_indices</strong></p></td>
+<td><p>(list of int) The truth data indices that will be handled as nuisance bins.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>impossible_indices</strong></p></td>
+<td><p>(list of int) The reco data indices that will be treated as impossible to occur.</p></td>
+</tr>
+<tr class="row-even"><td><p><strong>filled_truth_indices</strong></p></td>
+<td><p>(list of int) The data indices of truth bins that have at least one event in them.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Methods</p>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.clone" title="remu.migration.ResponseMatrix.clone"><code class="xref py py-obj docutils literal notranslate"><span class="pre">clone</span></code></a>()</p></td>
+<td><p>Create a functioning copy of the response matrix.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.export" title="remu.migration.ResponseMatrix.export"><code class="xref py py-obj docutils literal notranslate"><span class="pre">export</span></code></a>(filename[, compress, nstat, sparse])</p></td>
+<td><p>Save all necessary information for using the response matrix.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.fill" title="remu.migration.ResponseMatrix.fill"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fill</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Fill events into the binnings.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.fill_from_csv_file" title="remu.migration.ResponseMatrix.fill_from_csv_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fill_from_csv_file</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Fill binnings from csv file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.fill_up_truth" title="remu.migration.ResponseMatrix.fill_up_truth"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fill_up_truth</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Re-fill the truth bins with the given events file.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.fill_up_truth_from_csv_file" title="remu.migration.ResponseMatrix.fill_up_truth_from_csv_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fill_up_truth_from_csv_file</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Re-fill the truth bins with the given csv file.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.generate_random_response_matrices" title="remu.migration.ResponseMatrix.generate_random_response_matrices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_random_response_matrices</span></code></a>([size, shape])</p></td>
+<td><p>Generate random response matrices according to the estimated variance.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.get_in_bin_variation_as_ndarray" title="remu.migration.ResponseMatrix.get_in_bin_variation_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_in_bin_variation_as_ndarray</span></code></a>([shape, ...])</p></td>
+<td><p>Get an estimate for the variation of the response within a bin.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray" title="remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_mean_response_matrix_as_ndarray</span></code></a>([shape])</p></td>
+<td><p>Get the means of the posterior distributions of the response matrix elements.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.get_reco_entries_as_ndarray" title="remu.migration.ResponseMatrix.get_reco_entries_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_reco_entries_as_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Get the number of entries in the reco binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.get_reco_sumw2_as_ndarray" title="remu.migration.ResponseMatrix.get_reco_sumw2_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_reco_sumw2_as_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Get the sum of squared weights in the reco binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.get_reco_values_as_ndarray" title="remu.migration.ResponseMatrix.get_reco_values_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_reco_values_as_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Get the values of the reco binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.get_response_entries_as_ndarray" title="remu.migration.ResponseMatrix.get_response_entries_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_response_entries_as_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Get the number of entries in the response binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.get_response_matrix_as_ndarray" title="remu.migration.ResponseMatrix.get_response_matrix_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_response_matrix_as_ndarray</span></code></a>([shape, ...])</p></td>
+<td><p>Return the ResponseMatrix as a ndarray.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.get_response_sumw2_as_ndarray" title="remu.migration.ResponseMatrix.get_response_sumw2_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_response_sumw2_as_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Get the sum of squared weights in the response binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.get_response_values_as_ndarray" title="remu.migration.ResponseMatrix.get_response_values_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_response_values_as_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Get the values of the response binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.get_statistical_variance_as_ndarray" title="remu.migration.ResponseMatrix.get_statistical_variance_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_statistical_variance_as_ndarray</span></code></a>([shape])</p></td>
+<td><p>Get the statistical variance of the single ResponseMatrix elements as ndarray.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.get_truth_entries_as_ndarray" title="remu.migration.ResponseMatrix.get_truth_entries_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_truth_entries_as_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Get the number of entries in the truth binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.get_truth_sumw2_as_ndarray" title="remu.migration.ResponseMatrix.get_truth_sumw2_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_truth_sumw2_as_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Get the sum of squared weights in the truth binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.get_truth_values_as_ndarray" title="remu.migration.ResponseMatrix.get_truth_values_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_truth_values_as_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Get the values of the truth binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.reset" title="remu.migration.ResponseMatrix.reset"><code class="xref py py-obj docutils literal notranslate"><span class="pre">reset</span></code></a>()</p></td>
+<td><p>Reset all binnings.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.set_reco_entries_from_ndarray" title="remu.migration.ResponseMatrix.set_reco_entries_from_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_reco_entries_from_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Set the number of entries in the reco binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.set_reco_sumw2_from_ndarray" title="remu.migration.ResponseMatrix.set_reco_sumw2_from_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_reco_sumw2_from_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Set the sum of squared weights in the reco binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.set_reco_values_from_ndarray" title="remu.migration.ResponseMatrix.set_reco_values_from_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_reco_values_from_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Set the values of the reco binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.set_response_entries_from_ndarray" title="remu.migration.ResponseMatrix.set_response_entries_from_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_response_entries_from_ndarray</span></code></a>(*args, ...)</p></td>
+<td><p>Set the number of entries in the response binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.set_response_sumw2_from_ndarray" title="remu.migration.ResponseMatrix.set_response_sumw2_from_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_response_sumw2_from_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Set the sum of squared weights in the response binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.set_response_values_from_ndarray" title="remu.migration.ResponseMatrix.set_response_values_from_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_response_values_from_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Set the values of the response binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.set_truth_entries_from_ndarray" title="remu.migration.ResponseMatrix.set_truth_entries_from_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_truth_entries_from_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Set the number of entries in the truth binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.set_truth_sumw2_from_ndarray" title="remu.migration.ResponseMatrix.set_truth_sumw2_from_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_truth_sumw2_from_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Set the sum of squared weights in the truth binning as <cite>ndarray</cite>.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#remu.migration.ResponseMatrix.set_truth_values_from_ndarray" title="remu.migration.ResponseMatrix.set_truth_values_from_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">set_truth_values_from_ndarray</span></code></a>(*args, **kwargs)</p></td>
+<td><p>Set the values of the truth binning as <cite>ndarray</cite>.</p></td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Notes</p>
+<p>The truth and reco binnings will be combined with their
+<cite>cartesian_product</cite> method.</p>
+<p>The truth bins corresonding to the <cite>nuisance_indices</cite> will be treated
+like they have a total efficiency of 1.</p>
+<p>The reco bins corresonding to the <cite>impossible_indices</cite> will be treated
+like they are filled with a probability of 0.</p>
+<p>Two response matrices can be combined by adding them <code class="docutils literal notranslate"><span class="pre">new_resp</span> <span class="pre">=</span> <span class="pre">respA</span> <span class="pre">+</span>
+<span class="pre">respB</span></code>. This yields a new matrix that is equivalent to one that has been
+filled with the data in both <code class="docutils literal notranslate"><span class="pre">respA</span></code> and <code class="docutils literal notranslate"><span class="pre">respB</span></code>. The truth and reco
+binnings in <code class="docutils literal notranslate"><span class="pre">respA</span></code> and <code class="docutils literal notranslate"><span class="pre">respB</span></code> must be identical for this to make
+sense.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.clone">
+<span class="sig-name descname"><span class="pre">clone</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.clone"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.clone" title="Link to this definition"></a></dt>
+<dd><p>Create a functioning copy of the response matrix.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.export">
+<span class="sig-name descname"><span class="pre">export</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">compress</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">nstat</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sparse</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.export"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.export" title="Link to this definition"></a></dt>
+<dd><p>Save all necessary information for using the response matrix.</p>
+<p>Saves all necessary information for using the response matrix`
+in a NumPy <code class="docutils literal notranslate"><span class="pre">.npz</span></code> archive.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>filename</strong><span class="classifier">str or file</span></dt><dd><p>Where to store the arrays.</p>
+</dd>
+<dt><strong>compress</strong><span class="classifier">bool, optional</span></dt><dd><p>Whether to use compression.</p>
+</dd>
+<dt><strong>nstat</strong><span class="classifier">int, optional</span></dt><dd><p>How many random variations of the matrix to generate.
+Default: Export mean matrix, no random variation</p>
+</dd>
+<dt><strong>sparse</strong><span class="classifier">bool, optional</span></dt><dd><p>Should a sparse version be exported, or the full matrix.</p>
+</dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="ResponseMatrixArrayBuilder.html#remu.migration.ResponseMatrixArrayBuilder.export" title="remu.migration.ResponseMatrixArrayBuilder.export"><code class="xref py py-obj docutils literal notranslate"><span class="pre">ResponseMatrixArrayBuilder.export</span></code></a></dt><dd></dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.fill">
+<span class="sig-name descname"><span class="pre">fill</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.fill"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.fill" title="Link to this definition"></a></dt>
+<dd><p>Fill events into the binnings.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.fill_from_csv_file">
+<span class="sig-name descname"><span class="pre">fill_from_csv_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.fill_from_csv_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.fill_from_csv_file" title="Link to this definition"></a></dt>
+<dd><p>Fill binnings from csv file.</p>
+<p>See <a class="reference internal" href="../binning/Binning.html#remu.binning.Binning.fill_from_csv_file" title="remu.binning.Binning.fill_from_csv_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">Binning.fill_from_csv_file</span></code></a>
+for a description of the parameters.</p>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#remu.migration.ResponseMatrix.fill_up_truth_from_csv_file" title="remu.migration.ResponseMatrix.fill_up_truth_from_csv_file"><code class="xref py py-obj docutils literal notranslate"><span class="pre">fill_up_truth_from_csv_file</span></code></a></dt><dd><p>Re-fill only truth bins from different file.</p>
+</dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.fill_up_truth">
+<span class="sig-name descname"><span class="pre">fill_up_truth</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.fill_up_truth"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.fill_up_truth" title="Link to this definition"></a></dt>
+<dd><p>Re-fill the truth bins with the given events file.</p>
+<p>This can be used to get proper efficiencies if the true signal events
+are stored separate from the reconstructed events.</p>
+<p>It takes the same parameters as <a class="reference internal" href="#remu.migration.ResponseMatrix.fill" title="remu.migration.ResponseMatrix.fill"><code class="xref py py-meth docutils literal notranslate"><span class="pre">fill()</span></code></a>.</p>
+<p class="rubric">Notes</p>
+<p>A new truth binning is created and filled with the events from the
+provided events. Each bin is compared to the corresponding bin in the
+already present truth binning. The larger value of the two is taken as
+the new truth. This way, event types that are not present in the pure
+truth data, e.g. background, are not affected by this. It can only
+<em>increase</em> the value of the truth bins, lowering their efficiency.</p>
+<p>For each truth bin, one of the following <em>must</em> be true for this
+operation to make sense:</p>
+<ul class="simple">
+<li><p>All events in the migration matrix are also present in the new truth
+events. In this case, the additional truth events lower the
+efficiency of the truth bin. This is the case, for example, if not
+all true signal events are reconstructed.</p></li>
+<li><p>All events in the new truth events are also present in the migration
+matrix. In this case, the events in the new truth events have no
+influence on the response matrix. This is the case, for example, if
+only a subset of the reconstructed background is saved in the truth
+file.</p></li>
+</ul>
+<p>If there are events in the response matrix that are not in the new truth
+events <em>and</em> there are events in the new truth events that are not in the
+response matrix, this method will lead to a <em>wrong</em> efficiency of the
+affected truth bin.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.fill_up_truth_from_csv_file">
+<span class="sig-name descname"><span class="pre">fill_up_truth_from_csv_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.fill_up_truth_from_csv_file"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.fill_up_truth_from_csv_file" title="Link to this definition"></a></dt>
+<dd><p>Re-fill the truth bins with the given csv file.</p>
+<p>This can be used to get proper efficiencies if the true signal events
+are saved in a separate file from the reconstructed events.</p>
+<p>It takes the same parameters as <a class="reference internal" href="#remu.migration.ResponseMatrix.fill_from_csv_file" title="remu.migration.ResponseMatrix.fill_from_csv_file"><code class="xref py py-meth docutils literal notranslate"><span class="pre">fill_from_csv_file()</span></code></a>.</p>
+<p class="rubric">Notes</p>
+<p>A new truth binning is created and filled with the events from the
+provided file. Each bin is compared to the corresponding bin in the
+already present truth binning. The larger value of the two is taken as
+the new truth. This way, event types that are not present in the pure
+truth data, e.g. background, are not affected by this. It can only
+<em>increase</em> the value of the truth bins, lowering their efficiency.</p>
+<p>For each truth bin, one of the following <em>must</em> be true for this
+operation to make sense:</p>
+<ul class="simple">
+<li><p>All events in the migration matrix are also present in the truth
+file. In this case, the additional truth events lower the
+efficiency of the truth bin. This is the case, for example, if not
+all true signal events are reconstructed.</p></li>
+<li><p>All events in the truth file are also present in the migration
+matrix. In this case, the events in the truth file have no
+influence on the response matrix. This is the case, for example, if
+only a subset of the reconstructed background is saved in the truth
+file.</p></li>
+</ul>
+<p>If there are events in the response matrix that are not in the truth
+tree <em>and</em> there are events in the truth tree that are not in the
+response matrix, this method will lead to a <em>wrong</em> efficiency of the
+affected truth bin.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.generate_random_response_matrices">
+<span class="sig-name descname"><span class="pre">generate_random_response_matrices</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.generate_random_response_matrices"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.generate_random_response_matrices" title="Link to this definition"></a></dt>
+<dd><p>Generate random response matrices according to the estimated variance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>size</strong><span class="classifier">int or tuple of ints, optional</span></dt><dd><p>How many random matrices should be generated.</p>
+</dd>
+<dt><strong>shape</strong><span class="classifier">tuple of ints, optional</span></dt><dd><p>The shape of the returned matrices.
+Defaults to <code class="docutils literal notranslate"><span class="pre">(#(reco</span> <span class="pre">bins),</span> <span class="pre">#(truth</span> <span class="pre">bins))</span></code>.</p>
+</dd>
+<dt><strong>kwargs</strong><span class="classifier">optional</span></dt><dd><p>See <a class="reference internal" href="#remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray" title="remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_mean_response_matrix_as_ndarray()</span></code></a> for a description
+of more optional <cite>kwargs</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>ndarray</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray" title="remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_mean_response_matrix_as_ndarray</span></code></a></dt><dd></dd>
+<dt><a class="reference internal" href="#remu.migration.ResponseMatrix.get_statistical_variance_as_ndarray" title="remu.migration.ResponseMatrix.get_statistical_variance_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_statistical_variance_as_ndarray</span></code></a></dt><dd></dd>
+</dl>
+</div>
+<p class="rubric">Notes</p>
+<p>This is a three step process:</p>
+<ol class="arabic simple">
+<li><p>Draw the binomal efficiencies from Beta distributions</p></li>
+<li><p>Draw the multinomial reconstruction probabilities from a Dirichlet
+distribution.</p></li>
+<li><p>Draw weight corrections from normal distributions.</p></li>
+</ol>
+<p>If no shape is specified, it will be set to <code class="docutils literal notranslate"><span class="pre">(#(reco</span> <span class="pre">bins,</span> <span class="pre">#(truth</span> <span class="pre">bins))</span></code>.</p>
+<p>If <cite>truth_indices</cite> are provided, a sliced matrix with only the given
+columns will be returned.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.get_in_bin_variation_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_in_bin_variation_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">truth_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">normalize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.get_in_bin_variation_as_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.get_in_bin_variation_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Get an estimate for the variation of the response within a bin.</p>
+<p>The in-bin variation is estimated from the maximum difference to the
+surrounding truth bins. The differences can be normalized to the
+estimated statistical errors, so values close to one indicate a
+statistically dominated variation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>shape</strong><span class="classifier">tuple of ints, optional</span></dt><dd><p>The shape of the returned ndarray.
+Default: <code class="docutils literal notranslate"><span class="pre">(#(reco</span> <span class="pre">bins),</span> <span class="pre">#(truth</span> <span class="pre">bins))</span></code></p>
+</dd>
+<dt><strong>truth_indices</strong><span class="classifier">list of ints, optional</span></dt><dd><p>Return a sliced matrix with only the given columns.</p>
+</dd>
+<dt><strong>normalize</strong><span class="classifier">bool, optional</span></dt><dd><p>Divide the variation by the statistical variance</p>
+</dd>
+<dt><strong>**kwargs</strong><span class="classifier">optional</span></dt><dd><p>Additional keyword arguments are passed to
+<a class="reference internal" href="#remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray" title="remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_mean_response_matrix_as_ndarray()</span></code></a> and
+<a class="reference internal" href="#remu.migration.ResponseMatrix.get_statistical_variance_as_ndarray" title="remu.migration.ResponseMatrix.get_statistical_variance_as_ndarray"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_statistical_variance_as_ndarray()</span></code></a>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>ndarray</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#remu.migration.ResponseMatrix.get_statistical_variance_as_ndarray" title="remu.migration.ResponseMatrix.get_statistical_variance_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_statistical_variance_as_ndarray</span></code></a></dt><dd></dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_mean_response_matrix_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.get_mean_response_matrix_as_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Get the means of the posterior distributions of the response matrix elements.</p>
+<p>This is different from the “raw” matrix one gets from
+<a class="reference internal" href="#remu.migration.ResponseMatrix.get_response_matrix_as_ndarray" title="remu.migration.ResponseMatrix.get_response_matrix_as_ndarray"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_response_matrix_as_ndarray()</span></code></a>. The latter simply divides the
+sum of weights in the respective bins.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>shape</strong><span class="classifier">tuple of ints, optional</span></dt><dd><p>The shape of the returned matrices.
+Defaults to <code class="docutils literal notranslate"><span class="pre">(#(reco</span> <span class="pre">bins),</span> <span class="pre">#(truth</span> <span class="pre">bins))</span></code>.</p>
+</dd>
+<dt><strong>expected_weight</strong><span class="classifier">float, optional</span></dt><dd><p>The expected average weight of the events. This is used int the
+calculation of the weight variance.
+Default: 1.0</p>
+</dd>
+<dt><strong>nuisance_indices</strong><span class="classifier">list of ints, optional</span></dt><dd><p>List of truth bin indices. These bins will be treated like their
+efficiency is exactly 1.
+Default: Use the <cite>nuisance_indices</cite> attribute of the ResponseMatrix.</p>
+</dd>
+<dt><strong>impossible_indices</strong><span class="classifier">list of ints, optional</span></dt><dd><p>List of reco bin indices. These bins will be treated like their
+probability is exactly 0.
+Default: Use the <cite>impossible_indices</cite> attribute of the ResponseMatrix.</p>
+</dd>
+<dt><strong>truth_indices</strong><span class="classifier">list of ints, optional</span></dt><dd><p>List of truth bin indices. Only return the response of the given
+truth bins. Default: Return full matrices.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>ndarray</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#remu.migration.ResponseMatrix.get_response_matrix_as_ndarray" title="remu.migration.ResponseMatrix.get_response_matrix_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_response_matrix_as_ndarray</span></code></a></dt><dd></dd>
+<dt><a class="reference internal" href="#remu.migration.ResponseMatrix.get_statistical_variance_as_ndarray" title="remu.migration.ResponseMatrix.get_statistical_variance_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_statistical_variance_as_ndarray</span></code></a></dt><dd></dd>
+<dt><a class="reference internal" href="#remu.migration.ResponseMatrix.generate_random_response_matrices" title="remu.migration.ResponseMatrix.generate_random_response_matrices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_random_response_matrices</span></code></a></dt><dd></dd>
+</dl>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.get_reco_entries_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_reco_entries_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.get_reco_entries_as_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.get_reco_entries_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Get the number of entries in the reco binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.get_reco_sumw2_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_reco_sumw2_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.get_reco_sumw2_as_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.get_reco_sumw2_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Get the sum of squared weights in the reco binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.get_reco_values_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_reco_values_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.get_reco_values_as_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.get_reco_values_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Get the values of the reco binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.get_response_entries_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_response_entries_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.get_response_entries_as_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.get_response_entries_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Get the number of entries in the response binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.get_response_matrix_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_response_matrix_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">truth_indices</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.get_response_matrix_as_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.get_response_matrix_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Return the ResponseMatrix as a ndarray.</p>
+<p>Uses the information in the truth and response binnings to calculate
+the response matrix.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>shape</strong><span class="classifier">tuple of ints, optional</span></dt><dd><p>The shape of the returned ndarray.
+Default: <code class="docutils literal notranslate"><span class="pre">(#(reco</span> <span class="pre">bins),</span> <span class="pre">#(truth</span> <span class="pre">bins))</span></code></p>
+</dd>
+<dt><strong>truth_indices</strong><span class="classifier">list of ints, optional</span></dt><dd><p>Only return the response of the given truth bins.
+Default: Return full matrix.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>ndarray</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray" title="remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_mean_response_matrix_as_ndarray</span></code></a></dt><dd></dd>
+</dl>
+</div>
+<p class="rubric">Notes</p>
+<p>If shape is <cite>None</cite>, it s set to <code class="docutils literal notranslate"><span class="pre">(#(reco</span> <span class="pre">bins),</span> <span class="pre">#(truth</span> <span class="pre">bins))</span></code>. The
+expected response of a truth vector can then be calculated like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">v_reco</span> <span class="o">=</span> <span class="n">response_matrix</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">v_truth</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If <cite>truth_indices</cite> are provided, a sliced matrix with only the given
+columns will be returned.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.get_response_sumw2_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_response_sumw2_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.get_response_sumw2_as_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.get_response_sumw2_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Get the sum of squared weights in the response binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.get_response_values_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_response_values_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.get_response_values_as_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.get_response_values_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Get the values of the response binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.get_statistical_variance_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_statistical_variance_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">shape</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.get_statistical_variance_as_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.get_statistical_variance_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Get the statistical variance of the single ResponseMatrix elements as ndarray.</p>
+<p>The variance is estimated from the actual bin contents in a Bayesian
+motivated way.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><dl class="simple">
+<dt><strong>shape</strong><span class="classifier">tuple of ints, optional</span></dt><dd><p>The shape of the returned matrix.
+Defaults to <code class="docutils literal notranslate"><span class="pre">(#(reco</span> <span class="pre">bins),</span> <span class="pre">#(truth</span> <span class="pre">bins))</span></code>.</p>
+</dd>
+<dt><strong>kwargs</strong><span class="classifier">optional</span></dt><dd><p>See <a class="reference internal" href="#remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray" title="remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray"><code class="xref py py-meth docutils literal notranslate"><span class="pre">get_mean_response_matrix_as_ndarray()</span></code></a> for a description
+of more optional <cite>kwargs</cite>.</p>
+</dd>
+</dl>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><dl class="simple">
+<dt>ndarray</dt><dd></dd>
+</dl>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><a class="reference internal" href="#remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray" title="remu.migration.ResponseMatrix.get_mean_response_matrix_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_mean_response_matrix_as_ndarray</span></code></a></dt><dd></dd>
+<dt><a class="reference internal" href="#remu.migration.ResponseMatrix.generate_random_response_matrices" title="remu.migration.ResponseMatrix.generate_random_response_matrices"><code class="xref py py-obj docutils literal notranslate"><span class="pre">generate_random_response_matrices</span></code></a></dt><dd></dd>
+<dt><a class="reference internal" href="#remu.migration.ResponseMatrix.get_in_bin_variation_as_ndarray" title="remu.migration.ResponseMatrix.get_in_bin_variation_as_ndarray"><code class="xref py py-obj docutils literal notranslate"><span class="pre">get_in_bin_variation_as_ndarray</span></code></a></dt><dd></dd>
+</dl>
+</div>
+<p class="rubric">Notes</p>
+<p>The response matrix creation is modeled as a three step process:</p>
+<ol class="arabic simple">
+<li><p>Reconstruction efficiency according to a binomial process.</p></li>
+<li><p>Distribution of truth events among the reco bins according to a
+multinomial distribution.</p></li>
+<li><p>Correction of the categorical probabilities according to the mean
+weights of the events in each bin.</p></li>
+</ol>
+<p>So the response matrix element can be written like this:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">R_ij</span> <span class="o">=</span> <span class="n">m_ij</span> <span class="o">*</span> <span class="n">p_ij</span> <span class="o">*</span> <span class="n">eff_j</span>
+</pre></div>
+</div>
+<p>where <code class="docutils literal notranslate"><span class="pre">eff_j</span></code> is the total efficiency of events in truth bin <code class="docutils literal notranslate"><span class="pre">j</span></code>,
+<code class="docutils literal notranslate"><span class="pre">p_ij</span></code> is the unweighted multinomial reconstruction probability in
+reco bin <code class="docutils literal notranslate"><span class="pre">i</span></code> and <code class="docutils literal notranslate"><span class="pre">m_ij</span></code> the weight correction. The variance of
+<code class="docutils literal notranslate"><span class="pre">R_ij</span></code> is estimated by estimating the variances of these values
+separately.</p>
+<p>The variance of <code class="docutils literal notranslate"><span class="pre">eff_j</span></code> is estimated by using the Bayesian conjugate
+prior for biinomial distributions: the Beta distribution. We assume a
+prior that is uniform in the reconstruction efficiency. We then update
+it with the simulated events. The variance of the posterior
+distribution is taken as the variance of the efficiency.</p>
+<p>The variance of <code class="docutils literal notranslate"><span class="pre">p_ij</span></code> is estimated by using the Bayesian conjugate
+prior for multinomial distributions: the Dirichlet distribution. We
+assume a prior that is uniform in the ignorant about reconstruction
+probabilities. We then update it with the simulated events. The
+variance of the posterior distribution is taken as the variance of the
+transition probability.</p>
+<p>If a list of <cite>nuisance_indices</cite> is provided, the probabilities of <em>not</em>
+reconstructing events in the respective truth categories will be fixed
+to 0. This is useful for background categories where one is not
+interested in the true number of events.</p>
+<p>If a list of <cite>impossible_indices</cite> is provided, the probabilities of
+reconstructing events in the respective reco categories will be fixed
+to 0. This is useful for bins that are impossible to have any events
+in them by their definition.</p>
+<p>The variances of m_ij is estimated from the errors of the average
+weights in the matrix elements as classical “standard error of the
+mean”. To avoid problems with bins with 0 or 1 entries, we add a “prior
+expectation” point to the data. This ensures that all bins have at
+least 1 entry (no divisions by zero) and that variances can be
+estimated even for bins with only one (true) entry (from the difference
+to the expected value).</p>
+<p>This is just an estimate! The true variance of the randomly generated
+response matrices can deviate from the returned numbers. Also, these
+variances ignore the correlations between matrix elements.</p>
+<p>If no shape is specified, it will be set to <cite>(N_reco, N_truth)</cite>.</p>
+<p>If <cite>truth_indices</cite> are provided, a sliced matrix with only the given
+columns will be returned.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.get_truth_entries_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_truth_entries_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.get_truth_entries_as_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.get_truth_entries_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Get the number of entries in the truth binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.get_truth_sumw2_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_truth_sumw2_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.get_truth_sumw2_as_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.get_truth_sumw2_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Get the sum of squared weights in the truth binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.get_truth_values_as_ndarray">
+<span class="sig-name descname"><span class="pre">get_truth_values_as_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.get_truth_values_as_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.get_truth_values_as_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Get the values of the truth binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.reset">
+<span class="sig-name descname"><span class="pre">reset</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.reset"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.reset" title="Link to this definition"></a></dt>
+<dd><p>Reset all binnings.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.set_reco_entries_from_ndarray">
+<span class="sig-name descname"><span class="pre">set_reco_entries_from_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.set_reco_entries_from_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.set_reco_entries_from_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Set the number of entries in the reco binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.set_reco_sumw2_from_ndarray">
+<span class="sig-name descname"><span class="pre">set_reco_sumw2_from_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.set_reco_sumw2_from_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.set_reco_sumw2_from_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Set the sum of squared weights in the reco binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.set_reco_values_from_ndarray">
+<span class="sig-name descname"><span class="pre">set_reco_values_from_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.set_reco_values_from_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.set_reco_values_from_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Set the values of the reco binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.set_response_entries_from_ndarray">
+<span class="sig-name descname"><span class="pre">set_response_entries_from_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.set_response_entries_from_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.set_response_entries_from_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Set the number of entries in the response binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.set_response_sumw2_from_ndarray">
+<span class="sig-name descname"><span class="pre">set_response_sumw2_from_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.set_response_sumw2_from_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.set_response_sumw2_from_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Set the sum of squared weights in the response binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.set_response_values_from_ndarray">
+<span class="sig-name descname"><span class="pre">set_response_values_from_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.set_response_values_from_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.set_response_values_from_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Set the values of the response binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.set_truth_entries_from_ndarray">
+<span class="sig-name descname"><span class="pre">set_truth_entries_from_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.set_truth_entries_from_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.set_truth_entries_from_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Set the number of entries in the truth binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.set_truth_sumw2_from_ndarray">
+<span class="sig-name descname"><span class="pre">set_truth_sumw2_from_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.set_truth_sumw2_from_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.set_truth_sumw2_from_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Set the sum of squared weights in the truth binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="remu.migration.ResponseMatrix.set_truth_values_from_ndarray">
+<span class="sig-name descname"><span class="pre">set_truth_values_from_ndarray</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../../_modules/remu/migration.html#ResponseMatrix.set_truth_values_from_ndarray"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#remu.migration.ResponseMatrix.set_truth_values_from_ndarray" title="Link to this definition"></a></dt>
+<dd><p>Set the values of the truth binning as <cite>ndarray</cite>.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../migration.html" class="btn btn-neutral float-left" title="migration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="ResponseMatrixArrayBuilder.html" class="btn btn-neutral float-right" title="ResponseMatrixArrayBuilder" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2022, Lukas Koch.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
