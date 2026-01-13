@@ -248,16 +248,16 @@ class ArrayPlotter(Plotter):
         for i, ax in enumerate(figax[1][:, 0]):
             i_min = i * bins_per_row
             i_max = min((i + 1) * bins_per_row, arrays.shape[-1])
-            y_hi = np.asfarray(upper(arrays[:, i_min:i_max], axis=0))
-            y_lo = np.asfarray(lower(arrays[:, i_min:i_max], axis=0))
-            bins = np.asfarray(self.get_bin_edges(i_min, i_max))
+            y_hi = np.asarray(upper(arrays[:, i_min:i_max], axis=0), dtype=float)
+            y_lo = np.asarray(lower(arrays[:, i_min:i_max], axis=0), dtype=float)
+            bins = np.asarray(self.get_bin_edges(i_min, i_max), dtype=float)
 
             # Divide by relative bin widths
             if density:
                 total_width = bins[-1] - bins[0]
                 rel_widths = (bins[1:] - bins[:-1]) / total_width
-                y_hi /= np.asfarray(rel_widths)
-                y_lo /= np.asfarray(rel_widths)
+                y_hi /= np.asarray(rel_widths, dtype=float)
+                y_lo /= np.asarray(rel_widths, dtype=float)
 
             args = {
                 "step": "post",
@@ -555,7 +555,7 @@ class CartesianProductBinningPlotter(BinningPlotter):
                 for k in sorted((i, j), reverse=True):
                     del axis[k]
                 axis = tuple(x + 1 for x in axis)  # +1 because of stack axis 0
-                data = np.asfarray(margin_function(arrays, axis=axis))
+                data = np.asarray(margin_function(arrays, axis=axis), dtype=float)
                 # 2D plots only show upper limit of stack
                 data = upper(data, axis=0)
 
@@ -572,7 +572,7 @@ class CartesianProductBinningPlotter(BinningPlotter):
                     # Draw a set of random points and plot these
 
                     # Get bin numbers
-                    csum = np.asfarray(data.cumsum())
+                    csum = np.asarray(data.cumsum(), dtype=float)
                     csum /= np.max(csum)
                     indices = np.digitize(np.random.uniform(size=scatter), csum)
 
@@ -642,13 +642,13 @@ class CartesianProductBinningPlotter(BinningPlotter):
             axis = list(range(arrays.ndim - 1))  # -1 because of stack axis 0
             del axis[i]
             axis = tuple(x + 1 for x in axis)  # +1 because of stack axis 0
-            data = np.asfarray(margin_function(arrays, axis=axis))
+            data = np.asarray(margin_function(arrays, axis=axis), dtype=float)
             # Upper and lower limit of area
             data_hi = upper(data, axis=0)
             data_lo = lower(data, axis=0)
 
             # Divide by relative bin widths
-            bins = np.asfarray(self.get_bin_edges(0, data.shape[1], i))
+            bins = np.asarray(self.get_bin_edges(0, data.shape[1], i), dtype=float)
             try:
                 divide = i in density
             except TypeError:
@@ -691,13 +691,13 @@ class CartesianProductBinningPlotter(BinningPlotter):
             axis = list(range(arrays.ndim - 1))  # -1 because of stack axis 0
             del axis[i]
             axis = tuple(x + 1 for x in axis)  # +1 because of stack axis 0
-            data = np.asfarray(margin_function(arrays, axis=axis))
+            data = np.asarray(margin_function(arrays, axis=axis), dtype=float)
             # Upper and lower limit of area
             data_hi = upper(data, axis=0)
             data_lo = lower(data, axis=0)
 
             # Divide by relative bin widths
-            bins = np.asfarray(self.get_bin_edges(0, data.shape[1], i))
+            bins = np.asarray(self.get_bin_edges(0, data.shape[1], i), dtype=float)
             try:
                 divide = i in density
             except TypeError:
