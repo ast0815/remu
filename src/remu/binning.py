@@ -508,7 +508,7 @@ class RectangularBin(Bin):
             The center coordinates for each variable.
 
         """
-        arr = np.asfarray(self.edges)
+        arr = np.asarray(self.edges, dtype=float)
         return arr.sum(axis=1) / 2.0
 
     def __eq__(self, other):
@@ -2339,7 +2339,7 @@ class LinearBinning(Binning):
 
     def __init__(self, variable, bin_edges, include_upper=False, **kwargs):
         self.variable = variable
-        self.bin_edges = np.asfarray(bin_edges)
+        self.bin_edges = np.asarray(bin_edges, dtype=float)
         self.include_upper = bool(include_upper)
         self.nbins = self.bin_edges.size - 1
 

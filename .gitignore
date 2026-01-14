@@ -6,3 +6,6 @@ _version.py
 /build
 .coverage
 *.pyc
+
+# Ignore built documentation
+docs/_build/

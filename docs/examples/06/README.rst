@@ -159,7 +159,7 @@ To simulate a flux uncertainty, we can just create lots of throws::
         flux_binning.fill(df, weight=0.01)
         flux.append(flux_binning.get_values_as_ndarray())
 
-    flux = np.asfarray(flux)
+    flux = np.asarray(flux, dtype=float)
     print(flux.shape)
 
 .. include:: flux_shape.txt

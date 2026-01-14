@@ -9,6 +9,16 @@
 - Type check: `mypy src/`
 - Install dependencies: `pip install -r requirements.txt && pip install -r test-requirements.txt`
 
+## Pre-commit Checks
+
+**IMPORTANT**: Always run the pre-commit checks before committing anything. This ensures code quality and consistency.
+
+```bash
+pre-commit run --all-files
+```
+
+If any checks fail, fix the issues and run the checks again until all pass.
+
 ## Code Style Guidelines
 
 ### Imports

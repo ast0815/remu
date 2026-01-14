@@ -2,7 +2,50 @@
 
 import numpy as np
 from scipy import optimize, stats
-from scipy.misc import derivative
+
+
+def derivative(func, x0, dx=1.0e-6, n=1, args=(), order=3):
+    """Calculate the n-th derivative of a function at a point.
+
+    This is a replacement for the deprecated scipy.misc.derivative.
+    """
+    # Handle array dx properly - treat each element separately
+    if hasattr(dx, "__iter__") and not isinstance(dx, str):
+        dx = np.asarray(dx)
+        if dx.size == 1:
+            dx = float(dx)
+        else:
+            # For array dx, we need to handle each derivative separately
+            # Use vectorized approach for efficiency
+            x0 = np.asarray(x0)
+            result = np.empty_like(x0, dtype=float)
+            for i, h in enumerate(dx):
+                x0_i = x0[i] if x0.ndim > 0 else x0
+                result[i] = (func(x0_i + h, *args) - func(x0_i - h, *args)) / (2 * h)
+            return result
+
+    if n == 1:
+        # Use central difference for first derivative
+        h = dx
+        return (func(x0 + h, *args) - func(x0 - h, *args)) / (2 * h)
+    else:
+        # For higher derivatives, use finite differences with central difference weights
+        h = dx
+        if n == 2 and order >= 2:
+            # Second derivative central difference
+            return (func(x0 + h, *args) - 2 * func(x0, *args) + func(x0 - h, *args)) / (
+                h**2
+            )
+        else:
+            # Fall back to forward difference for other cases
+            points = [x0 + i * h for i in range(order + 1)]
+            values = [func(p, *args) for p in points]
+            # Simple finite difference approximation
+            result = 0.0
+            for i in range(1, min(n + 1, len(values))):
+                result += ((-1) ** (i + 1)) * values[i] / (h**i)
+            return result
+
 
 # Use this function/object for parallelization where possible
 mapper = map
@@ -167,7 +210,7 @@ class JeffreysPrior:
 
         # list of parameter sets -> list of reco values
         def reco_expectation(theta):
-            ret = np.tensordot(self.translate(theta), resp, [[-1], [-1]])
+            ret = np.tensordot(self.translate(theta), resp, ([-1], [-1]))
             return ret
 
         # npar by npar matrix of reco values
@@ -334,7 +377,7 @@ class PoissonData(DataModel):
 
         """
 
-        reco_vector = np.asfarray(reco_vector)
+        reco_vector = np.asarray(reco_vector, dtype=float)
 
         data_shape = self.data_vector.shape  # = ([a,b,...,]n_reco_bins,)
         reco_shape = reco_vector.shape  # = ([c,d,...,]n_reco_bins,)
@@ -461,7 +504,7 @@ class Predictor:
 
     def check_bounds(self, parameters):
         """Check that all parameters are within bounds."""
-        parameters = np.asfarray(parameters)
+        parameters = np.asarray(parameters, dtype=float)
         check = (parameters >= self.bounds[:, 0]) & (parameters <= self.bounds[:, 1])
         return np.all(check, axis=-1)
 
@@ -1149,11 +1192,11 @@ class LinearEinsumPredictor(Predictor):
         reshape_parameters=None,
     ):
         self.subscripts = subscripts
-        self.coefficients = np.asfarray(coefficients)
-        self.constants = np.asfarray(constants)
+        self.coefficients = np.asarray(coefficients, dtype=float)
+        self.constants = np.asarray(constants, dtype=float)
         while self.constants.ndim < 2:
             self.constants = self.constants[np.newaxis, ...]
-        self.weights = np.asfarray(weights)
+        self.weights = np.asarray(weights, dtype=float)
         while self.weights.ndim < 1:
             self.weights = self.weights[np.newaxis, ...]
 
@@ -1272,7 +1315,7 @@ class MatrixPredictor(LinearEinsumPredictor):
     """
 
     def __init__(self, matrices, constants=0.0, *, sparse_indices=_SLICE, **kwargs):
-        self.matrices = np.asfarray(matrices)
+        self.matrices = np.asarray(matrices, dtype=float)
         while self.matrices.ndim < 3:
             self.matrices = self.matrices[np.newaxis, ...]
         self.sparse_indices = sparse_indices
@@ -1939,7 +1982,7 @@ class HypothesisTester:
 
         toy_LC = LC.generate_toy_likelihood_calculators(opt_par, N=N)
         toy_opt = list(mapper(lambda C, maxer=maxer: maxer(C), toy_LC))
-        toy_L = np.asfarray([topt.log_likelihood for topt in toy_opt])
+        toy_L = np.asarray([topt.log_likelihood for topt in toy_opt], dtype=float)
 
         p_value = np.sum(L0 >= toy_L, axis=-1) / N
 

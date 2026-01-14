@@ -39,8 +39,8 @@ def _block_mahalanobis2(X, mu, inv_cov):
 
     """
 
-    diff = np.asfarray(X) - np.asfarray(mu)
-    inv_cov = np.asfarray(inv_cov)
+    diff = np.asarray(X, dtype=float) - np.asarray(mu, dtype=float)
+    inv_cov = np.asarray(inv_cov, dtype=float)
     D_M = np.einsum("...b,...bc,...c", diff, inv_cov, diff)
     return D_M
 
@@ -214,7 +214,7 @@ def _expected_mahalanobis_distance(first, second):
     prior_events = np.minimum(n_reco_bins, 3**n_reco_vars)
     n_reco_events = np.minimum(n_reco_events_1, n_reco_events_2)
     expectation = n_reco_bins * np.minimum(
-        1.0, np.asfarray(n_reco_events / (2 * prior_events))
+        1.0, np.asarray(n_reco_events / (2 * prior_events), dtype=float)
     )
 
     return expectation

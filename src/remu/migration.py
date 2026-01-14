@@ -481,8 +481,8 @@ class ResponseMatrix:
             raise RuntimeError(
                 "Illegal response matrix: More reconstructed than true events!"
             )
-        beta1 = np.asfarray(beta1 + 1)
-        beta2 = np.asfarray(waste_entries + 1)
+        beta1 = np.asarray(beta1 + 1, dtype=float)
+        beta2 = np.asarray(waste_entries + 1, dtype=float)
 
         # Set efficiency of nuisance bins to 1, i.e. beta2 to (almost) zero.
         beta2[nuisance_indices] = epsilon
@@ -496,7 +496,7 @@ class ResponseMatrix:
         # We protect against that by setting the maximum prior value to 1.
         n_vars = len(self.reco_binning.phasespace)
         prior = min(1.0, 3.0**n_vars / (N_reco - len(impossible_indices)))
-        alpha = np.asfarray(resp_entries) + prior
+        alpha = np.asarray(resp_entries, dtype=float) + prior
 
         # Set efficiency of impossible bins to (almost) 0
         alpha[impossible_indices] = epsilon
@@ -599,7 +599,7 @@ class ResponseMatrix:
         # Unweighted (multinomial) smearing probabilty
         # Posterior mean estimate = alpha / alpha0
         alpha0 = np.sum(alpha, axis=0)
-        pij = np.asfarray(alpha) / alpha0
+        pij = np.asarray(alpha, dtype=float) / alpha0
 
         # Weight correction
         wij = mu[:-1]
@@ -719,9 +719,9 @@ class ResponseMatrix:
         # Unweighted (multinomial) smearing probabilty
         # Posterior mean estimate = alpha / alpha0
         alpha0 = np.sum(alpha, axis=0)
-        pij = np.asfarray(alpha) / alpha0
+        pij = np.asarray(alpha, dtype=float) / alpha0
         # Posterior variance
-        pij_var = np.asfarray(alpha0 - alpha)
+        pij_var = np.asarray(alpha0 - alpha, dtype=float)
         pij_var *= alpha
         pij_var /= alpha0**2 * (alpha0 + 1)
 
@@ -819,7 +819,7 @@ class ResponseMatrix:
 
         """
 
-        params = np.asfarray(alpha)
+        params = np.asarray(alpha, dtype=float)
 
         if size is None:
             total_size = len(alpha)
