@@ -11,7 +11,7 @@ import yaml
 def represent_numpy_scalar(dumper, data):
     """Custom representer for NumPy scalars to fix compatibility issues."""
     # Convert NumPy scalars to Python scalars
-    if hasattr(data, 'item'):
+    if hasattr(data, "item"):
         value = data.item()
     else:
         value = data
@@ -35,14 +35,14 @@ def dump(data, stream=None, **kwargs):
 
 
 def full_load(stream, **kwargs):
-    """Load data from YAML with NumPy compatibility.""" 
+    """Load data from YAML with NumPy compatibility."""
     return yaml.full_load(stream, **kwargs)
 
 
 def load(stream, **kwargs):
     """Load data from YAML with NumPy compatibility."""
-    if 'Loader' not in kwargs:
-        kwargs['Loader'] = yaml.FullLoader
+    if "Loader" not in kwargs:
+        kwargs["Loader"] = yaml.FullLoader
     return yaml.load(stream, **kwargs)
 
 
