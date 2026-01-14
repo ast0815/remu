@@ -1990,9 +1990,12 @@ class TestMatrixUtils(unittest.TestCase):
             tb = yaml.full_load(f)
         with open("testdata/test-reco-binning.yml") as f:
             rb = yaml.full_load(f)
+        rm_simple = migration.ResponseMatrix(rb, tb)
         tb = tb.insert_subbinning(3, binning.LinearBinning("y_truth", [1.0, 1.5, 2.0]))
         rm = migration.ResponseMatrix(rb, tb)
+        rm_simple.fill_from_csv_file("testdata/test-data.csv", weightfield="w")
         rm.fill_from_csv_file("testdata/test-data.csv", weightfield="w")
+        self.rm_simple = rm_simple
         self.rm = rm
 
     def test_mahalanobis_distance(self):
@@ -2026,6 +2029,20 @@ class TestMatrixUtils(unittest.TestCase):
 
     def test_plotting(self):
         """Test plotting matrices."""
+        # Without subbinning
+        matrix_utils.plot_compatibility(
+            self.rm_simple, self.rm_simple.clone(), filename=None, min_quality=0.0
+        )
+        matrix_utils.plot_mahalanobis_distance(
+            self.rm_simple, self.rm_simple.clone(), plot_expectation=True, filename=None
+        )
+        matrix_utils.plot_in_bin_variation(self.rm_simple, filename=None)
+        matrix_utils.plot_statistical_uncertainty(self.rm_simple, filename=None)
+        matrix_utils.plot_relative_in_bin_variation(self.rm_simple, filename=None)
+        matrix_utils.plot_mean_efficiency(self.rm_simple, filename=None)
+        matrix_utils.plot_mean_response_matrix(self.rm_simple, filename=None)
+
+        # With subbinning
         matrix_utils.plot_compatibility(
             self.rm, self.rm.clone(), filename=None, min_quality=0.0
         )
