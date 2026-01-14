@@ -19,7 +19,7 @@
 # -- Project information -----------------------------------------------------
 
 project = "ReMU"
-copyright = "2022, Lukas Koch"
+copyright = "2026, Lukas Koch"
 author = "Lukas Koch"
 
 # The short X.Y version
@@ -41,17 +41,10 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.imgmath",
     "sphinx.ext.viewcode",
+    "sphinxcontrib.rsvgconverter",
     "numpydoc",
     "sphinx_rtd_theme",
 ]
-
-# Try to add rsvgconverter if available
-try:
-    import sphinxcontrib.rsvgconverter
-
-    extensions.append("sphinxcontrib.rsvgconverter")
-except ImportError:
-    pass
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -70,7 +63,7 @@ master_doc = "index"
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -202,14 +195,11 @@ numpydoc_class_members_toctree = False
 numpydoc_attributes_as_param_list = False
 
 # Make ugly `something = None` of instance attributes go away
-# Note: InstanceAttributeDocumenter was removed in Sphinx 9.x
-try:
-    from sphinx.ext.autodoc import ClassLevelDocumenter, InstanceAttributeDocumenter
+from sphinx.ext.autodoc import AttributeDocumenter, ClassLevelDocumenter
 
-    def iad_add_directive_header(self, sig):
-        ClassLevelDocumenter.add_directive_header(self, sig)
 
-    InstanceAttributeDocumenter.add_directive_header = iad_add_directive_header
-except ImportError:
-    # Skip this customization for newer Sphinx versions
-    pass
+def iad_add_directive_header(self, sig):
+    ClassLevelDocumenter.add_directive_header(self, sig)
+
+
+AttributeDocumenter.add_directive_header = iad_add_directive_header
