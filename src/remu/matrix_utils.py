@@ -1016,7 +1016,8 @@ def plot_in_bin_variation(response_matrix, filename=None, **kwargs):
         args.update(kwargs)
         plt.plot_array(inbin, **args)
 
-    plt.legend()
+    if len(funlabs) > 1:
+        plt.legend()
 
     if filename is not None:
         plt.savefig(filename)
@@ -1088,7 +1089,8 @@ def plot_relative_in_bin_variation(response_matrix, filename=None, **kwargs):
         args.update(kwargs)
         plt.plot_array(inbin, **args)
 
-    plt.legend()
+    if len(funlabs) > 1:
+        plt.legend()
 
     if filename is not None:
         plt.savefig(filename)
@@ -1160,7 +1162,8 @@ def plot_statistical_uncertainty(response_matrix, filename=None, **kwargs):
         args.update(kwargs)
         plt.plot_array(stat, **args)
 
-    plt.legend()
+    if len(funlabs) > 1:
+        plt.legend()
 
     if filename is not None:
         plt.savefig(filename)
@@ -1233,7 +1236,8 @@ def plot_mean_efficiency(response_matrix, filename=None, nuisance_value=0.0, **k
         args.update(kwargs)
         plt.plot_array(eff, **args)
 
-    plt.legend()
+    if len(funlabs) > 1:
+        plt.legend()
 
     if filename is not None:
         plt.savefig(filename)
