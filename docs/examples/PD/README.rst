@@ -41,7 +41,7 @@ ReMU supports :class:`DataFrame` objects as inputs for all
 :meth:`fill<.Binning.fill>` methods::
 
     with open("muon-binning.yml", 'r') as f:
-        muon_binning = binning.yaml.full_load(f)
+        muon_binning = yaml.full_load(f)
 
     muon_binning.fill(df)
 
