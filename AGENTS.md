@@ -1,5 +1,10 @@
 # ReMU Agent Guidelines
 
+## Environment
+
+- All development and testing must happen in a virtual Python environment
+- The environment directory is `ENV` at the base of the project
+
 ## Build/Lint/Test Commands
 
 - Run all tests: `./run_tests.sh`
