@@ -29,22 +29,20 @@ def represent_numpy_scalar(dumper, data):
 yaml.add_multi_representer(np.generic, represent_numpy_scalar)
 
 
-def dump(data, stream=None, **kwargs):
-    """Dump data to YAML with NumPy compatibility."""
-    return yaml.dump(data, stream=stream, **kwargs)
+# Re-export all public symbols from PyYAML
+__all__ = []
+for name in dir(yaml):
+    if not name.startswith("_"):
+        globals()[name] = getattr(yaml, name)
+        __all__.append(name)
 
 
-def full_load(stream, **kwargs):
-    """Load data from YAML with NumPy compatibility."""
-    return yaml.full_load(stream, **kwargs)
-
-
+# Override load to set default Loader
 def load(stream, **kwargs):
-    """Load data from YAML with NumPy compatibility."""
     if "Loader" not in kwargs:
         kwargs["Loader"] = yaml.FullLoader
     return yaml.load(stream, **kwargs)
 
 
-# Export the yaml functions for compatibility
-FullLoader = yaml.FullLoader
+globals()["load"] = load
+__all__.append("load")

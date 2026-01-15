@@ -18,8 +18,9 @@ from copy import deepcopy
 from tempfile import TemporaryFile
 
 import numpy as np
-import yaml
 from numpy.lib.recfunctions import rename_fields
+
+from remu import yaml
 
 # Use this function/object for parallelization where possible
 mapper = map
