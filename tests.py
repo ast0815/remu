@@ -13,7 +13,7 @@ import remu.likelihood_utils as likelihood_utils
 import remu.matrix_utils as matrix_utils
 import remu.migration as migration
 import remu.plotting as plotting
-import remu.yaml_compat as yaml_compat
+import remu.yaml as yaml_compat
 
 if __name__ == "__main__":
     # Parse arguments for skipping tests
