@@ -9,3 +9,6 @@ _version.py
 
 # Ignore built documentation
 docs/_build/
+
+# Ignore local Python version pins
+.python-version
