@@ -12,7 +12,6 @@ import remu.likelihood_utils as likelihood_utils
 import remu.matrix_utils as matrix_utils
 import remu.migration as migration
 import remu.plotting as plotting
-import remu.yaml as yaml_compat
 
 if __name__ == "__main__":
     # Parse arguments for skipping tests
@@ -84,9 +83,13 @@ class TestPhaseSpaces(unittest.TestCase):
 
     def test_yaml_representation(self):
         """Test whether the text parsing can reproduce the original object."""
-        self.assertEqual(self.psX, yaml_compat.load(yaml_compat.dump(self.psX)))
-        self.assertEqual(self.psXY, yaml_compat.load(yaml_compat.dump(self.psXY)))
-        self.assertEqual(self.psXYZ, yaml_compat.load(yaml_compat.dump(self.psXYZ)))
+        self.assertEqual(self.psX, binning.yaml.full_load(binning.yaml.dump(self.psX)))
+        self.assertEqual(
+            self.psXY, binning.yaml.full_load(binning.yaml.dump(self.psXY))
+        )
+        self.assertEqual(
+            self.psXYZ, binning.yaml.full_load(binning.yaml.dump(self.psXYZ))
+        )
 
 
 class TestBins(unittest.TestCase):
@@ -151,8 +154,8 @@ class TestBins(unittest.TestCase):
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b0
-        yml = yaml_compat.dump(orig)
-        reco = yaml_compat.load(yml)
+        yml = binning.yaml.dump(orig)
+        reco = binning.yaml.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -218,8 +221,8 @@ class TestRectangularBins(unittest.TestCase):
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b
-        yml = yaml_compat.dump(orig)
-        reco = yaml_compat.load(yml)
+        yml = binning.yaml.dump(orig)
+        reco = binning.yaml.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -273,8 +276,8 @@ class TestCartesianProductBins(unittest.TestCase):
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b
-        yml = yaml_compat.dump(orig)
-        reco = yaml_compat.load(yml)
+        yml = binning.yaml.dump(orig)
+        reco = binning.yaml.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -550,20 +553,20 @@ class TestBinnings(unittest.TestCase):
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.binning
-        yml = yaml_compat.dump(orig)
-        reco = yaml_compat.load(yml)
+        yml = binning.yaml.dump(orig)
+        reco = binning.yaml.full_load(yml)
         self.assertEqual(orig, reco)
         orig = self.binning0
-        yml = yaml_compat.dump(orig)
-        reco = yaml_compat.load(yml)
+        yml = binning.yaml.dump(orig)
+        reco = binning.yaml.full_load(yml)
         self.assertEqual(orig, reco)
         orig = self.binning1
-        yml = yaml_compat.dump(orig)
-        reco = yaml_compat.load(yml)
+        yml = binning.yaml.dump(orig)
+        reco = binning.yaml.full_load(yml)
         self.assertEqual(orig, reco)
         orig = self.binning2
-        yml = yaml_compat.dump(orig)
-        reco = yaml_compat.load(yml)
+        yml = binning.yaml.dump(orig)
+        reco = binning.yaml.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -649,8 +652,8 @@ class TestCartesianProductBinnings(unittest.TestCase):
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b0
-        yml = yaml_compat.dump(orig)
-        reco = yaml_compat.load(yml)
+        yml = binning.yaml.dump(orig)
+        reco = binning.yaml.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -682,8 +685,8 @@ class TestRectangularBinnings(unittest.TestCase):
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b0
-        yml = yaml_compat.dump(orig)
-        reco = yaml_compat.load(yml)
+        yml = binning.yaml.dump(orig)
+        reco = binning.yaml.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -752,8 +755,8 @@ class TestLinearBinnings(unittest.TestCase):
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.b0
-        yml = yaml_compat.dump(orig)
-        reco = yaml_compat.load(yml)
+        yml = binning.yaml.dump(orig)
+        reco = binning.yaml.full_load(yml)
         self.assertEqual(orig, reco)
 
 
@@ -965,17 +968,17 @@ class TestRectilinearBinnings(unittest.TestCase):
     def test_yaml_representation(self):
         """Test whether the yaml parsing can reproduce the original object."""
         orig = self.bl
-        yml = yaml_compat.dump(orig)
-        reco = yaml_compat.load(yml)
+        yml = binning.yaml.dump(orig)
+        reco = binning.yaml.full_load(yml)
         self.assertEqual(orig, reco)
 
 
 class TestResponseMatrices(unittest.TestCase):
     def setUp(self):
         with open("testdata/test-truth-binning.yml") as f:
-            self.tb = yaml_compat.load(f)
+            self.tb = binning.yaml.full_load(f)
         with open("testdata/test-reco-binning.yml") as f:
-            self.rb = yaml_compat.load(f)
+            self.rb = binning.yaml.full_load(f)
         self.rm = migration.ResponseMatrix(self.rb, self.tb)
 
     def test_fill(self):
@@ -1151,9 +1154,9 @@ class TestResponseMatrices(unittest.TestCase):
 class TestResponseMatrixArrayBuilders(unittest.TestCase):
     def setUp(self):
         with open("testdata/test-truth-binning.yml") as f:
-            self.tb = yaml_compat.load(f)
+            self.tb = binning.yaml.full_load(f)
         with open("testdata/test-reco-binning.yml") as f:
-            self.rb = yaml_compat.load(f)
+            self.rb = binning.yaml.full_load(f)
         self.rm = migration.ResponseMatrix(self.rb, self.tb, nuisance_indices=[2])
         self.builder = migration.ResponseMatrixArrayBuilder(5)
 
@@ -1556,9 +1559,9 @@ class TestLinearizedPredictors(unittest.TestCase):
 class TestResponseMatrixPredictors(unittest.TestCase):
     def setUp(self):
         with open("testdata/test-truth-binning.yml") as f:
-            self.tb = yaml_compat.load(f)
+            self.tb = binning.yaml.full_load(f)
         with open("testdata/test-reco-binning.yml") as f:
-            self.rb = yaml_compat.load(f)
+            self.rb = binning.yaml.full_load(f)
         self.rm = migration.ResponseMatrix(self.rb, self.tb, nuisance_indices=[2])
         self.builder = migration.ResponseMatrixArrayBuilder(5)
 
@@ -1986,9 +1989,9 @@ class TestPlotting(unittest.TestCase):
 class TestMatrixUtils(unittest.TestCase):
     def setUp(self):
         with open("testdata/test-truth-binning.yml") as f:
-            tb = yaml_compat.load(f)
+            tb = binning.yaml.full_load(f)
         with open("testdata/test-reco-binning.yml") as f:
-            rb = yaml_compat.load(f)
+            rb = binning.yaml.full_load(f)
         rm_simple = migration.ResponseMatrix(rb, tb)
         tb = tb.insert_subbinning(3, binning.LinearBinning("y_truth", [1.0, 1.5, 2.0]))
         rm = migration.ResponseMatrix(rb, tb)

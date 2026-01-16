@@ -35,14 +35,3 @@ for name in dir(yaml):
     if not name.startswith("_"):
         globals()[name] = getattr(yaml, name)
         __all__.append(name)
-
-
-# Override load to set default Loader
-def load(stream, **kwargs):
-    if "Loader" not in kwargs:
-        kwargs["Loader"] = yaml.FullLoader
-    return yaml.load(stream, **kwargs)
-
-
-globals()["load"] = load
-__all__.append("load")
