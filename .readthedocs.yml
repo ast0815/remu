@@ -11,3 +11,7 @@ python:
     - requirements: documentation-requirements.txt
     - method: pip
       path: .
+
+sphinx:
+  # Path to your Sphinx configuration file.
+  configuration: docs/conf.py
