@@ -13,7 +13,7 @@
 
 ## Build/Lint/Test Commands
 
-- Run all tests: `nox -s tests`
+- Run all tests: `nox -s tests` (Note: Tests will only run on available Python versions)
 - Run all examples: `nox -s examples`
   - **Danger** These examples can take a long time to run! Run only when strictly necessary!
 - Run single test: `nox -s tests -- -k test_name`
