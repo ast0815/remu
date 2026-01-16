@@ -3,10 +3,10 @@
 import numpy as np
 import pandas as pd
 
-from remu import binning
+from remu import binning, yaml
 
 with open("../05/truth-binning.yml") as f:
-    truth_binning = binning.yaml.full_load(f)
+    truth_binning = yaml.full_load(f)
 
 # Get truth binnings for BG and signal
 bg_truth_binning = truth_binning.subbinnings[1].clone()
@@ -14,7 +14,7 @@ signal_truth_binning = truth_binning.subbinnings[2].clone()
 
 # Define flux binning
 with open("flux-binning.yml") as f:
-    flux_binning = binning.yaml.full_load(f)
+    flux_binning = yaml.full_load(f)
 
 # Create cross-section binnings
 bg_flux_binning = flux_binning.clone()
@@ -369,7 +369,7 @@ xsec_template_predictor = likelihood.TemplatePredictor(
 # Load data and response matrix
 
 with open("../01/reco-binning.yml") as f:
-    reco_binning = binning.yaml.full_load(f)
+    reco_binning = yaml.full_load(f)
 
 reco_binning.fill_from_csv_file("../05/real_data.txt")
 data = reco_binning.get_entries_as_ndarray()

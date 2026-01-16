@@ -1,9 +1,18 @@
 # ReMU Agent Guidelines
 
+## Environment
+
+- All development and testing must happen in a virtual Python environment
+- The environment directory is `ENV` at the base of the project
+- The requirements for running tests, building the documentation are stored in the `*-requirements.txt` files
+
 ## Build/Lint/Test Commands
 
 - Run all tests: `./run_tests.sh`
+- Run all examples: `./run_examples`
+  - **Danger** These examples can take a long time to run! Run only when strictly necessary!
 - Run single test: `coverage run --source 'remu' tests.py -k test_name`
+- Single examples must be run from within the `docs/example/<example_number>` directory.
 - Lint code: `flake8 src/ tests.py`
 - Format code: `black src/ tests.py` and `isort src/ tests.py`
 - Type check: `mypy src/`
