@@ -6,8 +6,15 @@ def tests(session):
     session.install("-r", "requirements.txt")
     session.install("-r", "test-requirements.txt")
     session.install("-e", ".")
-    session.run("coverage", "run", "--source='remu'", "tests.py")
-    session.run("coverage", "report")
+    session.install("pytest", "pytest-cov")
+    session.run(
+        "pytest",
+        "--cov=src",
+        "--cov-report=term-missing",
+        "-Wdefault::DeprecationWarning:remu",
+        "-Wignore::DeprecationWarning",
+        "tests.py",
+    )
 
 
 @nox.session(python=["3.8", "3.12"])
