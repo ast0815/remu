@@ -13,13 +13,13 @@ jobs:
       - name: Get test Python versions
         id: test_versions
         run: |
-          versions=$(nox --list-sessions --json | jq -r '.[] | select(.name == "tests") | .python[]')
-          echo "matrix={\"include\":[ $(printf '{\"python-version\":\"%s\"},' "$versions" | sed 's/,$//') ]}" >> $GITHUB_OUTPUT
+          versions=$(nox --list-sessions --json | jq -c '{"python-version": [.[] | select(.name == "tests") | .python]}')
+          echo "matrix=$versions" >> $GITHUB_OUTPUT
       - name: Get examples Python versions
         id: examples_versions
         run: |
-          versions=$(nox --list-sessions --json | jq -r '.[] | select(.name == "examples") | .python[]')
-          echo "matrix={\"include\":[ $(printf '{\"python-version\":\"%s\"},' "$versions" | sed 's/,$//') ]}" >> $GITHUB_OUTPUT
+          versions=$(nox --list-sessions --json | jq -c '{"python-version": [.[] | select(.name == "examples") | .python]}')
+          echo "matrix=$versions" >> $GITHUB_OUTPUT
 
   test:
     needs: setup
