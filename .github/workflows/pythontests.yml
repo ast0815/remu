@@ -14,6 +14,11 @@ jobs:
       examples_matrix: ${{ steps.examples_versions.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v4
+      - name: Install nox
+        run: |
+          pip install nox
       - name: Get test Python versions
         id: test_versions
         run: |
