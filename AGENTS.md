@@ -1,5 +1,10 @@
 # ReMU Agent Guidelines
 
+## Updating the AGENTS.md file
+
+- Whenever you laern something new about this project, update the `AGENTS.md` file
+- When something seems contradictory, ask the user for clarification
+
 ## Environment
 
 - All development and testing must happen in a virtual Python environment
@@ -8,10 +13,10 @@
 
 ## Build/Lint/Test Commands
 
-- Run all tests: `./run_tests.sh`
-- Run all examples: `./run_examples`
+- Run all tests: `nox -s tests` (Note: Tests will only run on available Python versions)
+- Run all examples: `nox -s examples`
   - **Danger** These examples can take a long time to run! Run only when strictly necessary!
-- Run single test: `coverage run --source 'remu' tests.py -k test_name`
+- Run single test: `nox -s tests -- -k test_name`
 - Single examples must be run from within the `docs/example/<example_number>` directory.
 - Lint code: `flake8 src/ tests.py`
 - Format code: `black src/ tests.py` and `isort src/ tests.py`
