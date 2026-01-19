@@ -1,6 +1,7 @@
 """Module that deals with the calculations of likelihoods."""
 
 import numpy as np
+import scipy.special
 from scipy import optimize, stats
 
 
@@ -352,9 +353,7 @@ class PoissonData(DataModel):
             self.data_vector = np.asarray(data_vector, dtype=int)
             k = self.data_vector
             self.k0 = k == 0
-            self.ln_k_factorial = -(
-                stats.poisson.logpmf(k, np.ones_like(k, dtype=float)) + 1.0
-            )
+            self.ln_k_factorial = scipy.special.gammaln(k + 1)
 
     @staticmethod
     def _poisson_logpmf(k, k0, ln_k_factorial, mu):
