@@ -1,6 +1,6 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm[toml]"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
 
 [project]
 name = "remu"
@@ -43,12 +43,53 @@ dependencies = [
 mcmc = [
     "emcee >= 3.1.0",
 ]
+test = [
+    "coverage >= 6.5",
+    "coveralls >= 3.3",
+    "pandas >= 1.3",
+    "pytest >= 7.0",
+    "pytest-cov >= 4.0",
+]
+docs = [
+    "numpydoc == 1.1.0",
+    "Sphinx == 6.2.1",
+    "sphinx-autobuild == 2021.3.14",
+    "sphinx-rtd-theme == 3.1.0",
+    "sphinxcontrib-svg2pdfconverter == 2.0.0",
+    "sphinxcontrib-websupport == 1.2.4",
+]
+examples = [
+    "awkward-pandas",
+    "multiprocess >= 0.70",
+    "uproot >= 5.0",
+]
 
 [project.urls]
 Home = "https://remu.readthedocs.io/en/latest/"
 
-[tool.setuptools_scm]
-write_to = "src/remu/_version.py"
+[tool.hatch]
+version.source = "vcs"
+build.hooks.vcs.version-file = "src/remu/_version.py"
 
-[tool.setuptools.dynamic]
-version = {attr = "remu.__version__"}
+# The example data files under docs/examples are tracked in git for the
+# repository, but they only weigh the sdist down (~47 MB) - they are not
+# needed to build the package.
+[tool.hatch.build.targets.sdist]
+exclude = [
+    "docs/examples/**/*.txt",
+    "docs/examples/**/*.npz",
+    "docs/examples/**/*.root",
+]
+
+# Tools that are needed outside the nox session environments (uv installs
+# this group by default with `uv sync`).
+[dependency-groups]
+dev = [
+    "nox >= 2024.3.2",
+    "pre-commit >= 3.5",
+]
+
+# Third-party libraries that do not ship type information.
+[[tool.mypy.overrides]]
+module = ["emcee", "emcee.*", "scipy", "scipy.*"]
+ignore_missing_imports = true

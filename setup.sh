@@ -3,30 +3,21 @@
 SCRIPT=`realpath $BASH_SOURCE`
 SCRIPTPATH=`dirname $SCRIPT`
 
-# Check whether the ENV exists
-if [ -d "$SCRIPTPATH/ENV" ]
+# Check whether uv is available
+if ! command -v uv >/dev/null 2>&1
 then
-    # Activate the environment
-    echo "Activating virtual environment."
-    . "$SCRIPTPATH/ENV/bin/activate"
-else
-    # Create a new virtual environment
-    virtualenv $@ "$SCRIPTPATH/ENV"
-
-    # Activate the environment
-    . "$SCRIPTPATH/ENV/bin/activate" && (
-
-        # Upgrade pip to the latest version (optional)
-        pip install --upgrade pip
-        pip install --upgrade setuptools
-
-        # Install all required packages
-        pip install -r "$SCRIPTPATH/requirements.txt"
-        pip install -r "$SCRIPTPATH/test-requirements.txt"
-        pip install -r "$SCRIPTPATH/documentation-requirements.txt"
-
-        # Install actual package
-        pip install -e "$SCRIPTPATH"
-
-    )
+    echo "uv is required to set up the development environment." >&2
+    echo "See https://docs.astral.sh/uv/getting-started/installation/." >&2
+    return 1 2>/dev/null || exit 1
 fi
+
+# Create or update the virtual environment in .venv and install the project
+# with all optional dependencies (extra arguments are passed to `uv sync`,
+# e.g. `. setup.sh -p 3.12` to select a Python version)
+if ! (cd "$SCRIPTPATH" && uv sync --all-extras "$@")
+then
+    return 1 2>/dev/null || exit 1
+fi
+
+# Activate the environment
+. "$SCRIPTPATH/.venv/bin/activate" && echo "Development environment ready. Activated .venv."
