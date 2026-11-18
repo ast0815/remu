@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for Python 3.13, 3.14 and 3.15.
 
 ### Changed
-- Coverage was bumped to 7.x, as 6.5.0 cannot analyse the bytecode of the newer Python versions.
+- Coverage was bumped to 7.x, as 6.5.0 cannot analyse the bytecode of the newer Python versions (coveralls went to 4.x with it, as 3.3.1 requires coverage < 7).
 
 ## [0.8.0] - 2023-06-05
 
