@@ -12,6 +12,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Support for Python 3.12.
 
+### Changed
+- The build system moved from setuptools/setuptools-scm to hatchling/hatch-vcs.
+- The development environment is now managed by `uv` (`uv sync`, `uv.lock`); the `*-requirements.txt` files are compatibility shims for pip-based tooling.
+- The nox `lint` session now installs the tools it runs (flake8, black, isort, mypy), which were previously missing from its environment.
+
 ## [0.8.0] - 2023-06-05
 
 ### Added
