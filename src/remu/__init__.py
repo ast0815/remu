@@ -5,6 +5,10 @@ events and response matrices.
 
 """
 
+from typing import Optional
+
+__version__: Optional[str]
+
 try:
     from ._version import __version__
 except ImportError:
