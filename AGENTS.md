@@ -2,7 +2,7 @@
 
 ReMU (Response Matrix Utilities) is a scientific Python library for binned
 likelihood calculations and hypothesis testing with response matrices.
-Supports Python 3.8–3.12 (CI matrix).
+Supports Python 3.11–3.15 (CI matrix).
 
 ## Setup
 
