@@ -14,10 +14,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for Python 3.12.
 - Support for Python 3.13, 3.14 and 3.15.
 
-### Changed
-- Coverage was bumped to 7.x, as 6.5.0 cannot analyse the bytecode of the newer Python versions (coveralls went to 4.x with it, as 3.3.1 requires coverage < 7).
-- The example sessions run on 3.11 and 3.14 instead of the newest Python: `dill` 0.4.1 still reads `code.co_lnotab`, which 3.15 removed, so the examples cannot run there until dill releases a fix. The test sessions still cover 3.15.
-
 ## [0.8.0] - 2023-06-05
 
 ### Added
