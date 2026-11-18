@@ -1,5 +1,10 @@
 import nox
 
+# The example scripts use multiprocess/dill, and dill 0.4.1 (the current
+# release) still reads code.co_lnotab, which Python 3.15 removed - so the
+# examples run up to 3.14 until dill releases its fix (uqfoundation/dill#755).
+# The test sessions below still cover 3.15.
+
 
 @nox.session(python=["3.11", "3.12", "3.13", "3.14", "3.15"])
 def tests(session):
@@ -17,7 +22,7 @@ def tests(session):
     )
 
 
-@nox.session(python=["3.11", "3.15"])
+@nox.session(python=["3.11", "3.14"])
 def examples(session):
     session.install("-r", "requirements.txt")
     session.install("-r", "test-requirements.txt")
