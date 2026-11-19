@@ -12,7 +12,13 @@ _SLICE = slice(None)
 
 
 class JeffreysPrior:
-    """Universal non-informative prior for use in Bayesian MCMC analysis.
+    """Jeffreys prior for Poisson distributed data, for use in Bayesian MCMC
+    analysis.
+
+    This is the Jeffreys prior derived from the Fisher information of the
+    Poisson likelihood used by `PoissonData`, i.e. it is the Jeffreys prior
+    for Poisson distributed data. For any other data model the Jeffreys prior
+    would have to be derived from that model's likelihood instead.
 
     Parameters
     ----------
@@ -116,6 +122,9 @@ class JeffreysPrior:
     def fisher_matrix(self, parameters, systematics_index=0):
         """Calculate the Fisher information matrix for the given parameters.
 
+        This is the Fisher information of the Poisson likelihood, i.e. of
+        Poisson distributed data.
+
         Parameters
         ----------
 
@@ -156,7 +165,8 @@ class JeffreysPrior:
         return fish
 
     def __call__(self, value, systematics_index=0):
-        """Calculate the prior probability of the given parameter set."""
+        """Calculate the Jeffreys prior probability for Poisson distributed
+        data of the given parameter set."""
 
         # Out of bounds?
         if not self.predictor.check_bounds(value):
