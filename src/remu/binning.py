@@ -1082,8 +1082,8 @@ class Binning(yaml.YAMLObject):
                 # Subbinning
                 # Add its adjacent data indices offset to correct position
                 offset = self.get_bin_data_index(i)
-                for adj in self.subbinnings[i].get_adjacent_data_indices():
-                    i_data.append(adj + offset)
+                for adj_data in self.subbinnings[i].get_adjacent_data_indices():
+                    i_data.append(adj_data + offset)
 
         return i_data
 
@@ -1235,7 +1235,7 @@ class Binning(yaml.YAMLObject):
 
         return arr
 
-    _csv_buffer = {}
+    _csv_buffer: dict = {}
 
     @classmethod
     def _load_csv_file_buffered(cls, filename, chunksize):
@@ -2151,7 +2151,7 @@ class CartesianProductBinning(Binning):
         """
 
         try:
-            len(binning_i)
+            _ = len(binning_i)
         except TypeError:
             binning_i = [binning_i]
 
@@ -2667,7 +2667,7 @@ class RectilinearBinning(CartesianProductBinning):
         """
 
         try:
-            len(binning_i)
+            _ = len(binning_i)
         except TypeError:
             binning_i = [binning_i]
 

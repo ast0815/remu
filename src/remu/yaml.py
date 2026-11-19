@@ -4,8 +4,14 @@ This module provides custom YAML serialization/deserialization with
 NumPy 2.x compatibility.
 """
 
+from typing import cast
+
 import numpy as np
 import yaml
+
+# Static re-exports for type checkers; the loop at the end of this module
+# re-exports the full PyYAML API at runtime.
+from yaml import FullLoader, YAMLObject
 
 
 def represent_numpy_scalar(dumper, data):
@@ -25,13 +31,17 @@ def represent_numpy_scalar(dumper, data):
         return dumper.represent_str(str(value))
 
 
-# Register the custom representer
-yaml.add_multi_representer(np.generic, represent_numpy_scalar)
+# Register the custom representer (np.generic is used as an isinstance tag
+# here, not instantiated).
+yaml.add_multi_representer(cast(type, np.generic), represent_numpy_scalar)
 
 
-# Re-export all public symbols from PyYAML
-__all__ = []
+# Re-export all public symbols from PyYAML. The names used across the package
+# are listed statically so that type checkers and linters can see them; the
+# loop appends the rest at runtime.
+__all__ = ["FullLoader", "YAMLObject"]
 for name in dir(yaml):
     if not name.startswith("_"):
         globals()[name] = getattr(yaml, name)
-        __all__.append(name)
+        if name not in __all__:
+            __all__.append(name)

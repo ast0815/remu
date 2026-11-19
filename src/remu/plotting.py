@@ -189,7 +189,7 @@ class ArrayPlotter(Plotter):
             lower, upper = stack_function
         except TypeError:
             # Nope
-            def lower(x, axis=0):
+            def lower(x, axis=0, bound=None):
                 return np.sum(np.zeros_like(x), axis=axis)
 
             upper = stack_function

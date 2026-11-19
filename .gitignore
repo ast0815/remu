@@ -1,5 +1,6 @@
-# Ignore virtualenv
+# Ignore virtualenvs
 /ENV
+/.venv
 _version.py
 *.egg-info
 /dist

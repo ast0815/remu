@@ -12,31 +12,26 @@ Setup
 Installing development version from source
 ------------------------------------------
 
-It is recommended to run this software in a virtual Python environment
-(virtualenv). This ensures that all required packages are present in the tested
-version and do not interfere with other packages installed on the system. The
-easiest way to do so, is to simply source ``setup.sh`` after checking out the
-source code::
+It is recommended to run this software in an isolated virtual Python
+environment. This ensures that all required packages are present in the
+tested version and do not interfere with other packages installed on the
+system. The environment is managed by `uv <https://docs.astral.sh/uv/>`_.
+The easiest way to create it is to simply source ``setup.sh`` after checking
+out the source code::
 
     $ . setup.sh
 
 This will automatically do something along these lines::
 
-    $ # Create a new virtual environment
-    $ virtualenv ENV
+    $ # Create the virtual environment and install all dependencies
+    $ uv sync --all-extras
     $ # Activate the environment
-    $ . ENV/bin/activate
-    $ # Upgrade pip to the latest version (optional)
-    $ pip install --upgrade pip
-    $ # Install all required packages
-    $ pip install -r requirements.txt
-    $ # Install actual package
-    $ pip install -e .
+    $ . .venv/bin/activate
 
-It will only create a new virtual environment if one does not exist already.
-You can also specify which Python version to use by providing the respective
-``virtualenv`` argument to ``setup.sh``, e.g. ``. setup.sh -p python3``. You
-might need to install additional system libraries to compile all packages.
+It will only create the environment if it does not exist already (and keep it
+up to date otherwise). You can select a specific Python version by passing it
+on to ``uv``, e.g. ``. setup.sh -p 3.12``. You might need to install
+additional system libraries to compile all packages.
 
 ReMU requires Python >=3.11.
 
@@ -63,9 +58,14 @@ use pip's 'Extras' syntax::
 Tests
 =====
 
-Run all test cases of the framework::
+Run all test cases of the framework with nox (uses the Python versions
+installed on your system)::
 
-    $ pip install -r test-requirements.txt
+    $ uv run nox -s tests
+
+Or, inside the environment created by ``setup.sh``, run them directly with
+coverage::
+
     $ ./run_tests.sh
 
 Online documentation
