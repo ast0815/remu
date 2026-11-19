@@ -18,6 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The build system moved from setuptools/setuptools-scm to hatchling/hatch-vcs.
 - The development environment is now managed by `uv` (`uv sync`, `uv.lock`); the `*-requirements.txt` files are compatibility shims for pip-based tooling.
 - The nox `lint` session now installs the tools it runs (flake8, black, isort, mypy), which were previously missing from its environment.
+- `JeffreysPrior` now takes a single `Predictor` instead of a separate response matrix, translation function, parameter limits and default values. This is a breaking change: `toy_index` became `systematics_index`, `translate()` became `reco_expectation()`, and `total_truth_limit` became `total_prediction_limit`, which now limits the total number of predicted events (equivalent to the previous truth limit for a response matrix with unit efficiency).
+
+### Fixed
+- `JeffreysPrior.fisher_matrix()` no longer raises `ValueError` when differentiating; the local replacement for `scipy.misc.derivative` could not handle the vector-valued function it was used with.
 
 ## [0.8.0] - 2023-06-05
 

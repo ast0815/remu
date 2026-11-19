@@ -4,50 +4,6 @@ import numpy as np
 import scipy.special
 from scipy import optimize, stats
 
-
-def derivative(func, x0, dx=1.0e-6, n=1, args=(), order=3):
-    """Calculate the n-th derivative of a function at a point.
-
-    This is a replacement for the deprecated scipy.misc.derivative.
-    """
-    # Handle array dx properly - treat each element separately
-    if hasattr(dx, "__iter__") and not isinstance(dx, str):
-        dx = np.asarray(dx)
-        if dx.size == 1:
-            dx = float(dx)
-        else:
-            # For array dx, we need to handle each derivative separately
-            # Use vectorized approach for efficiency
-            x0 = np.asarray(x0)
-            result = np.empty_like(x0, dtype=float)
-            for i, h in enumerate(dx):
-                x0_i = x0[i] if x0.ndim > 0 else x0
-                result[i] = (func(x0_i + h, *args) - func(x0_i - h, *args)) / (2 * h)
-            return result
-
-    if n == 1:
-        # Use central difference for first derivative
-        h = dx
-        return (func(x0 + h, *args) - func(x0 - h, *args)) / (2 * h)
-    else:
-        # For higher derivatives, use finite differences with central difference weights
-        h = dx
-        if n == 2 and order >= 2:
-            # Second derivative central difference
-            return (func(x0 + h, *args) - 2 * func(x0, *args) + func(x0 - h, *args)) / (
-                h**2
-            )
-        else:
-            # Fall back to forward difference for other cases
-            points = [x0 + i * h for i in range(order + 1)]
-            values = [func(p, *args) for p in points]
-            # Simple finite difference approximation
-            result = 0.0
-            for i in range(1, min(n + 1, len(values))):
-                result += ((-1) ** (i + 1)) * values[i] / (h**i)
-            return result
-
-
 # Use this function/object for parallelization where possible
 mapper = map
 
@@ -61,54 +17,34 @@ class JeffreysPrior:
     Parameters
     ----------
 
-    response_matrix : ndarray
-        Response matrix that translates truth into reco bins.
-        Can be an array of matrices.
-
-    translation_function : function
-        The function to translate a vector of parameters into a vector of truth
-        expectation values::
-
-            truth_vector = translation_function(parameter_vector)
-
-        It must support translating arrays of parameter vectors into arrays of
-        truth vectors::
-
-            [truth_vector, ...] = translation_function([parameter_vector, ...])
-
-    parameter_limits : iterable of tuple of floats
-        An iterable of lower and upper limits of the hypothesis' parameters.
-        The number of limits determines the number of parameters. Parameters
-        can be `None`. This sets no limit in that direction.
-        ::
-
-            [ (x1_min, x1_max), (x2_min, x2_max), ... ]
-
-    default_values : iterable of floats
-        The default values of the parameters
+    predictor : Predictor
+        The predictor that maps the hypothesis parameters to reco expectation
+        values. It also provides the parameter bounds and default values.
 
     dx : array like
         Array of step sizes to be used in numerical differentiation.
-        Default: ``numpy.full(len(parameter_limits), 1e-3)``
+        Default: ``numpy.full(len(predictor.defaults), 1e-3)``
 
-    total_truth_limit : float
-        Maximum total number of truth events to consider in the prior. This can
-        be used to make priors proper in a consistent way, since the limit is
-        defined in the truth space, rather than the prior parameter space.
+    total_prediction_limit : float
+        Maximum total number of predicted events to consider in the prior.
+        This can be used to make priors proper in a consistent way, since the
+        limit is defined in the space of predicted event counts, rather than
+        the prior parameter space. For a response matrix with unit efficiency
+        this is equivalent to a limit on the total number of truth events.
 
     Notes
     -----
 
     The `JeffreysPrior` object can be called like a function. It will return
-    the prior log-likliehood of the given set of parameters::
+    the prior log-likelihood of the given set of parameters::
 
         prior_likelihood = jeffreys_prior(parameter_vector)
 
-    If the prior was constructed with more than one response matrix,
-    the matrix to be used for the calculation can be chosen with the
-    `toy_index` argument::
+    If the predictor provides more than one systematic variation, the one to
+    be used for the calculation can be chosen with the `systematics_index`
+    argument::
 
-        jeffreys_prior(parameter_vector, toy_index=5)
+        jeffreys_prior(parameter_vector, systematics_index=5)
 
     By construction, the JeffreysPrior will return the log probability
     `-inf`, a probability of 0, when the expected *reco* values do not
@@ -119,81 +55,74 @@ class JeffreysPrior:
     Attributes
     ----------
 
-    response_matrix : ndarray
-        The response matrix used to calculate the Fisher matrix.
+    predictor : Predictor
+        The predictor used to calculate the Fisher matrix.
     default_values : ndarray
         The default values of the parameters.
     lower_limits : ndarray
         Lower limits of the parameters.
     upper_limits : ndarray
         Upper limits of the parameters.
-    total_truth_limit : float
-        The upper limit of total number of true events.
+    total_prediction_limit : float
+        The upper limit of the total number of predicted events.
     dx : ndarray
         Array of step sizes to be used in numerical differentiation.
 
     """
 
-    def __init__(
-        self,
-        response_matrix,
-        translation_function,
-        parameter_limits,
-        default_values,
-        dx=None,
-        total_truth_limit=None,
-    ):
-        old_shape = response_matrix.shape
-        new_shape = (int(np.prod(old_shape[:-2])), old_shape[-2], old_shape[-1])
-        self.response_matrix = response_matrix.reshape(new_shape)
+    def __init__(self, predictor, dx=None, total_prediction_limit=None):
+        self.predictor = predictor
 
-        self._translate = translation_function
+        bounds = np.asarray(predictor.bounds, dtype=float)
+        self.lower_limits = bounds[:, 0]
+        self.upper_limits = bounds[:, 1]
+        self.default_values = np.asarray(predictor.defaults, dtype=float)
 
-        limits = list(zip(*parameter_limits))
-        self.lower_limits = np.array(
-            [x if x is not None else -np.inf for x in limits[0]]
-        )
-        self.upper_limits = np.array(
-            [x if x is not None else np.inf for x in limits[1]]
-        )
+        self._npar = len(self.default_values)
+        if dx is None:
+            self.dx = np.full(self._npar, 1e-3)
+        else:
+            self.dx = np.asarray(dx, dtype=float)
 
-        self.total_truth_limit = total_truth_limit or np.inf
+        if total_prediction_limit is None:
+            self.total_prediction_limit = np.inf
+        else:
+            self.total_prediction_limit = total_prediction_limit
 
-        self.default_values = np.array(default_values)
-
-        self._npar = len(parameter_limits)
-        self._nreco = response_matrix.shape[-2]
-        self._i_diag = np.diag_indices(self._npar)
-        self.dx = dx or np.full(self._npar, 1e-3)
-
-    def translate(self, parameters):
-        """Translate the parameter vector to a truth vector.
+    def reco_expectation(self, parameters, systematics_index=0):
+        """Calculate the reco expectation values for the given parameters.
 
         Parameters
         ----------
 
-        parameters : ndarray like
-            Vector of the hypothesis parameters.
+        parameters : array like
+            Vector of the hypothesis parameters. Batches of parameter vectors
+            are supported as well.
+        systematics_index : int, optional
+            The index of the systematic variation to be used.
 
         Returns
         -------
 
         ndarray
-            Vector of the corresponding truth space expectation values.
+            Vector of the corresponding reco expectation values.
 
         """
-        return self._translate(parameters)
+        prediction, _ = self.predictor.prediction(
+            parameters, systematics_index=systematics_index
+        )
+        return np.asarray(prediction, dtype=float)
 
-    def fisher_matrix(self, parameters, toy_index=0):
+    def fisher_matrix(self, parameters, systematics_index=0):
         """Calculate the Fisher information matrix for the given parameters.
 
         Parameters
         ----------
 
         parameters : array like
-            The parameters of the translation function.
-        toy_index : int, optional
-            The index of the response matrix to be used for the calculation
+            The parameters of the predictor.
+        systematics_index : int, optional
+            The index of the systematic variation to be used for the calculation
 
         Returns
         -------
@@ -203,48 +132,42 @@ class JeffreysPrior:
 
         """
 
-        resp = self.response_matrix[toy_index]
+        parameters = np.asarray(parameters, dtype=float)
         npar = self._npar
-        nreco = self._nreco
-        par_mat = np.array(np.broadcast_to(parameters, (npar, npar)))
-        i_diag = self._i_diag
+        dx = np.broadcast_to(self.dx, (npar,))
 
-        # list of parameter sets -> list of reco values
-        def reco_expectation(theta):
-            ret = np.tensordot(self.translate(theta), resp, ([-1], [-1]))
-            return ret
+        # Evaluate the reco expectation values for all parameters shifted by
+        # +/- their own step size in a single batched call: rows 0..npar-1
+        # shift parameter i by +dx_i, rows npar..2npar-1 by -dx_i.
+        shifts = np.diag(dx)
+        batch = np.concatenate([parameters + shifts, parameters - shifts], axis=0)
+        reco = self.reco_expectation(batch, systematics_index)
+        diff = (reco[:npar] - reco[npar:]) / (2 * dx[:, np.newaxis])
 
-        # npar by npar matrix of reco values
-        expect = np.broadcast_to(reco_expectation(par_mat), (npar, npar, nreco))
-
-        # Diff expects the last axis to be the parameters, not the reco values!
-        # varied parameter set -> transposed list of reco values
-        def curried(x):
-            par_mat[i_diag] = x
-            return reco_expectation(par_mat).T
-
-        diff = derivative(curried, x0=parameters, dx=self.dx).T
-
-        diff_i = np.broadcast_to(diff, (npar, npar, nreco))
-        diff_j = np.swapaxes(diff_i, 0, 1)
+        # Reco expectation values at the given parameters
+        expect = self.reco_expectation(parameters, systematics_index)
 
         # Nansum to ignore 0. * 0. / 0.
         # Equivalent to ignoring those reco bins
-        fish = np.nansum(diff_i * diff_j / expect, axis=-1)
+        with np.errstate(divide="ignore", invalid="ignore"):
+            fish = np.nansum(
+                diff[:, np.newaxis, :] * diff[np.newaxis, :, :] / expect, axis=-1
+            )
         return fish
 
-    def __call__(self, value, toy_index=0):
+    def __call__(self, value, systematics_index=0):
         """Calculate the prior probability of the given parameter set."""
 
         # Out of bounds?
-        if np.any(value < self.lower_limits) or np.any(value > self.upper_limits):
+        if not self.predictor.check_bounds(value):
             return -np.inf
 
-        # Out of total truth bound?
-        if np.sum(self.translate(value)) > self.total_truth_limit:
+        # Out of total prediction bound?
+        total = np.sum(self.reco_expectation(value, systematics_index))
+        if total > self.total_prediction_limit:
             return -np.inf
 
-        fish = self.fisher_matrix(value, toy_index)
+        fish = self.fisher_matrix(value, systematics_index)
         with np.errstate(under="ignore"):
             sign, log_det = np.linalg.slogdet(fish)
 
