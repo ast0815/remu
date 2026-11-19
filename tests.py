@@ -1226,6 +1226,82 @@ class TestPoissonData(unittest.TestCase):
         self.assertEqual(ret.shape, (3, 5, 4))
 
 
+class TestJeffreysPrior(unittest.TestCase):
+    def setUp(self):
+        self.matrix = np.array([[0.7, 0.1], [0.2, 0.6], [0.1, 0.3]])
+        self.parameters = np.array([10.0, 20.0])
+        self.pred = likelihood.MatrixPredictor(
+            self.matrix, bounds=[(0.0, 100.0), (0.0, 100.0)], defaults=[5.0, 5.0]
+        )
+        self.prior = likelihood.JeffreysPrior(self.pred)
+        # Analytic Poisson Fisher matrix for mu = matrix @ parameters
+        mu = self.matrix @ self.parameters
+        self.expected_fisher = self.matrix.T @ np.diag(1.0 / mu) @ self.matrix
+
+    def test_fisher_matrix(self):
+        np.testing.assert_allclose(
+            self.prior.fisher_matrix(self.parameters),
+            self.expected_fisher,
+            rtol=1e-9,
+        )
+
+    def test_log_prior(self):
+        expected = 0.5 * np.linalg.slogdet(self.expected_fisher)[1]
+        np.testing.assert_allclose(self.prior(self.parameters), expected, rtol=1e-9)
+
+    def test_bounds(self):
+        self.assertEqual(self.prior([-1.0, 20.0]), -np.inf)
+        self.assertEqual(self.prior([10.0, 200.0]), -np.inf)
+
+    def test_total_prediction_limit(self):
+        total = np.sum(self.matrix @ self.parameters)
+        strict = likelihood.JeffreysPrior(self.pred, total_prediction_limit=total - 1.0)
+        self.assertEqual(strict(self.parameters), -np.inf)
+        loose = likelihood.JeffreysPrior(self.pred, total_prediction_limit=total + 1.0)
+        self.assertTrue(np.isfinite(loose(self.parameters)))
+
+    def test_array_dx(self):
+        prior = likelihood.JeffreysPrior(self.pred, dx=np.array([1e-4, 1e-4]))
+        np.testing.assert_allclose(
+            prior.fisher_matrix(self.parameters), self.expected_fisher, rtol=1e-7
+        )
+
+    def test_systematics_index(self):
+        pred = likelihood.MatrixPredictor(
+            [self.matrix, 2 * self.matrix],
+            bounds=[(0.0, 100.0), (0.0, 100.0)],
+        )
+        prior = likelihood.JeffreysPrior(pred)
+        f0 = prior.fisher_matrix(self.parameters, systematics_index=0)
+        f1 = prior.fisher_matrix(self.parameters, systematics_index=1)
+        np.testing.assert_allclose(f0, self.expected_fisher, rtol=1e-9)
+        # Scaling the response matrix by 2 scales the Fisher matrix by 2
+        np.testing.assert_allclose(f1, 2 * self.expected_fisher, rtol=1e-9)
+
+    def test_composed_predictor(self):
+        # truth = translation @ parameters, reco = matrix @ truth
+        translation = np.array([[1.0, 0.5], [0.0, 2.0]])
+        trans_pred = likelihood.MatrixPredictor(
+            translation, bounds=[(0.0, 100.0), (0.0, 100.0)], defaults=[5.0, 5.0]
+        )
+        pred = likelihood.ComposedPredictor(
+            [likelihood.MatrixPredictor(self.matrix), trans_pred]
+        )
+        prior = likelihood.JeffreysPrior(pred)
+        effective = self.matrix @ translation
+        mu = effective @ self.parameters
+        expected = effective.T @ np.diag(1.0 / mu) @ effective
+        np.testing.assert_allclose(
+            prior.fisher_matrix(self.parameters), expected, rtol=1e-9
+        )
+
+    def test_unconstrainable_parameter(self):
+        # Reco expectations do not depend on the second parameter
+        pred = likelihood.MatrixPredictor([[1.0, 0.0], [0.0, 0.0]])
+        prior = likelihood.JeffreysPrior(pred)
+        self.assertEqual(prior([3.0, 7.0]), -np.inf)
+
+
 class TestLinearEinsumPredictor(unittest.TestCase):
     def setUp(self):
         M = [[[1, 0], [0, 1]], [[0.9, 0], [0, 0.8]]]
