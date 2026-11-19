@@ -5,8 +5,13 @@ nox.needs_version = ">=2024.3.2"
 # virtualenv otherwise (e.g. in environments without uv).
 nox.options.default_venv_backend = "uv|virtualenv"
 
+# The example scripts use multiprocess/dill, and dill 0.4.1 (the current
+# release) still reads code.co_lnotab, which Python 3.15 removed - so the
+# examples run up to 3.14 until dill releases its fix (uqfoundation/dill#755).
+# The test sessions below still cover 3.15.
 
-@nox.session(python=["3.8", "3.9", "3.10", "3.11", "3.12"])
+
+@nox.session(python=["3.11", "3.12", "3.13", "3.14", "3.15"])
 def tests(session):
     # Editable so that --cov=src measures the sources the tests import.
     session.install("-e", ".[mcmc,test]")
@@ -20,7 +25,7 @@ def tests(session):
     )
 
 
-@nox.session(python=["3.8", "3.12"])
+@nox.session(python=["3.11", "3.14"])
 def examples(session):
     session.install("-e", ".[mcmc,test,examples]")
     session.run("./run_examples.sh")

@@ -33,7 +33,7 @@ up to date otherwise). You can select a specific Python version by passing it
 on to ``uv``, e.g. ``. setup.sh -p 3.12``. You might need to install
 additional system libraries to compile all packages.
 
-ReMU requires Python >=3.8.
+ReMU requires Python >=3.11.
 
 Installing official releases with ``pip``
 -----------------------------------------

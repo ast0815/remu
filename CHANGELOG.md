@@ -8,9 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Removed
 - Support for Python 3.7, as it is beyond its lifetime
+- Support for Python 3.8, 3.9 and 3.10, as they are beyond their lifetime
 
 ### Added
 - Support for Python 3.12.
+- Support for Python 3.13, 3.14 and 3.15.
 
 ### Changed
 - The build system moved from setuptools/setuptools-scm to hatchling/hatch-vcs.
